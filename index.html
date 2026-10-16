@@ -22,7 +22,6 @@
       --danger: #ef4444;
       --warning: #f59e0b;
 
-      /* GCal Cognitive Color Profiles */
       --color-11: #ef4444; /* High Cognitive Tax / Tomato */
       --color-4: #f472b6;  /* Social / Flamingo */
       --color-8: #64748b;  /* Chores & Errands / Graphite */
@@ -167,13 +166,60 @@
     }
     .curve-svg { width: 100%; height: 60px; overflow: visible; }
 
-    .timeline-header {
+    /* Interactive Timeline Controls */
+    .timeline-nav {
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
     .timeline-title { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
-    .badge-live { background: #064e3b; color: #6ee7b7; font-size: 0.7rem; padding: 2px 8px; border-radius: 9999px; font-weight: 600; }
+    
+    .view-toggle {
+      display: flex;
+      background: #030712;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .view-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .view-btn.active {
+      background: #1e293b;
+      color: var(--primary);
+    }
+
+    /* THE BUBBLE CANVAS */
+    #bubbleCanvasContainer {
+      position: relative;
+      width: 100%;
+      height: 240px;
+      background: #030712;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    #bubbleCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .bubble-hint {
+      position: absolute;
+      bottom: 8px;
+      left: 12px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
 
     /* Cognitive Physics: Event Flow */
     .events-list {
@@ -184,7 +230,6 @@
       width: 100%;
     }
 
-    /* Base Physics Card */
     .event-card {
       border: 1px solid var(--border);
       background: #111827;
@@ -205,20 +250,8 @@
     .event-card[data-color="2"]  { border-left-color: var(--color-2); }
     .event-card[data-color="9"]  { border-left-color: var(--color-9); }
 
-    /* DIMENSION 1: LATERAL BULGE & MASS DENSITY */
-    /* Light Maintenance (Compact 78% width) */
-    .event-card.mass-light {
-      width: 82%;
-      background: #0f172a;
-      border-color: #334155;
-    }
-
-    /* Medium Focus (92% width) */
-    .event-card.mass-medium {
-      width: 92%;
-    }
-
-    /* Heavy Cast-Iron / Dread Ingot (100% width, dense knurling) */
+    .event-card.mass-light { width: 82%; background: #0f172a; border-color: #334155; }
+    .event-card.mass-medium { width: 92%; }
     .event-card.mass-heavy {
       width: 100%;
       border-color: #7f1d1d;
@@ -232,7 +265,6 @@
       box-shadow: 0 4px 14px rgba(239, 68, 68, 0.15), inset 0 0 12px rgba(239, 68, 68, 0.08);
     }
 
-    /* DIMENSION 2: INITIATION WEDGE (RAMP STEEPNESS) */
     .initiation-ramp {
       position: absolute;
       top: -1px;
@@ -247,35 +279,15 @@
       padding: 2px 8px;
       border-radius: 0 0 6px 6px;
     }
+    .ramp-sheer { background: #7f1d1d; color: #fca5a5; border: 1px solid #b91c1c; border-top: none; }
+    .ramp-moderate { background: #451a03; color: #fed7aa; border: 1px solid #c2410c; border-top: none; }
+    .ramp-flat { background: #064e3b; color: #6ee7b7; border: 1px solid #047857; border-top: none; }
 
-    .ramp-sheer {
-      background: #7f1d1d;
-      color: #fca5a5;
-      border: 1px solid #b91c1c;
-      border-top: none;
-    }
-
-    .ramp-moderate {
-      background: #451a03;
-      color: #fed7aa;
-      border: 1px solid #c2410c;
-      border-top: none;
-    }
-
-    .ramp-flat {
-      background: #064e3b;
-      color: #6ee7b7;
-      border: 1px solid #047857;
-      border-top: none;
-    }
-
-    /* DIMENSION 3: KINETIC MOMENTUM GLOW & CONNECTOR */
     .event-card.momentum-booster {
       border-color: #059669;
       background: #064e3b18;
       box-shadow: 0 0 16px rgba(16, 185, 129, 0.15);
     }
-
     .momentum-filament {
       width: 2px;
       height: 12px;
@@ -284,19 +296,9 @@
       border-radius: 1px;
     }
 
-    .event-card.existing {
-      opacity: 0.85;
-      border-style: dashed;
-    }
-
-    .event-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      padding-top: 4px;
-    }
+    .event-card.existing { opacity: 0.85; border-style: dashed; }
+    .event-header { display: flex; justify-content: space-between; align-items: baseline; padding-top: 4px; }
     .event-title { font-size: 1.05rem; font-weight: 600; color: #fff; }
-    
     .event-detail { font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 8px; }
     .event-detail strong { color: var(--text); }
 
@@ -351,7 +353,7 @@
 
     <div class="header-row">
       <h1>Personal Scheduler</h1>
-      <div class="version-tag">VERSION 2.2</div>
+      <div class="version-tag">VERSION 2.3</div>
     </div>
 
     <div class="card">
@@ -370,22 +372,32 @@
 
     <!-- Active Calendar Dashboard -->
     <div id="outputContainer" class="card">
-      <div class="timeline-header">
-        <span class="timeline-title">Cognitive Physics Timeline</span>
-        <span id="liveBadge" class="badge-live">Connecting...</span>
+      <div class="timeline-nav">
+        <span class="timeline-title">Cognitive Physics Dashboard</span>
+        <div class="view-toggle">
+          <button id="viewBubblesBtn" class="view-btn active" onclick="switchView('bubbles')">Bubbles</button>
+          <button id="viewCardsBtn" class="view-btn" onclick="switchView('cards')">Cards</button>
+        </div>
       </div>
 
-      <!-- Cognitive Fuel Curve -->
+      <!-- Energy Barometer SVG Curve -->
       <div class="barometer-container">
         <div class="barometer-title">
-          <span>Predicted Fuel Reserves</span>
-          <span id="fuelScoreText">Calculating...</span>
+          <span>Projected Energy Reserves</span>
+          <span id="fuelScoreText">Ready</span>
         </div>
         <svg id="curveSvg" class="curve-svg" viewBox="0 0 400 60"></svg>
       </div>
 
+      <!-- VIEW A: POPPABLE BUBBLE CANVAS -->
+      <div id="bubbleCanvasContainer">
+        <canvas id="bubbleCanvas"></canvas>
+        <div class="bubble-hint">⚡ Tap high-friction red bubbles to pop & split into micro-sprints</div>
+      </div>
+
+      <!-- VIEW B: PHYSICAL CARDS TIMELINE -->
       <div id="planSummary" class="plan-summary hidden"></div>
-      <div id="eventsContainer" class="events-list"></div>
+      <div id="eventsContainer" class="events-list hidden"></div>
       
       <button id="saveAllBtn" class="btn-action hidden" onclick="commitPendingEvents()">Add New Events to Calendar</button>
     </div>
@@ -395,6 +407,181 @@
     const WORKER_URL = 'https://gemini-proxy.strand-troy.workers.dev';
     let combinedEvents = [];
     let pendingEvents = [];
+    let activeView = 'bubbles';
+
+    // Physics Bubble Simulation
+    let bubbles = [];
+    let animFrame = null;
+    const canvas = document.getElementById('bubbleCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    function initBubbles(events) {
+      resizeCanvas();
+      const w = canvas.getBoundingClientRect().width;
+      const h = canvas.getBoundingClientRect().height;
+
+      bubbles = events.map((ev, i) => {
+        const delta = ev.energy_delta || 0;
+        const friction = ev.initiation_friction || 2;
+        
+        // Radius based on cognitive mass
+        let r = 24;
+        if (delta <= -2) r = 40 + friction * 4;
+        else if (delta >= 1) r = 32;
+        else r = 26;
+
+        let color = '#6366f1';
+        if (ev.color_id === '11' || delta <= -2) color = '#ef4444';
+        else if (ev.color_id === '2' || delta >= 1) color = '#10b981';
+        else if (ev.color_id === '4') color = '#f472b6';
+        else if (ev.color_id === '8') color = '#64748b';
+
+        return {
+          id: ev.id || i,
+          title: ev.title || 'Event',
+          r: r,
+          targetR: r,
+          x: 40 + (i * ((w - 80) / Math.max(events.length - 1, 1))),
+          y: h / 2 + (Math.sin(i) * 20),
+          vx: (Math.random() - 0.5) * 0.8,
+          vy: (Math.random() - 0.5) * 0.8,
+          color: color,
+          friction: friction,
+          delta: delta,
+          isSplit: false
+        };
+      });
+
+      if (!animFrame) runBubblePhysics();
+    }
+
+    function runBubblePhysics() {
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+
+      ctx.clearRect(0, 0, w, h);
+
+      for (let i = 0; i < bubbles.length; i++) {
+        const b = bubbles[i];
+
+        // Smooth growth/pop animation
+        b.r += (b.targetR - b.r) * 0.15;
+
+        // Gentle floating velocity
+        b.x += b.vx;
+        b.y += b.vy;
+
+        // Wall collisions
+        if (b.x - b.r < 0) { b.x = b.r; b.vx *= -1; }
+        if (b.x + b.r > w) { b.x = w - b.r; b.vx *= -1; }
+        if (b.y - b.r < 0) { b.y = b.r; b.vy *= -1; }
+        if (b.y + b.r > h) { b.y = h - b.r; b.vy *= -1; }
+
+        // Draw outer glow for high energy or high drain
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r + (b.friction >= 4 ? 4 : 2), 0, Math.PI * 2);
+        ctx.fillStyle = b.color + '22';
+        ctx.fill();
+
+        // Draw physical bubble body
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fillStyle = b.color + '44';
+        ctx.fill();
+        ctx.lineWidth = b.friction >= 4 ? 3 : 1.5;
+        ctx.strokeStyle = b.color;
+        ctx.stroke();
+
+        // Draw Title text truncated inside bubble
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '600 ' + Math.max(10, Math.min(13, b.r / 3.2)) + 'px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        const maxLen = Math.floor(b.r / 3.5);
+        const displayTitle = b.title.length > maxLen ? b.title.substring(0, maxLen - 1) + '…' : b.title;
+        ctx.fillText(displayTitle, b.x, b.y);
+      }
+
+      animFrame = requestAnimationFrame(runBubblePhysics);
+    }
+
+    // Tap to POP and SPLIT heavy bubbles
+    canvas.addEventListener('click', function(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+
+      for (let i = bubbles.length - 1; i >= 0; i--) {
+        const b = bubbles[i];
+        const dist = Math.hypot(clickX - b.x, clickY - b.y);
+
+        if (dist < b.r) {
+          // If it's a high friction dread task, pop it into 2 micro-sprints!
+          if (b.friction >= 4 && !b.isSplit) {
+            b.isSplit = true;
+            b.targetR = b.r * 0.65;
+            b.title = 'Part 1 (15m)';
+            b.color = '#f59e0b';
+            b.vx = -1.5;
+
+            // Spawn micro-satellite bubble
+            bubbles.push({
+              id: 'split_' + Date.now(),
+              title: 'Part 2 (15m)',
+              r: 10,
+              targetR: b.r * 0.65,
+              x: b.x + 30,
+              y: b.y,
+              vx: 1.5,
+              vy: (Math.random() - 0.5) * 1.5,
+              color: '#10b981',
+              friction: 2,
+              delta: 0,
+              isSplit: true
+            });
+
+            if (navigator.vibrate) navigator.vibrate([20, 40, 20]);
+          } else {
+            // Gentle tactile bounce
+            b.vx += (Math.random() - 0.5) * 3;
+            b.vy += (Math.random() - 0.5) * 3;
+            if (navigator.vibrate) navigator.vibrate(15);
+          }
+          break;
+        }
+      }
+    });
+
+    function switchView(mode) {
+      activeView = mode;
+      const bubbleContainer = document.getElementById('bubbleCanvasContainer');
+      const cardsContainer = document.getElementById('eventsContainer');
+      const bubblesBtn = document.getElementById('viewBubblesBtn');
+      const cardsBtn = document.getElementById('viewCardsBtn');
+
+      if (mode === 'bubbles') {
+        bubbleContainer.classList.remove('hidden');
+        cardsContainer.classList.add('hidden');
+        bubblesBtn.classList.add('active');
+        cardsBtn.classList.remove('active');
+        resizeCanvas();
+      } else {
+        bubbleContainer.classList.add('hidden');
+        cardsContainer.classList.remove('hidden');
+        bubblesBtn.classList.remove('active');
+        cardsBtn.classList.add('active');
+      }
+    }
 
     function formatReadableDate(dateStr) {
       if (!dateStr) return '';
@@ -431,7 +618,7 @@
       const svg = document.getElementById('curveSvg');
       const scoreText = document.getElementById('fuelScoreText');
       if (!events || events.length === 0) {
-        scoreText.innerText = 'No Events Scheduled';
+        scoreText.innerText = 'Intake Ready';
         scoreText.style.color = 'var(--text-muted)';
         svg.innerHTML = '<line x1="0" y1="30" x2="400" y2="30" stroke="#334155" stroke-dasharray="4" stroke-width="1" />';
         return;
@@ -486,18 +673,15 @@
         const delta = ev.energy_delta || 0;
         const friction = ev.initiation_friction || 2;
 
-        // Class 1: Lateral Mass
         let massClass = 'mass-medium';
         if (delta <= -2) massClass = 'mass-heavy';
         else if (delta >= 1 || ev.color_id === '8') massClass = 'mass-light';
 
-        // Class 2: Momentum Booster
         let momentumClass = '';
         if (delta >= 1 || ev.color_id === '2') {
           momentumClass = 'momentum-booster';
         }
 
-        // Ramp indicator
         let rampHtml = '';
         if (friction >= 4) {
           rampHtml = '<div class="initiation-ramp ramp-sheer">▲ ' + (friction === 5 ? 'Sheer Cliff' : 'High Incline') + '</div>';
@@ -507,7 +691,6 @@
           rampHtml = '<div class="initiation-ramp ramp-flat">● Effortless</div>';
         }
 
-        // Micro starter checklist if present
         let starterHtml = '';
         if (ev.description && friction >= 4) {
           starterHtml = '<div class="micro-starter">' + ev.description.replace(/\n/g, '<br>') + '</div>';
@@ -524,7 +707,6 @@
             starterHtml +
           '</div>';
 
-        // Connect restorative momentum to the next block
         if (momentumClass && idx < events.length - 1) {
           html += '<div class="momentum-filament"></div>';
         }
@@ -534,7 +716,6 @@
     }
 
     async function loadLiveSchedule() {
-      const liveBadge = document.getElementById('liveBadge');
       const scoreText = document.getElementById('fuelScoreText');
       try {
         const response = await fetch(WORKER_URL, {
@@ -542,31 +723,18 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'LIST' })
         });
-        
-        if (!response.ok) {
-          const errBody = await response.text();
-          throw new Error(`HTTP ${response.status}: ${errBody}`);
-        }
-
         const data = await response.json();
         const existing = data.events || [];
         combinedEvents = [...existing];
 
-        liveBadge.innerText = 'Calendar Connected';
-        liveBadge.style.background = '#064e3b';
-        liveBadge.style.color = '#6ee7b7';
-
         drawFuelBarometer(combinedEvents);
         renderEvents(combinedEvents);
+        initBubbles(combinedEvents);
       } catch (err) {
-        console.error('Schedule fetch error:', err);
-        liveBadge.innerText = 'Sync Offline';
-        liveBadge.style.background = '#450a0a';
-        liveBadge.style.color = '#fca5a5';
-        scoreText.innerText = 'Ready for Intake';
-        scoreText.style.color = 'var(--text-muted)';
+        scoreText.innerText = 'Intake Ready';
         drawFuelBarometer([]);
         renderEvents([]);
+        initBubbles([]);
       }
     }
 
@@ -631,6 +799,7 @@
         const merged = [...combinedEvents.filter(e => e.is_existing), ...pendingEvents];
         drawFuelBarometer(merged);
         renderEvents(merged);
+        initBubbles(merged);
 
         saveBtn.disabled = false;
         saveBtn.classList.remove('success', 'hidden');
