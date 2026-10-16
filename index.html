@@ -23,6 +23,13 @@
       --error-bg: #451a1a;
       --error-border: #7f1d1d;
       --error-text: #fca5a5;
+
+      /* GCal Energy Colors */
+      --color-11: #d50000; /* Tomato (Deep Work) */
+      --color-4: #e67c73;  /* Flamingo (Social) */
+      --color-8: #616161;  /* Graphite (Errands) */
+      --color-2: #7cb342;  /* Sage (Restoration) */
+      --color-9: #3f51b5;  /* Blueberry (Fixed Anchor) */
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -67,7 +74,7 @@
 
     textarea {
       width: 100%;
-      min-height: 90px;
+      min-height: 100px;
       background: #0b1120;
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -83,6 +90,7 @@
     .button-group {
       display: flex;
       gap: 10px;
+      align-items: center;
     }
 
     button.btn-primary {
@@ -112,6 +120,7 @@
       justify-content: center;
       cursor: pointer;
       transition: all 0.15s ease;
+      position: relative;
     }
 
     button.btn-mic:hover { background: #334155; }
@@ -131,19 +140,49 @@
 
     .mic-icon { width: 20px; height: 20px; fill: currentColor; }
 
-    .event-card {
-      border: 1px solid var(--border);
-      background: #111827;
-      border-radius: 8px;
-      padding: 20px;
+    .mic-status {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      min-height: 18px;
+    }
+
+    /* Event Previews */
+    .events-list {
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
 
-    .event-title { font-size: 1.25rem; font-weight: 600; color: #fff; }
-    .event-detail { font-size: 0.95rem; color: var(--text-muted); display: flex; gap: 8px; }
+    .event-card {
+      border: 1px solid var(--border);
+      background: #111827;
+      border-radius: 8px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-left: 6px solid var(--primary);
+    }
+
+    .event-card[data-color="11"] { border-left-color: var(--color-11); }
+    .event-card[data-color="4"]  { border-left-color: var(--color-4); }
+    .event-card[data-color="8"]  { border-left-color: var(--color-8); }
+    .event-card[data-color="2"]  { border-left-color: var(--color-2); }
+    .event-card[data-color="9"]  { border-left-color: var(--color-9); }
+
+    .event-title { font-size: 1.15rem; font-weight: 600; color: #fff; }
+    .event-detail { font-size: 0.9rem; color: var(--text-muted); display: flex; gap: 8px; }
     .event-detail strong { color: var(--text); }
+
+    .plan-summary {
+      font-size: 0.95rem;
+      color: var(--primary);
+      background: #082f49;
+      border: 1px solid #0369a1;
+      padding: 12px 16px;
+      border-radius: 8px;
+      line-height: 1.4;
+    }
 
     .btn-action {
       display: inline-flex;
@@ -154,11 +193,11 @@
       border: none;
       font-weight: 600;
       font-size: 1rem;
-      padding: 12px 20px;
+      padding: 14px 20px;
       border-radius: 8px;
-      margin-top: 8px;
       cursor: pointer;
       transition: background 0.15s ease;
+      width: 100%;
     }
 
     .btn-action:hover { background: var(--gcal-hover); }
@@ -181,15 +220,17 @@
   <div class="container">
     <div>
       <h1>Personal Scheduler</h1>
-      <p class="subtitle">Parse natural language scheduling requests straight to Google Calendar.</p>
-      <div class="version-tag">VERSION 1.7</div>
+      <p class="subtitle">Natural voice calendar engine with executive energy planning.</p>
+      <div class="version-tag">VERSION 1.8</div>
     </div>
 
     <div class="card">
-      <textarea id="promptInput" placeholder="e.g., Sync with Dalton on Monday at 3:30pm for 45 minutes at the library (Press Enter to send)"></textarea>
+      <textarea id="promptInput" placeholder="Speak or type: 'Sync with Dalton at 2pm' or dump your whole day: 'Meeting at 9, gym at 11:30, target run, dinner with friends at 7'"></textarea>
       
+      <div class="mic-status" id="micStatus"></div>
+
       <div class="button-group">
-        <button id="micBtn" class="btn-mic" type="button" title="Speak to dictate">
+        <button id="micBtn" class="btn-mic" type="button" title="Voice Input">
           <svg class="mic-icon" viewBox="0 0 24 24">
             <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
             <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
@@ -200,13 +241,15 @@
     </div>
 
     <div id="outputContainer" class="card hidden">
-      <div id="renderedEvent"></div>
+      <div id="planSummary" class="plan-summary hidden"></div>
+      <div id="eventsContainer" class="events-list"></div>
+      <button id="saveAllBtn" class="btn-action" onclick="commitAllEvents()">Add All to Calendar</button>
     </div>
   </div>
 
   <script>
     const WORKER_URL = 'https://gemini-proxy.strand-troy.workers.dev';
-    let currentParsedEvent = null;
+    let currentParsedEvents = [];
 
     function formatReadableDate(dateStr) {
       if (!dateStr) return '';
@@ -221,10 +264,7 @@
       const monthName = months[monthIdx] || parts[1];
       const currentYear = new Date().getFullYear();
 
-      if (year === currentYear) {
-        return monthName + ' ' + day;
-      }
-      return monthName + ' ' + day + ', ' + year;
+      return year === currentYear ? monthName + ' ' + day : monthName + ' ' + day + ', ' + year;
     }
 
     function formatTimeComponent(timeStr) {
@@ -257,35 +297,53 @@
       return start.display + start.ampm + '–' + end.display + end.ampm;
     }
 
-    function renderEventCard(ev) {
-      currentParsedEvent = ev;
-      const container = document.getElementById('renderedEvent');
-      const dateDisplay = formatReadableDate(ev.date);
-      const timeDisplay = formatReadableTimeRange(ev.start_time, ev.end_time);
+    function renderPlan(data) {
+      currentParsedEvents = data.events || [];
+      const outputContainer = document.getElementById('outputContainer');
+      const eventsContainer = document.getElementById('eventsContainer');
+      const planSummary = document.getElementById('planSummary');
+      const saveAllBtn = document.getElementById('saveAllBtn');
 
-      container.innerHTML = 
-        '<div class="event-card">' +
-          '<div class="event-title">' + (ev.title || 'New Event') + '</div>' +
-          '<div class="event-detail"><span>Date:</span> <strong>' + dateDisplay + '</strong></div>' +
-          '<div class="event-detail"><span>Time:</span> <strong>' + timeDisplay + '</strong></div>' +
-          (ev.location ? '<div class="event-detail"><span>Location:</span> <strong>' + ev.location + '</strong></div>' : '') +
-          '<button id="saveBtn" class="btn-action" onclick="commitToCalendar()">' +
-            'Add to Calendar' +
-          '</button>' +
-        '</div>';
+      if (data.summary_message) {
+        planSummary.innerText = data.summary_message;
+        planSummary.classList.remove('hidden');
+      } else {
+        planSummary.classList.add('hidden');
+      }
+
+      saveAllBtn.disabled = false;
+      saveAllBtn.classList.remove('success');
+      saveAllBtn.innerText = currentParsedEvents.length > 1 
+        ? 'Add All (' + currentParsedEvents.length + ') to Calendar' 
+        : 'Add to Calendar';
+
+      eventsContainer.innerHTML = currentParsedEvents.map(ev => {
+        const dateDisplay = formatReadableDate(ev.date);
+        const timeDisplay = formatReadableTimeRange(ev.start_time, ev.end_time);
+        return (
+          '<div class="event-card" data-color="' + (ev.color_id || '9') + '">' +
+            '<div class="event-title">' + (ev.title || 'New Event') + '</div>' +
+            '<div class="event-detail"><span>Date:</span> <strong>' + dateDisplay + '</strong></div>' +
+            '<div class="event-detail"><span>Time:</span> <strong>' + timeDisplay + '</strong></div>' +
+            (ev.location ? '<div class="event-detail"><span>Location:</span> <strong>' + ev.location + '</strong></div>' : '') +
+          '</div>'
+        );
+      }).join('');
+
+      outputContainer.classList.remove('hidden');
     }
 
-    async function commitToCalendar() {
-      if (!currentParsedEvent) return;
-      const saveBtn = document.getElementById('saveBtn');
+    async function commitAllEvents() {
+      if (!currentParsedEvents.length) return;
+      const saveBtn = document.getElementById('saveAllBtn');
       saveBtn.disabled = true;
-      saveBtn.innerText = 'Adding...';
+      saveBtn.innerText = 'Adding to Calendar...';
 
       try {
         const response = await fetch(WORKER_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'INSERT', event: currentParsedEvent })
+          body: JSON.stringify({ action: 'INSERT', events: currentParsedEvents })
         });
 
         if (!response.ok) {
@@ -294,25 +352,23 @@
         }
 
         saveBtn.classList.add('success');
-        saveBtn.innerText = '✓ Added to Calendar';
+        saveBtn.innerText = currentParsedEvents.length > 1 ? '✓ All Events Added' : '✓ Added to Calendar';
       } catch (err) {
         saveBtn.disabled = false;
-        saveBtn.innerText = 'Add to Calendar';
-        alert('Failed to save event: ' + err.message);
+        saveBtn.innerText = 'Retry Adding';
+        alert('Failed: ' + err.message);
       }
     }
 
     async function processSchedule() {
+      stopVoice();
       const input = document.getElementById('promptInput');
       const btn = document.getElementById('submitBtn');
-      const outputContainer = document.getElementById('outputContainer');
-      const renderedEvent = document.getElementById('renderedEvent');
-
       const text = input.value.trim();
       if (!text) return;
 
       btn.disabled = true;
-      btn.innerText = 'Parsing...';
+      btn.innerText = 'Planning...';
 
       try {
         const response = await fetch(WORKER_URL, {
@@ -327,56 +383,89 @@
         }
 
         const data = await response.json();
-
-        renderEventCard(data);
-        outputContainer.classList.remove('hidden');
+        renderPlan(data);
 
         input.value = '';
-        input.focus();
       } catch (err) {
-        renderedEvent.innerHTML = '<div class="error-banner">Error: ' + err.message + '</div>';
-        outputContainer.classList.remove('hidden');
+        alert('Error: ' + err.message);
       } finally {
         btn.disabled = false;
         btn.innerText = 'Process Request';
       }
     }
 
-    // Voice dictation setup
+    // Hybrid Patience Speech Recognition
     const micBtn = document.getElementById('micBtn');
+    const micStatus = document.getElementById('micStatus');
     const promptInput = document.getElementById('promptInput');
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
+    let recognition = null;
+    let silenceTimer = null;
+    let isListening = false;
+
+    function resetSilenceTimer() {
+      if (silenceTimer) clearTimeout(silenceTimer);
+      micStatus.innerText = 'Listening... (Speak freely, 6s pause allowed)';
+      silenceTimer = setTimeout(() => {
+        if (isListening && promptInput.value.trim().length > 0) {
+          micStatus.innerText = 'Submitting your plan...';
+          processSchedule();
+        }
+      }, 6000);
+    }
+
+    function stopVoice() {
+      if (silenceTimer) clearTimeout(silenceTimer);
+      if (recognition && isListening) {
+        recognition.stop();
+      }
+      isListening = false;
+      micBtn.classList.remove('listening');
+      micStatus.innerText = '';
+    }
+
     if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
       recognition.lang = 'en-US';
 
       recognition.onstart = function() {
+        isListening = true;
         micBtn.classList.add('listening');
+        resetSilenceTimer();
       };
 
       recognition.onresult = function(event) {
-        const transcript = event.results[0][0].transcript;
-        promptInput.value = transcript;
-        processSchedule();
+        let finalTranscript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          finalTranscript += event.results[i][0].transcript + ' ';
+        }
+        promptInput.value = finalTranscript.trim();
+        resetSilenceTimer();
       };
 
       recognition.onerror = function(event) {
-        console.error('Speech error:', event.error);
-        micBtn.classList.remove('listening');
+        console.error('Speech recognition error:', event.error);
+        if (event.error !== 'no-speech') {
+          stopVoice();
+        }
       };
 
       recognition.onend = function() {
-        micBtn.classList.remove('listening');
+        if (isListening) {
+          // Restart if closed prematurely by browser
+          try { recognition.start(); } catch(e) { stopVoice(); }
+        }
       };
 
       micBtn.addEventListener('click', function() {
-        if (micBtn.classList.contains('listening')) {
-          recognition.stop();
+        if (isListening) {
+          stopVoice();
         } else {
-          recognition.start();
+          promptInput.value = '';
+          try { recognition.start(); } catch(e) { console.error(e); }
         }
       });
     } else {
@@ -384,7 +473,6 @@
     }
 
     document.getElementById('submitBtn').addEventListener('click', processSchedule);
-
     document.getElementById('promptInput').addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
