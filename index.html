@@ -137,7 +137,6 @@
 
     <div id="outputContainer" class="card hidden">
       <div id="renderedEvent"></div>
-      <pre id="rawJson"></pre>
     </div>
   </div>
 
@@ -174,6 +173,8 @@
         rawJson.innerText = JSON.stringify(data, null, 2);
         renderEventCard(data);
         outputContainer.classList.remove('hidden');
+        input.value = '';
+        input.focus();
       } catch (err) {
         rawJson.innerText = `Error: ${err.message}`;
         renderedEvent.innerHTML = '';
