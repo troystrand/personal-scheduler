@@ -111,4 +111,116 @@
       transition: background 0.15s ease;
     }
 
-    .btn-gcal:hover
+    .btn-gcal:hover { background: var(--gcal-hover); }
+
+    .error-banner {
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      color: var(--error-text);
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div>
+      <h1>Personal Scheduler</h1>
+      <p class="subtitle">Parse natural language scheduling requests straight to Google Calendar.</p>
+    </div>
+
+    <div class="card">
+      <textarea id="promptInput" placeholder="e.g., Sync with Dalton on Monday at 3:30pm for 45 minutes at the library (Press Enter to send)"></textarea>
+      <button id="submitBtn" class="btn-primary" onclick="processSchedule()">Process Request</button>
+    </div>
+
+    <div id="outputContainer" class="card hidden">
+      <div id="renderedEvent"></div>
+    </div>
+  </div>
+
+  <script>
+    const WORKER_URL = 'https://gemini-proxy.strand-troy.workers.dev';
+
+    // Submit when pressing Enter, allow Shift+Enter for new lines
+    document.getElementById('promptInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        processSchedule();
+      }
+    });
+
+    async function processSchedule() {
+      const input = document.getElementById('promptInput');
+      const btn = document.getElementById('submitBtn');
+      const outputContainer = document.getElementById('outputContainer');
+      const renderedEvent = document.getElementById('renderedEvent');
+
+      const text = input.value.trim();
+      if (!text) return;
+
+      btn.disabled = true;
+      btn.innerText = 'Parsing...';
+
+      try {
+        const response = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: text })
+        });
+
+        if (!response.ok) {
+          const errData = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errData}`);
+        }
+
+        const data = await response.json();
+
+        renderEventCard(data);
+        outputContainer.classList.remove('hidden');
+
+        input.value = '';
+        input.focus();
+      } catch (err) {
+        renderedEvent.innerHTML = `<div class="error-banner">Error: ${err.message}</div>`;
+        outputContainer.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Process Request';
+      }
+    }
+
+    function renderEventCard(ev) {
+      const container = document.getElementById('renderedEvent');
+
+      const cleanDate = (ev.date || '').replace(/-/g, '');
+      const cleanStart = (ev.start_time || '').replace(/:/g, '') + '00';
+      const cleanEnd = (ev.end_time || '').replace(/:/g, '') + '00';
+      const datesParam = `${cleanDate}T${cleanStart}/${cleanDate}T${cleanEnd}`;
+
+      const gcal = new URL('https://calendar.google.com/calendar/render');
+      gcal.searchParams.set('action', 'TEMPLATE');
+      gcal.searchParams.set('text', ev.title || 'Scheduled Event');
+      gcal.searchParams.set('dates', datesParam);
+      if (ev.location) gcal.searchParams.set('location', ev.location);
+      if (ev.description) gcal.searchParams.set('details', ev.description);
+      gcal.searchParams.set('ctz', 'America/Chicago');
+
+      container.innerHTML = `
+        <div class="event-card">
+          <div class="event-title">${ev.title || 'New Event'}</div>
+          <div class="event-detail"><span>Date:</span> <strong>${ev.date}</strong></div>
+          <div class="event-detail"><span>Time:</span> <strong>${ev.start_time} - ${ev.end_time}</strong> (Central)</div>
+          ${ev.location ? `<div class="event-detail"><span>Location:</span> <strong>${ev.location}</strong></div>` : ''}
+          <a href="${gcal.toString()}" target="_blank" rel="noopener noreferrer" class="btn-gcal">
+            Open in Google Calendar
+          </a>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>
