@@ -6,10 +6,9 @@
   <title>Personal Scheduler</title>
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Scheduler">
   <style>
     :root {
-      --bg: #0f172a;
+      --bg: #0b1120;
       --card-bg: #1e293b;
       --border: #334155;
       --text: #f8fafc;
@@ -17,19 +16,16 @@
       --primary: #38bdf8;
       --primary-hover: #0284c7;
       --gcal: #2563eb;
-      --gcal-hover: #1d4ed8;
       --success: #22c55e;
-      --mic-active: #ef4444;
-      --error-bg: #451a1a;
-      --error-border: #7f1d1d;
-      --error-text: #fca5a5;
+      --danger: #ef4444;
+      --warning: #f59e0b;
 
-      /* GCal Energy Colors */
-      --color-11: #d50000; /* Tomato (Deep Work) */
-      --color-4: #e67c73;  /* Flamingo (Social) */
-      --color-8: #616161;  /* Graphite (Errands) */
-      --color-2: #7cb342;  /* Sage (Restoration) */
-      --color-9: #3f51b5;  /* Blueberry (Fixed Anchor) */
+      /* Cognitive Colors */
+      --color-11: #ef4444; /* High Tax / Tomato */
+      --color-4: #f472b6;  /* Social / Flamingo */
+      --color-8: #64748b;  /* Chores / Graphite */
+      --color-2: #10b981;  /* Restorative / Sage */
+      --color-9: #6366f1;  /* Anchor / Blueberry */
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -39,43 +35,63 @@
       color: var(--text);
       display: flex;
       justify-content: center;
-      padding: 40px 16px;
+      padding: 24px 16px;
       min-height: 100vh;
     }
 
     .container {
       width: 100%;
-      max-width: 600px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.02em; }
-    p.subtitle { color: var(--text-muted); font-size: 0.95rem; }
-
-    .version-tag {
-      font-size: 0.75rem;
-      color: var(--primary);
-      margin-top: 4px;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-    }
-
-    .card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 24px;
+      max-width: 620px;
       display: flex;
       flex-direction: column;
       gap: 16px;
     }
 
+    /* Pinned Horizon Bar */
+    .horizon-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .horizon-pill {
+      background: #1e1b4b;
+      border: 1px solid #4338ca;
+      color: #c7d2fe;
+      padding: 6px 12px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      white-space: nowrap;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .horizon-pill strong { color: #fff; }
+
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    h1 { font-size: 1.4rem; font-weight: 700; }
+    .version-tag { font-size: 0.75rem; color: var(--primary); font-weight: 600; }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
     textarea {
       width: 100%;
-      min-height: 100px;
-      background: #0b1120;
+      min-height: 90px;
+      background: #070d19;
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 12px;
@@ -84,30 +100,21 @@
       resize: vertical;
       font-family: inherit;
     }
-
     textarea:focus { outline: 2px solid var(--primary); }
 
-    .button-group {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
+    .button-group { display: flex; gap: 10px; align-items: center; }
 
     button.btn-primary {
       flex: 1;
       background: var(--primary);
-      color: #0b1120;
+      color: #070d19;
       border: none;
       border-radius: 8px;
       padding: 12px 20px;
       font-weight: 600;
-      font-size: 0.95rem;
       cursor: pointer;
-      transition: background 0.15s ease;
     }
-
-    button.btn-primary:hover { background: var(--primary-hover); }
-    button.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    button.btn-primary:disabled { opacity: 0.6; }
 
     button.btn-mic {
       background: #1e293b;
@@ -116,19 +123,10 @@
       border-radius: 8px;
       padding: 12px 16px;
       display: inline-flex;
-      align-items: center;
-      justify-content: center;
       cursor: pointer;
-      transition: all 0.15s ease;
-      position: relative;
     }
-
-    button.btn-mic:hover { background: #334155; }
-
     button.btn-mic.listening {
-      background: var(--mic-active);
-      border-color: var(--mic-active);
-      color: white;
+      background: var(--danger);
       animation: pulse 1.5s infinite;
     }
 
@@ -139,55 +137,82 @@
     }
 
     .mic-icon { width: 20px; height: 20px; fill: currentColor; }
+    .mic-status { font-size: 0.8rem; color: var(--text-muted); min-height: 16px; }
 
-    .mic-status {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      min-height: 18px;
-    }
-
-    /* Event Previews */
-    .events-list {
+    /* Energy Barometer SVG Curve */
+    .barometer-container {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
     }
+    .barometer-title {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+    .curve-svg { width: 100%; height: 70px; overflow: visible; }
 
+    /* Cognitive Mass Cards */
+    .events-list { display: flex; flex-direction: column; gap: 10px; }
     .event-card {
       border: 1px solid var(--border);
       background: #111827;
       border-radius: 8px;
-      padding: 16px 20px;
+      padding: 14px 18px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
       border-left: 6px solid var(--primary);
+      transition: all 0.2s ease;
     }
 
-    .event-card[data-color="11"] { border-left-color: var(--color-11); }
-    .event-card[data-color="4"]  { border-left-color: var(--color-4); }
-    .event-card[data-color="8"]  { border-left-color: var(--color-8); }
-    .event-card[data-color="2"]  { border-left-color: var(--color-2); }
-    .event-card[data-color="9"]  { border-left-color: var(--color-9); }
+    /* Dense Hatched Pattern for Heavy Drain (-2 or -3) */
+    .event-card.heavy-drain {
+      border-left-color: var(--color-11);
+      background: repeating-linear-gradient(
+        -45deg,
+        #111827,
+        #111827 10px,
+        #1c1917 10px,
+        #1c1917 20px
+      );
+      box-shadow: inset 0 0 10px rgba(239, 68, 68, 0.1);
+    }
 
-    .event-title { font-size: 1.15rem; font-weight: 600; color: #fff; }
-    .event-detail { font-size: 0.9rem; color: var(--text-muted); display: flex; gap: 8px; }
+    /* Buoyant Glow for Restorative (+1 or +2) */
+    .event-card.restorative {
+      border-left-color: var(--color-2);
+      border-color: #065f46;
+      background: #064e3b15;
+    }
+
+    .event-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .event-title { font-size: 1.1rem; font-weight: 600; color: #fff; }
+    .event-energy-badge {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .badge-drain { background: #450a0a; color: #fca5a5; }
+    .badge-restore { background: #064e3b; color: #6ee7b7; }
+    .badge-neutral { background: #1e293b; color: #94a3b8; }
+
+    .event-detail { font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 8px; }
     .event-detail strong { color: var(--text); }
 
-    .plan-summary {
-      font-size: 0.95rem;
-      color: var(--primary);
-      background: #082f49;
-      border: 1px solid #0369a1;
-      padding: 12px 16px;
-      border-radius: 8px;
-      line-height: 1.4;
-    }
-
     .btn-action {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
       background: var(--gcal);
       color: white;
       border: none;
@@ -196,52 +221,50 @@
       padding: 14px 20px;
       border-radius: 8px;
       cursor: pointer;
-      transition: background 0.15s ease;
       width: 100%;
     }
-
-    .btn-action:hover { background: var(--gcal-hover); }
-    .btn-action:disabled { opacity: 0.7; cursor: not-allowed; }
-    .btn-action.success { background: var(--success); cursor: default; }
-
-    .error-banner {
-      background: var(--error-bg);
-      border: 1px solid var(--error-border);
-      color: var(--error-text);
-      padding: 12px 16px;
-      border-radius: 8px;
-      font-size: 0.9rem;
-    }
-
+    .btn-action.success { background: var(--success); }
     .hidden { display: none !important; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div>
+    <!-- Pinned Horizon Anchors -->
+    <div class="horizon-bar">
+      <div class="horizon-pill"><span>🎯</span> <strong>Licensure Review</strong> (5d)</div>
+      <div class="horizon-pill"><span>🌲</span> <strong>Jay Cooke Trip</strong> (16d)</div>
+      <div class="horizon-pill"><span>📦</span> <strong>Laser Restock</strong> (24d)</div>
+    </div>
+
+    <div class="header-row">
       <h1>Personal Scheduler</h1>
-      <p class="subtitle">Natural voice calendar engine with executive energy planning.</p>
-      <div class="version-tag">VERSION 1.9</div>
+      <div class="version-tag">VERSION 2.0</div>
     </div>
 
     <div class="card">
-      <textarea id="promptInput" placeholder="Speak or type: 'Sync with Dalton at 2pm' or dump your whole day: 'Meeting at 9, gym at 11:30, target run, dinner with friends at 7'"></textarea>
-      
+      <textarea id="promptInput" placeholder="Morning dump: 'Meeting at 9, grade portfolios, lift at 1, post office run, coffee with Dalton at 3'"></textarea>
       <div class="mic-status" id="micStatus"></div>
-
       <div class="button-group">
-        <button id="micBtn" class="btn-mic" type="button" title="Voice Input">
+        <button id="micBtn" class="btn-mic" type="button" title="Speak to dictate">
           <svg class="mic-icon" viewBox="0 0 24 24">
             <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
             <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
           </svg>
         </button>
-        <button id="submitBtn" class="btn-primary">Process Request</button>
+        <button id="submitBtn" class="btn-primary">Process Plan</button>
       </div>
     </div>
 
     <div id="outputContainer" class="card hidden">
-      <div id="planSummary" class="plan-summary hidden"></div>
+      <!-- Cognitive Fuel Curve -->
+      <div class="barometer-container">
+        <div class="barometer-title">
+          <span>Projected Cognitive Reserves</span>
+          <span id="fuelScoreText">Stable</span>
+        </div>
+        <svg id="curveSvg" class="curve-svg" viewBox="0 0 400 70"></svg>
+      </div>
+
       <div id="eventsContainer" class="events-list"></div>
       <button id="saveAllBtn" class="btn-action" onclick="commitAllEvents()">Add All to Calendar</button>
     </div>
@@ -255,61 +278,78 @@
       if (!dateStr) return '';
       const parts = dateStr.split('-');
       if (parts.length !== 3) return dateStr;
-      
-      const year = parseInt(parts[0], 10);
+      const months = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'June', 'July', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.'];
       const monthIdx = parseInt(parts[1], 10) - 1;
       const day = parseInt(parts[2], 10);
-      
-      const months = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'June', 'July', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.'];
-      const monthName = months[monthIdx] || parts[1];
-      const currentYear = new Date().getFullYear();
-
-      return year === currentYear ? monthName + ' ' + day : monthName + ' ' + day + ', ' + year;
+      return (months[monthIdx] || parts[1]) + ' ' + day;
     }
 
     function formatTimeComponent(timeStr) {
-      if (!timeStr) return { hour: 0, minute: 0, ampm: 'am', display: '' };
+      if (!timeStr) return { display: '', ampm: 'am' };
       const parts = timeStr.split(':');
       let hour = parseInt(parts[0], 10);
       const minute = parseInt(parts[1] || '0', 10);
       const ampm = hour >= 12 ? 'pm' : 'am';
-      
-      hour = hour % 12;
-      if (hour === 0) hour = 12;
-
+      hour = hour % 12 || 12;
       const minStr = minute === 0 ? '' : ':' + (minute < 10 ? '0' + minute : minute);
-      return { hour, minute, ampm, minStr, display: hour + minStr };
+      return { display: hour + minStr, ampm };
     }
 
     function formatReadableTimeRange(startTime, endTime) {
       if (!startTime) return '';
       const start = formatTimeComponent(startTime);
-
-      if (!endTime || endTime === startTime) {
-        return start.display + start.ampm;
-      }
-
+      if (!endTime || endTime === startTime) return start.display + start.ampm;
       const end = formatTimeComponent(endTime);
+      return start.ampm === end.ampm 
+        ? start.display + '–' + end.display + end.ampm
+        : start.display + start.ampm + '–' + end.display + end.ampm;
+    }
 
-      if (start.ampm === end.ampm) {
-        return start.display + '–' + end.display + end.ampm;
+    function drawFuelBarometer(events) {
+      const svg = document.getElementById('curveSvg');
+      const scoreText = document.getElementById('fuelScoreText');
+      let currentFuel = 85;
+      const points = [{ x: 10, y: currentFuel }];
+
+      const step = 380 / Math.max(events.length, 1);
+      let minFuel = 100;
+
+      events.forEach((ev, idx) => {
+        const delta = (ev.energy_delta || 0) * 12;
+        currentFuel = Math.max(15, Math.min(95, currentFuel + delta));
+        if (currentFuel < minFuel) minFuel = currentFuel;
+        points.push({ x: 10 + (idx + 1) * step, y: currentFuel });
+      });
+
+      if (minFuel < 35) {
+        scoreText.innerText = '⚠️ Exhaustion Risk Flagged';
+        scoreText.style.color = 'var(--danger)';
+      } else {
+        scoreText.innerText = 'Balanced Energy Distribution';
+        scoreText.style.color = 'var(--success)';
       }
-      return start.display + start.ampm + '–' + end.display + end.ampm;
+
+      // Convert fuel (0-100) to SVG coordinates (Y: 60 = low, 10 = high)
+      const pathData = points.map((p, i) => {
+        const svgY = 70 - (p.y * 0.6);
+        return (i === 0 ? 'M' : 'L') + p.x + ',' + svgY;
+      }).join(' ');
+
+      const strokeColor = minFuel < 35 ? '#ef4444' : '#38bdf8';
+      svg.innerHTML = `
+        <line x1="0" y1="50" x2="400" y2="50" stroke="#334155" stroke-dasharray="4" stroke-width="1" />
+        <path d="${pathData}" fill="none" stroke="${strokeColor}" stroke-width="3" stroke-linecap="round" />
+        ${points.map(p => `<circle cx="${p.x}" cy="${70 - (p.y * 0.6)}" r="4" fill="${strokeColor}" />`).join('')}
+      `;
     }
 
     function renderPlan(data) {
       currentParsedEvents = data.events || [];
       const outputContainer = document.getElementById('outputContainer');
       const eventsContainer = document.getElementById('eventsContainer');
-      const planSummary = document.getElementById('planSummary');
       const saveAllBtn = document.getElementById('saveAllBtn');
 
-      if (data.summary_message) {
-        planSummary.innerText = data.summary_message;
-        planSummary.classList.remove('hidden');
-      } else {
-        planSummary.classList.add('hidden');
-      }
+      drawFuelBarometer(currentParsedEvents);
 
       saveAllBtn.disabled = false;
       saveAllBtn.classList.remove('success');
@@ -320,11 +360,27 @@
       eventsContainer.innerHTML = currentParsedEvents.map(ev => {
         const dateDisplay = formatReadableDate(ev.date);
         const timeDisplay = formatReadableTimeRange(ev.start_time, ev.end_time);
+        const delta = ev.energy_delta || 0;
+
+        let massClass = '';
+        let badgeHtml = '';
+        if (delta <= -2) {
+          massClass = 'heavy-drain';
+          badgeHtml = '<span class="event-energy-badge badge-drain">High Cognitive Tax</span>';
+        } else if (delta >= 1) {
+          massClass = 'restorative';
+          badgeHtml = '<span class="event-energy-badge badge-restore">Restorative</span>';
+        } else {
+          badgeHtml = '<span class="event-energy-badge badge-neutral">Maintenance</span>';
+        }
+
         return (
-          '<div class="event-card" data-color="' + (ev.color_id || '9') + '">' +
-            '<div class="event-title">' + (ev.title || 'New Event') + '</div>' +
-            '<div class="event-detail"><span>Date:</span> <strong>' + dateDisplay + '</strong></div>' +
-            '<div class="event-detail"><span>Time:</span> <strong>' + timeDisplay + '</strong></div>' +
+          '<div class="event-card ' + massClass + '" data-color="' + (ev.color_id || '9') + '">' +
+            '<div class="event-header">' +
+              '<div class="event-title">' + (ev.title || 'New Event') + '</div>' +
+              badgeHtml +
+            '</div>' +
+            '<div class="event-detail"><span>Time:</span> <strong>' + dateDisplay + ' · ' + timeDisplay + '</strong></div>' +
             (ev.location ? '<div class="event-detail"><span>Location:</span> <strong>' + ev.location + '</strong></div>' : '') +
           '</div>'
         );
@@ -337,7 +393,7 @@
       if (!currentParsedEvents.length) return;
       const saveBtn = document.getElementById('saveAllBtn');
       saveBtn.disabled = true;
-      saveBtn.innerText = 'Adding to Calendar...';
+      saveBtn.innerText = 'Writing to Calendar...';
 
       try {
         const response = await fetch(WORKER_URL, {
@@ -345,14 +401,10 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'INSERT', events: currentParsedEvents })
         });
-
-        if (!response.ok) {
-          const errData = await response.text();
-          throw new Error('HTTP ' + response.status + ': ' + errData);
-        }
+        if (!response.ok) throw new Error('Insert failed');
 
         saveBtn.classList.add('success');
-        saveBtn.innerText = currentParsedEvents.length > 1 ? '✓ All Events Added' : '✓ Added to Calendar';
+        saveBtn.innerText = '✓ All Events Written to Calendar';
       } catch (err) {
         saveBtn.disabled = false;
         saveBtn.innerText = 'Retry Adding';
@@ -368,7 +420,7 @@
       if (!text) return;
 
       btn.disabled = true;
-      btn.innerText = 'Planning...';
+      btn.innerText = 'Calculating Energy Arc...';
 
       try {
         const response = await fetch(WORKER_URL, {
@@ -376,21 +428,16 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: text })
         });
-
-        if (!response.ok) {
-          const errData = await response.text();
-          throw new Error('HTTP ' + response.status + ': ' + errData);
-        }
+        if (!response.ok) throw new Error('Parsing failed');
 
         const data = await response.json();
         renderPlan(data);
-
         input.value = '';
       } catch (err) {
         alert('Error: ' + err.message);
       } finally {
         btn.disabled = false;
-        btn.innerText = 'Process Request';
+        btn.innerText = 'Process Plan';
       }
     }
 
@@ -406,10 +453,10 @@
 
     function resetSilenceTimer() {
       if (silenceTimer) clearTimeout(silenceTimer);
-      micStatus.innerText = 'Listening... (Speak freely, 6s pause allowed)';
+      micStatus.innerText = 'Listening... (Speak freely, 6s cushion)';
       silenceTimer = setTimeout(() => {
         if (isListening && promptInput.value.trim().length > 0) {
-          micStatus.innerText = 'Submitting your plan...';
+          micStatus.innerText = 'Sequencing...';
           processSchedule();
         }
       }, 6000);
@@ -417,9 +464,7 @@
 
     function stopVoice() {
       if (silenceTimer) clearTimeout(silenceTimer);
-      if (recognition && isListening) {
-        recognition.stop();
-      }
+      if (recognition && isListening) recognition.stop();
       isListening = false;
       micBtn.classList.remove('listening');
       micStatus.innerText = '';
@@ -436,40 +481,23 @@
         micBtn.classList.add('listening');
         resetSilenceTimer();
       };
-
       recognition.onresult = function(event) {
-        let finalTranscript = '';
+        let transcript = '';
         for (let i = 0; i < event.results.length; i++) {
-          finalTranscript += event.results[i][0].transcript + ' ';
+          transcript += event.results[i][0].transcript + ' ';
         }
-        promptInput.value = finalTranscript.trim();
+        promptInput.value = transcript.trim();
         resetSilenceTimer();
       };
-
-      recognition.onerror = function(event) {
-        console.error('Speech recognition error:', event.error);
-        if (event.error !== 'no-speech') {
-          stopVoice();
-        }
-      };
-
+      recognition.onerror = function() { stopVoice(); };
       recognition.onend = function() {
-        if (isListening) {
-          // Restart if closed prematurely by browser
-          try { recognition.start(); } catch(e) { stopVoice(); }
-        }
+        if (isListening) try { recognition.start(); } catch(e) { stopVoice(); }
       };
 
       micBtn.addEventListener('click', function() {
-        if (isListening) {
-          stopVoice();
-        } else {
-          promptInput.value = '';
-          try { recognition.start(); } catch(e) { console.error(e); }
-        }
+        if (isListening) stopVoice();
+        else { promptInput.value = ''; try { recognition.start(); } catch(e) {} }
       });
-    } else {
-      micBtn.style.display = 'none';
     }
 
     document.getElementById('submitBtn').addEventListener('click', processSchedule);
