@@ -745,12 +745,15 @@
       saveBtn.innerText = 'Writing to Calendar...';
 
       try {
-        const response = await fetch(WORKER_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'INSERT', events: pendingEvents })
-        });
-        if (!response.ok) throw new Error('Insert failed');
+       const response = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: text })
+      });
+      if (!response.ok) {
+        const errDetail = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errDetail}`);
+      }
 
         saveBtn.classList.add('success');
         saveBtn.innerText = '✓ Added to Calendar';
