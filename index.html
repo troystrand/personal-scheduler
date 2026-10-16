@@ -18,6 +18,7 @@
       --primary-hover: #0284c7;
       --gcal: #2563eb;
       --gcal-hover: #1d4ed8;
+      --success: #22c55e;
       --mic-active: #ef4444;
       --error-bg: #451a1a;
       --error-border: #7f1d1d;
@@ -113,9 +114,7 @@
       transition: all 0.15s ease;
     }
 
-    button.btn-mic:hover {
-      background: #334155;
-    }
+    button.btn-mic:hover { background: #334155; }
 
     button.btn-mic.listening {
       background: var(--mic-active);
@@ -130,11 +129,7 @@
       100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
     }
 
-    .mic-icon {
-      width: 20px;
-      height: 20px;
-      fill: currentColor;
-    }
+    .mic-icon { width: 20px; height: 20px; fill: currentColor; }
 
     .event-card {
       border: 1px solid var(--border);
@@ -150,22 +145,25 @@
     .event-detail { font-size: 0.95rem; color: var(--text-muted); display: flex; gap: 8px; }
     .event-detail strong { color: var(--text); }
 
-    .btn-gcal {
+    .btn-action {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       background: var(--gcal);
       color: white;
-      text-decoration: none;
+      border: none;
       font-weight: 600;
       font-size: 1rem;
       padding: 12px 20px;
       border-radius: 8px;
       margin-top: 8px;
+      cursor: pointer;
       transition: background 0.15s ease;
     }
 
-    .btn-gcal:hover { background: var(--gcal-hover); }
+    .btn-action:hover { background: var(--gcal-hover); }
+    .btn-action:disabled { opacity: 0.7; cursor: not-allowed; }
+    .btn-action.success { background: var(--success); cursor: default; }
 
     .error-banner {
       background: var(--error-bg);
@@ -184,7 +182,7 @@
     <div>
       <h1>Personal Scheduler</h1>
       <p class="subtitle">Parse natural language scheduling requests straight to Google Calendar.</p>
-      <div class="version-tag">VERSION 1.6</div>
+      <div class="version-tag">VERSION 1.7</div>
     </div>
 
     <div class="card">
@@ -208,6 +206,7 @@
 
   <script>
     const WORKER_URL = 'https://gemini-proxy.strand-troy.workers.dev';
+    let currentParsedEvent = null;
 
     function formatReadableDate(dateStr) {
       if (!dateStr) return '';
@@ -252,31 +251,14 @@
 
       const end = formatTimeComponent(endTime);
 
-      // If both am or both pm, omit the first am/pm: 6-7pm vs 11:30am-1pm
       if (start.ampm === end.ampm) {
         return start.display + '–' + end.display + end.ampm;
       }
       return start.display + start.ampm + '–' + end.display + end.ampm;
     }
 
-    function buildCalendarUrl(ev) {
-      const cleanDate = (ev.date || '').replace(/-/g, '');
-      const cleanStart = (ev.start_time || '').replace(/:/g, '') + '00';
-      const cleanEnd = (ev.end_time || '').replace(/:/g, '') + '00';
-      const datesParam = cleanDate + 'T' + cleanStart + '/' + cleanDate + 'T' + cleanEnd;
-
-      const gcal = new URL('https://calendar.google.com/calendar/render');
-      gcal.searchParams.set('action', 'TEMPLATE');
-      gcal.searchParams.set('text', ev.title || 'Scheduled Event');
-      gcal.searchParams.set('dates', datesParam);
-      if (ev.location) gcal.searchParams.set('location', ev.location);
-      if (ev.description) gcal.searchParams.set('details', ev.description);
-      gcal.searchParams.set('ctz', 'America/Chicago');
-
-      return gcal.toString();
-    }
-
-    function renderEventCard(ev, targetUrl) {
+    function renderEventCard(ev) {
+      currentParsedEvent = ev;
       const container = document.getElementById('renderedEvent');
       const dateDisplay = formatReadableDate(ev.date);
       const timeDisplay = formatReadableTimeRange(ev.start_time, ev.end_time);
@@ -287,10 +269,37 @@
           '<div class="event-detail"><span>Date:</span> <strong>' + dateDisplay + '</strong></div>' +
           '<div class="event-detail"><span>Time:</span> <strong>' + timeDisplay + '</strong></div>' +
           (ev.location ? '<div class="event-detail"><span>Location:</span> <strong>' + ev.location + '</strong></div>' : '') +
-          '<a href="' + targetUrl + '" target="_blank" rel="noopener noreferrer" class="btn-gcal">' +
+          '<button id="saveBtn" class="btn-action" onclick="commitToCalendar()">' +
             'Add to Calendar' +
-          '</a>' +
+          '</button>' +
         '</div>';
+    }
+
+    async function commitToCalendar() {
+      if (!currentParsedEvent) return;
+      const saveBtn = document.getElementById('saveBtn');
+      saveBtn.disabled = true;
+      saveBtn.innerText = 'Adding...';
+
+      try {
+        const response = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'INSERT', event: currentParsedEvent })
+        });
+
+        if (!response.ok) {
+          const errData = await response.text();
+          throw new Error('HTTP ' + response.status + ': ' + errData);
+        }
+
+        saveBtn.classList.add('success');
+        saveBtn.innerText = '✓ Added to Calendar';
+      } catch (err) {
+        saveBtn.disabled = false;
+        saveBtn.innerText = 'Add to Calendar';
+        alert('Failed to save event: ' + err.message);
+      }
     }
 
     async function processSchedule() {
@@ -301,9 +310,6 @@
 
       const text = input.value.trim();
       if (!text) return;
-
-      // Pre-open blank tab synchronously on click/tap to bypass popup blocker
-      const calWindow = window.open('about:blank', '_blank');
 
       btn.disabled = true;
       btn.innerText = 'Parsing...';
@@ -321,20 +327,13 @@
         }
 
         const data = await response.json();
-        const calendarUrl = buildCalendarUrl(data);
 
-        renderEventCard(data, calendarUrl);
+        renderEventCard(data);
         outputContainer.classList.remove('hidden');
 
         input.value = '';
         input.focus();
-
-        // Redirect the pre-opened tab to the parsed calendar URL
-        if (calWindow) {
-          calWindow.location.href = calendarUrl;
-        }
       } catch (err) {
-        if (calWindow) calWindow.close();
         renderedEvent.innerHTML = '<div class="error-banner">Error: ' + err.message + '</div>';
         outputContainer.classList.remove('hidden');
       } finally {
