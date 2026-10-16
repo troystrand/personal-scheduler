@@ -9,8 +9,8 @@
   <meta name="apple-mobile-web-app-title" content="Scheduler">
   <style>
     :root {
-      --bg: #0b1120;
-      --card-bg: #1e293b;
+      --bg: #070d19;
+      --card-bg: #0f172a;
       --border: #334155;
       --text: #f8fafc;
       --text-muted: #94a3b8;
@@ -22,7 +22,7 @@
       --danger: #ef4444;
       --warning: #f59e0b;
 
-      /* Cognitive Color Profiles */
+      /* GCal Cognitive Color Profiles */
       --color-11: #ef4444; /* High Cognitive Tax / Tomato */
       --color-4: #f472b6;  /* Social / Flamingo */
       --color-8: #64748b;  /* Chores & Errands / Graphite */
@@ -37,7 +37,7 @@
       color: var(--text);
       display: flex;
       justify-content: center;
-      padding: 24px 16px;
+      padding: 20px 16px;
       min-height: 100vh;
     }
 
@@ -49,7 +49,7 @@
       gap: 16px;
     }
 
-    /* Pinned Horizon Anchors */
+    /* Pinned Horizon Bar */
     .horizon-bar {
       display: flex;
       align-items: center;
@@ -93,7 +93,7 @@
     textarea {
       width: 100%;
       min-height: 85px;
-      background: #070d19;
+      background: #030712;
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 12px;
@@ -109,7 +109,7 @@
     button.btn-primary {
       flex: 1;
       background: var(--primary);
-      color: #070d19;
+      color: #030712;
       border: none;
       border-radius: 8px;
       padding: 12px 20px;
@@ -149,47 +149,54 @@
 
     /* Energy Barometer SVG Curve */
     .barometer-container {
-      background: #0f172a;
+      background: #030712;
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 16px;
+      padding: 14px 16px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
     .barometer-title {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: var(--text-muted);
       display: flex;
       justify-content: space-between;
     }
-    .curve-svg { width: 100%; height: 70px; overflow: visible; }
+    .curve-svg { width: 100%; height: 60px; overflow: visible; }
 
-    /* Timeline Section Header */
     .timeline-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 4px;
     }
-    .timeline-title { font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+    .timeline-title { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
     .badge-live { background: #064e3b; color: #6ee7b7; font-size: 0.7rem; padding: 2px 8px; border-radius: 9999px; font-weight: 600; }
 
-    /* Cognitive Mass Cards */
-    .events-list { display: flex; flex-direction: column; gap: 10px; }
+    /* Cognitive Physics: Event Flow */
+    .events-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+      width: 100%;
+    }
+
+    /* Base Physics Card */
     .event-card {
       border: 1px solid var(--border);
       background: #111827;
-      border-radius: 8px;
-      padding: 14px 18px;
+      border-radius: 10px;
+      padding: 14px 16px;
       display: flex;
       flex-direction: column;
       gap: 6px;
       border-left: 6px solid var(--primary);
-      transition: all 0.2s ease;
       position: relative;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      width: 100%;
     }
 
     .event-card[data-color="11"] { border-left-color: var(--color-11); }
@@ -198,20 +205,83 @@
     .event-card[data-color="2"]  { border-left-color: var(--color-2); }
     .event-card[data-color="9"]  { border-left-color: var(--color-9); }
 
-    .event-card.heavy-drain {
+    /* DIMENSION 1: LATERAL BULGE & MASS DENSITY */
+    /* Light Maintenance (Compact 78% width) */
+    .event-card.mass-light {
+      width: 82%;
+      background: #0f172a;
+      border-color: #334155;
+    }
+
+    /* Medium Focus (92% width) */
+    .event-card.mass-medium {
+      width: 92%;
+    }
+
+    /* Heavy Cast-Iron / Dread Ingot (100% width, dense knurling) */
+    .event-card.mass-heavy {
+      width: 100%;
+      border-color: #7f1d1d;
       background: repeating-linear-gradient(
         -45deg,
         #111827,
-        #111827 10px,
-        #1c1917 10px,
-        #1c1917 20px
+        #111827 8px,
+        #1f1414 8px,
+        #1f1414 16px
       );
-      box-shadow: inset 0 0 10px rgba(239, 68, 68, 0.1);
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.15), inset 0 0 12px rgba(239, 68, 68, 0.08);
     }
 
-    .event-card.restorative {
-      border-color: #065f46;
-      background: #064e3b15;
+    /* DIMENSION 2: INITIATION WEDGE (RAMP STEEPNESS) */
+    .initiation-ramp {
+      position: absolute;
+      top: -1px;
+      right: 14px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 2px 8px;
+      border-radius: 0 0 6px 6px;
+    }
+
+    .ramp-sheer {
+      background: #7f1d1d;
+      color: #fca5a5;
+      border: 1px solid #b91c1c;
+      border-top: none;
+    }
+
+    .ramp-moderate {
+      background: #451a03;
+      color: #fed7aa;
+      border: 1px solid #c2410c;
+      border-top: none;
+    }
+
+    .ramp-flat {
+      background: #064e3b;
+      color: #6ee7b7;
+      border: 1px solid #047857;
+      border-top: none;
+    }
+
+    /* DIMENSION 3: KINETIC MOMENTUM GLOW & CONNECTOR */
+    .event-card.momentum-booster {
+      border-color: #059669;
+      background: #064e3b18;
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.15);
+    }
+
+    .momentum-filament {
+      width: 2px;
+      height: 12px;
+      background: linear-gradient(to bottom, #10b981, transparent);
+      margin: -6px 0;
+      border-radius: 1px;
     }
 
     .event-card.existing {
@@ -223,21 +293,23 @@
       display: flex;
       justify-content: space-between;
       align-items: baseline;
+      padding-top: 4px;
     }
     .event-title { font-size: 1.05rem; font-weight: 600; color: #fff; }
-    .event-energy-badge {
-      font-size: 0.7rem;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-weight: 600;
-    }
-    .badge-drain { background: #450a0a; color: #fca5a5; }
-    .badge-restore { background: #064e3b; color: #6ee7b7; }
-    .badge-neutral { background: #1e293b; color: #94a3b8; }
-    .badge-existing { background: #0f172a; color: #cbd5e1; border: 1px solid var(--border); }
-
+    
     .event-detail { font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 8px; }
     .event-detail strong { color: var(--text); }
+
+    .micro-starter {
+      background: #18181b;
+      border-left: 2px solid var(--danger);
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      color: #cbd5e1;
+      margin-top: 4px;
+      line-height: 1.35;
+    }
 
     .plan-summary {
       font-size: 0.9rem;
@@ -279,7 +351,7 @@
 
     <div class="header-row">
       <h1>Personal Scheduler</h1>
-      <div class="version-tag">VERSION 2.1</div>
+      <div class="version-tag">VERSION 2.2</div>
     </div>
 
     <div class="card">
@@ -299,17 +371,17 @@
     <!-- Active Calendar Dashboard -->
     <div id="outputContainer" class="card">
       <div class="timeline-header">
-        <span class="timeline-title">Today's Schedule & Reserves</span>
+        <span class="timeline-title">Cognitive Physics Timeline</span>
         <span id="liveBadge" class="badge-live">Connecting...</span>
       </div>
 
       <!-- Cognitive Fuel Curve -->
       <div class="barometer-container">
         <div class="barometer-title">
-          <span>Cognitive Fuel Arc</span>
+          <span>Predicted Fuel Reserves</span>
           <span id="fuelScoreText">Calculating...</span>
         </div>
-        <svg id="curveSvg" class="curve-svg" viewBox="0 0 400 70"></svg>
+        <svg id="curveSvg" class="curve-svg" viewBox="0 0 400 60"></svg>
       </div>
 
       <div id="planSummary" class="plan-summary hidden"></div>
@@ -361,7 +433,7 @@
       if (!events || events.length === 0) {
         scoreText.innerText = 'No Events Scheduled';
         scoreText.style.color = 'var(--text-muted)';
-        svg.innerHTML = '<line x1="0" y1="35" x2="400" y2="35" stroke="#334155" stroke-dasharray="4" stroke-width="1" />';
+        svg.innerHTML = '<line x1="0" y1="30" x2="400" y2="30" stroke="#334155" stroke-dasharray="4" stroke-width="1" />';
         return;
       }
 
@@ -386,15 +458,15 @@
       }
 
       const pathData = points.map((p, i) => {
-        const svgY = 70 - (p.y * 0.6);
+        const svgY = 60 - (p.y * 0.5);
         return (i === 0 ? 'M' : 'L') + p.x + ',' + svgY;
       }).join(' ');
 
       const strokeColor = minFuel < 35 ? '#ef4444' : '#38bdf8';
       svg.innerHTML = `
-        <line x1="0" y1="50" x2="400" y2="50" stroke="#334155" stroke-dasharray="4" stroke-width="1" />
+        <line x1="0" y1="42" x2="400" y2="42" stroke="#334155" stroke-dasharray="4" stroke-width="1" />
         <path d="${pathData}" fill="none" stroke="${strokeColor}" stroke-width="3" stroke-linecap="round" />
-        ${points.map(p => `<circle cx="${p.x}" cy="${70 - (p.y * 0.6)}" r="4" fill="${strokeColor}" />`).join('')}
+        ${points.map(p => `<circle cx="${p.x}" cy="${60 - (p.y * 0.5)}" r="3.5" fill="${strokeColor}" />`).join('')}
       `;
     }
 
@@ -405,216 +477,57 @@
         return;
       }
 
-      // Sort combined list chronologically
       events.sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
 
-      container.innerHTML = events.map(ev => {
+      let html = '';
+      events.forEach((ev, idx) => {
         const dateDisplay = formatReadableDate(ev.date);
         const timeDisplay = formatReadableTimeRange(ev.start_time, ev.end_time);
         const delta = ev.energy_delta || 0;
+        const friction = ev.initiation_friction || 2;
 
-        let massClass = '';
-        let badgeHtml = '';
+        // Class 1: Lateral Mass
+        let massClass = 'mass-medium';
+        if (delta <= -2) massClass = 'mass-heavy';
+        else if (delta >= 1 || ev.color_id === '8') massClass = 'mass-light';
 
-        if (ev.is_existing) {
-          massClass = 'existing';
-          badgeHtml = '<span class="event-energy-badge badge-existing">On Calendar</span>';
-        } else if (delta <= -2) {
-          massClass = 'heavy-drain';
-          badgeHtml = '<span class="event-energy-badge badge-drain">High Cognitive Tax</span>';
-        } else if (delta >= 1) {
-          massClass = 'restorative';
-          badgeHtml = '<span class="event-energy-badge badge-restore">Restorative</span>';
-        } else {
-          badgeHtml = '<span class="event-energy-badge badge-neutral">Pending Add</span>';
+        // Class 2: Momentum Booster
+        let momentumClass = '';
+        if (delta >= 1 || ev.color_id === '2') {
+          momentumClass = 'momentum-booster';
         }
 
-        return (
-          '<div class="event-card ' + massClass + '" data-color="' + (ev.color_id || '9') + '">' +
+        // Ramp indicator
+        let rampHtml = '';
+        if (friction >= 4) {
+          rampHtml = '<div class="initiation-ramp ramp-sheer">▲ ' + (friction === 5 ? 'Sheer Cliff' : 'High Incline') + '</div>';
+        } else if (friction === 3) {
+          rampHtml = '<div class="initiation-ramp ramp-moderate">▲ Moderate Slope</div>';
+        } else if (friction <= 1) {
+          rampHtml = '<div class="initiation-ramp ramp-flat">● Effortless</div>';
+        }
+
+        // Micro starter checklist if present
+        let starterHtml = '';
+        if (ev.description && friction >= 4) {
+          starterHtml = '<div class="micro-starter">' + ev.description.replace(/\n/g, '<br>') + '</div>';
+        }
+
+        html += 
+          '<div class="event-card ' + massClass + ' ' + momentumClass + ' ' + (ev.is_existing ? 'existing' : '') + '" data-color="' + (ev.color_id || '9') + '">' +
+            rampHtml +
             '<div class="event-header">' +
               '<div class="event-title">' + (ev.title || 'Event') + '</div>' +
-              badgeHtml +
             '</div>' +
             '<div class="event-detail"><span>Time:</span> <strong>' + dateDisplay + ' · ' + timeDisplay + '</strong></div>' +
             (ev.location ? '<div class="event-detail"><span>Location:</span> <strong>' + ev.location + '</strong></div>' : '') +
-          '</div>'
-        );
-      }).join('');
-    }
+            starterHtml +
+          '</div>';
 
-    async function loadLiveSchedule() {
-      const liveBadge = document.getElementById('liveBadge');
-      try {
-        const response = await fetch(WORKER_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'LIST' })
-        });
-        const data = await response.json();
-        const existing = data.events || [];
-        combinedEvents = [...existing];
-
-        liveBadge.innerText = 'Google Calendar Synced';
-        liveBadge.style.background = '#064e3b';
-        liveBadge.style.color = '#6ee7b7';
-
-        drawFuelBarometer(combinedEvents);
-        renderEvents(combinedEvents);
-      } catch (err) {
-        liveBadge.innerText = 'Sync Offline';
-        liveBadge.style.background = '#450a0a';
-        liveBadge.style.color = '#fca5a5';
-      }
-    }
-
-    async function commitPendingEvents() {
-      if (!pendingEvents.length) return;
-      const saveBtn = document.getElementById('saveAllBtn');
-      saveBtn.disabled = true;
-      saveBtn.innerText = 'Writing to Calendar...';
-
-      try {
-        const response = await fetch(WORKER_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'INSERT', events: pendingEvents })
-        });
-        if (!response.ok) throw new Error('Insert failed');
-
-        saveBtn.classList.add('success');
-        saveBtn.innerText = '✓ Added to Calendar';
-
-        // Reload live schedule to show newly added events as existing
-        setTimeout(() => {
-          pendingEvents = [];
-          saveBtn.classList.add('hidden');
-          loadLiveSchedule();
-        }, 1200);
-      } catch (err) {
-        saveBtn.disabled = false;
-        saveBtn.innerText = 'Retry Adding';
-        alert('Failed: ' + err.message);
-      }
-    }
-
-    async function processSchedule() {
-      stopVoice();
-      const input = document.getElementById('promptInput');
-      const btn = document.getElementById('submitBtn');
-      const planSummary = document.getElementById('planSummary');
-      const saveBtn = document.getElementById('saveAllBtn');
-
-      const text = input.value.trim();
-      if (!text) return;
-
-      btn.disabled = true;
-      btn.innerText = 'Sequencing Day...';
-
-      try {
-        const response = await fetch(WORKER_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: text })
-        });
-        if (!response.ok) throw new Error('Planning failed');
-
-        const data = await response.json();
-        pendingEvents = data.events || [];
-
-        if (data.summary_message) {
-          planSummary.innerText = data.summary_message;
-          planSummary.classList.remove('hidden');
+        // Connect restorative momentum to the next block
+        if (momentumClass && idx < events.length - 1) {
+          html += '<div class="momentum-filament"></div>';
         }
-
-        // Merge newly parsed events into live events
-        const merged = [...combinedEvents.filter(e => e.is_existing), ...pendingEvents];
-        drawFuelBarometer(merged);
-        renderEvents(merged);
-
-        saveBtn.disabled = false;
-        saveBtn.classList.remove('success', 'hidden');
-        saveBtn.innerText = pendingEvents.length > 1 
-          ? 'Add All (' + pendingEvents.length + ') to Calendar' 
-          : 'Add to Calendar';
-
-        input.value = '';
-      } catch (err) {
-        alert('Error: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerText = 'Process Plan';
-      }
-    }
-
-    // Hybrid Patience Speech Recognition
-    const micBtn = document.getElementById('micBtn');
-    const micStatus = document.getElementById('micStatus');
-    const promptInput = document.getElementById('promptInput');
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    let recognition = null;
-    let silenceTimer = null;
-    let isListening = false;
-
-    function resetSilenceTimer() {
-      if (silenceTimer) clearTimeout(silenceTimer);
-      micStatus.innerText = 'Listening... (Speak freely, 6s cushion)';
-      silenceTimer = setTimeout(() => {
-        if (isListening && promptInput.value.trim().length > 0) {
-          micStatus.innerText = 'Sequencing...';
-          processSchedule();
-        }
-      }, 6000);
-    }
-
-    function stopVoice() {
-      if (silenceTimer) clearTimeout(silenceTimer);
-      if (recognition && isListening) recognition.stop();
-      isListening = false;
-      micBtn.classList.remove('listening');
-      micStatus.innerText = '';
-    }
-
-    if (SpeechRecognition) {
-      recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = 'en-US';
-
-      recognition.onstart = function() {
-        isListening = true;
-        micBtn.classList.add('listening');
-        resetSilenceTimer();
-      };
-      recognition.onresult = function(event) {
-        let transcript = '';
-        for (let i = 0; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript + ' ';
-        }
-        promptInput.value = transcript.trim();
-        resetSilenceTimer();
-      };
-      recognition.onerror = function() { stopVoice(); };
-      recognition.onend = function() {
-        if (isListening) try { recognition.start(); } catch(e) { stopVoice(); }
-      };
-
-      micBtn.addEventListener('click', function() {
-        if (isListening) stopVoice();
-        else { promptInput.value = ''; try { recognition.start(); } catch(e) {} }
       });
-    }
 
-    document.getElementById('submitBtn').addEventListener('click', processSchedule);
-    document.getElementById('promptInput').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        processSchedule();
-      }
-    });
-
-    // Auto-load on page start
-    window.addEventListener('DOMContentLoaded', loadLiveSchedule);
-  </script>
-</body>
-</html>
+      container
