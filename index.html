@@ -42,6 +42,14 @@
     h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.02em; }
     p.subtitle { color: var(--text-muted); font-size: 0.95rem; }
 
+    .version-tag {
+      font-size: 0.75rem;
+      color: var(--primary);
+      margin-top: 4px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
     .card {
       background: var(--card-bg);
       border: 1px solid var(--border);
@@ -130,6 +138,7 @@
     <div>
       <h1>Personal Scheduler</h1>
       <p class="subtitle">Parse natural language scheduling requests straight to Google Calendar.</p>
+      <div class="version-tag">VERSION 1.1</div>
     </div>
 
     <div class="card">
@@ -174,7 +183,7 @@
 
         if (!response.ok) {
           const errData = await response.text();
-          throw new Error(`HTTP ${response.status}: ${errData}`);
+          throw new Error(`HTTP ${response.status}:${errData}`);
         }
 
         const data = await response.json();
@@ -185,42 +194,4 @@
         input.value = '';
         input.focus();
       } catch (err) {
-        renderedEvent.innerHTML = `<div class="error-banner">Error: ${err.message}</div>`;
-        outputContainer.classList.remove('hidden');
-      } finally {
-        btn.disabled = false;
-        btn.innerText = 'Process Request';
-      }
-    }
-
-    function renderEventCard(ev) {
-      const container = document.getElementById('renderedEvent');
-
-      const cleanDate = (ev.date || '').replace(/-/g, '');
-      const cleanStart = (ev.start_time || '').replace(/:/g, '') + '00';
-      const cleanEnd = (ev.end_time || '').replace(/:/g, '') + '00';
-      const datesParam = `${cleanDate}T${cleanStart}/${cleanDate}T${cleanEnd}`;
-
-      const gcal = new URL('https://calendar.google.com/calendar/render');
-      gcal.searchParams.set('action', 'TEMPLATE');
-      gcal.searchParams.set('text', ev.title || 'Scheduled Event');
-      gcal.searchParams.set('dates', datesParam);
-      if (ev.location) gcal.searchParams.set('location', ev.location);
-      if (ev.description) gcal.searchParams.set('details', ev.description);
-      gcal.searchParams.set('ctz', 'America/Chicago');
-
-      container.innerHTML = `
-        <div class="event-card">
-          <div class="event-title">${ev.title || 'New Event'}</div>
-          <div class="event-detail"><span>Date:</span> <strong>${ev.date}</strong></div>
-          <div class="event-detail"><span>Time:</span> <strong>${ev.start_time} - ${ev.end_time}</strong> (Central)</div>
-          ${ev.location ? `<div class="event-detail"><span>Location:</span> <strong>${ev.location}</strong></div>` : ''}
-          <a href="${gcal.toString()}" target="_blank" rel="noopener noreferrer" class="btn-gcal">
-            Open in Google Calendar
-          </a>
-        </div>
-      `;
-    }
-  </script>
-</body>
-</html>
+        renderedEvent.innerHTML = `<div class="error-banner">Error
