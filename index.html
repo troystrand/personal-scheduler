@@ -6,6 +6,7 @@
   <title>Personal Scheduler</title>
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Scheduler">
   <style>
     :root {
       --bg: #0b1120;
@@ -16,16 +17,17 @@
       --primary: #38bdf8;
       --primary-hover: #0284c7;
       --gcal: #2563eb;
+      --gcal-hover: #1d4ed8;
       --success: #22c55e;
       --danger: #ef4444;
       --warning: #f59e0b;
 
-      /* Cognitive Colors */
-      --color-11: #ef4444; /* High Tax / Tomato */
+      /* Cognitive Color Profiles */
+      --color-11: #ef4444; /* High Cognitive Tax / Tomato */
       --color-4: #f472b6;  /* Social / Flamingo */
-      --color-8: #64748b;  /* Chores / Graphite */
+      --color-8: #64748b;  /* Chores & Errands / Graphite */
       --color-2: #10b981;  /* Restorative / Sage */
-      --color-9: #6366f1;  /* Anchor / Blueberry */
+      --color-9: #6366f1;  /* Anchor Appointments / Blueberry */
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -47,7 +49,7 @@
       gap: 16px;
     }
 
-    /* Pinned Horizon Bar */
+    /* Pinned Horizon Anchors */
     .horizon-bar {
       display: flex;
       align-items: center;
@@ -75,7 +77,7 @@
       justify-content: space-between;
       align-items: baseline;
     }
-    h1 { font-size: 1.4rem; font-weight: 700; }
+    h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; }
     .version-tag { font-size: 0.75rem; color: var(--primary); font-weight: 600; }
 
     .card {
@@ -90,7 +92,7 @@
 
     textarea {
       width: 100%;
-      min-height: 90px;
+      min-height: 85px;
       background: #070d19;
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -112,9 +114,12 @@
       border-radius: 8px;
       padding: 12px 20px;
       font-weight: 600;
+      font-size: 0.95rem;
       cursor: pointer;
+      transition: background 0.15s ease;
     }
-    button.btn-primary:disabled { opacity: 0.6; }
+    button.btn-primary:hover { background: var(--primary-hover); }
+    button.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
     button.btn-mic {
       background: #1e293b;
@@ -123,7 +128,10 @@
       border-radius: 8px;
       padding: 12px 16px;
       display: inline-flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
+      transition: all 0.15s ease;
     }
     button.btn-mic.listening {
       background: var(--danger);
@@ -159,6 +167,16 @@
     }
     .curve-svg { width: 100%; height: 70px; overflow: visible; }
 
+    /* Timeline Section Header */
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4px;
+    }
+    .timeline-title { font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+    .badge-live { background: #064e3b; color: #6ee7b7; font-size: 0.7rem; padding: 2px 8px; border-radius: 9999px; font-weight: 600; }
+
     /* Cognitive Mass Cards */
     .events-list { display: flex; flex-direction: column; gap: 10px; }
     .event-card {
@@ -171,11 +189,16 @@
       gap: 6px;
       border-left: 6px solid var(--primary);
       transition: all 0.2s ease;
+      position: relative;
     }
 
-    /* Dense Hatched Pattern for Heavy Drain (-2 or -3) */
+    .event-card[data-color="11"] { border-left-color: var(--color-11); }
+    .event-card[data-color="4"]  { border-left-color: var(--color-4); }
+    .event-card[data-color="8"]  { border-left-color: var(--color-8); }
+    .event-card[data-color="2"]  { border-left-color: var(--color-2); }
+    .event-card[data-color="9"]  { border-left-color: var(--color-9); }
+
     .event-card.heavy-drain {
-      border-left-color: var(--color-11);
       background: repeating-linear-gradient(
         -45deg,
         #111827,
@@ -186,11 +209,14 @@
       box-shadow: inset 0 0 10px rgba(239, 68, 68, 0.1);
     }
 
-    /* Buoyant Glow for Restorative (+1 or +2) */
     .event-card.restorative {
-      border-left-color: var(--color-2);
       border-color: #065f46;
       background: #064e3b15;
+    }
+
+    .event-card.existing {
+      opacity: 0.85;
+      border-style: dashed;
     }
 
     .event-header {
@@ -198,9 +224,9 @@
       justify-content: space-between;
       align-items: baseline;
     }
-    .event-title { font-size: 1.1rem; font-weight: 600; color: #fff; }
+    .event-title { font-size: 1.05rem; font-weight: 600; color: #fff; }
     .event-energy-badge {
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       padding: 2px 8px;
       border-radius: 4px;
       font-weight: 600;
@@ -208,9 +234,20 @@
     .badge-drain { background: #450a0a; color: #fca5a5; }
     .badge-restore { background: #064e3b; color: #6ee7b7; }
     .badge-neutral { background: #1e293b; color: #94a3b8; }
+    .badge-existing { background: #0f172a; color: #cbd5e1; border: 1px solid var(--border); }
 
     .event-detail { font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 8px; }
     .event-detail strong { color: var(--text); }
+
+    .plan-summary {
+      font-size: 0.9rem;
+      color: var(--primary);
+      background: #082f49;
+      border: 1px solid #0369a1;
+      padding: 10px 14px;
+      border-radius: 8px;
+      line-height: 1.4;
+    }
 
     .btn-action {
       background: var(--gcal);
@@ -222,8 +259,12 @@
       border-radius: 8px;
       cursor: pointer;
       width: 100%;
+      transition: background 0.15s ease;
     }
-    .btn-action.success { background: var(--success); }
+    .btn-action:hover { background: var(--gcal-hover); }
+    .btn-action:disabled { opacity: 0.7; cursor: not-allowed; }
+    .btn-action.success { background: var(--success); cursor: default; }
+
     .hidden { display: none !important; }
   </style>
 </head>
@@ -238,7 +279,7 @@
 
     <div class="header-row">
       <h1>Personal Scheduler</h1>
-      <div class="version-tag">VERSION 2.0</div>
+      <div class="version-tag">VERSION 2.1</div>
     </div>
 
     <div class="card">
@@ -255,24 +296,33 @@
       </div>
     </div>
 
-    <div id="outputContainer" class="card hidden">
+    <!-- Active Calendar Dashboard -->
+    <div id="outputContainer" class="card">
+      <div class="timeline-header">
+        <span class="timeline-title">Today's Schedule & Reserves</span>
+        <span id="liveBadge" class="badge-live">Connecting...</span>
+      </div>
+
       <!-- Cognitive Fuel Curve -->
       <div class="barometer-container">
         <div class="barometer-title">
-          <span>Projected Cognitive Reserves</span>
-          <span id="fuelScoreText">Stable</span>
+          <span>Cognitive Fuel Arc</span>
+          <span id="fuelScoreText">Calculating...</span>
         </div>
         <svg id="curveSvg" class="curve-svg" viewBox="0 0 400 70"></svg>
       </div>
 
+      <div id="planSummary" class="plan-summary hidden"></div>
       <div id="eventsContainer" class="events-list"></div>
-      <button id="saveAllBtn" class="btn-action" onclick="commitAllEvents()">Add All to Calendar</button>
+      
+      <button id="saveAllBtn" class="btn-action hidden" onclick="commitPendingEvents()">Add New Events to Calendar</button>
     </div>
   </div>
 
   <script>
     const WORKER_URL = 'https://gemini-proxy.strand-troy.workers.dev';
-    let currentParsedEvents = [];
+    let combinedEvents = [];
+    let pendingEvents = [];
 
     function formatReadableDate(dateStr) {
       if (!dateStr) return '';
@@ -308,9 +358,15 @@
     function drawFuelBarometer(events) {
       const svg = document.getElementById('curveSvg');
       const scoreText = document.getElementById('fuelScoreText');
+      if (!events || events.length === 0) {
+        scoreText.innerText = 'No Events Scheduled';
+        scoreText.style.color = 'var(--text-muted)';
+        svg.innerHTML = '<line x1="0" y1="35" x2="400" y2="35" stroke="#334155" stroke-dasharray="4" stroke-width="1" />';
+        return;
+      }
+
       let currentFuel = 85;
       const points = [{ x: 10, y: currentFuel }];
-
       const step = 380 / Math.max(events.length, 1);
       let minFuel = 100;
 
@@ -329,7 +385,6 @@
         scoreText.style.color = 'var(--success)';
       }
 
-      // Convert fuel (0-100) to SVG coordinates (Y: 60 = low, 10 = high)
       const pathData = points.map((p, i) => {
         const svgY = 70 - (p.y * 0.6);
         return (i === 0 ? 'M' : 'L') + p.x + ',' + svgY;
@@ -343,41 +398,41 @@
       `;
     }
 
-    function renderPlan(data) {
-      currentParsedEvents = data.events || [];
-      const outputContainer = document.getElementById('outputContainer');
-      const eventsContainer = document.getElementById('eventsContainer');
-      const saveAllBtn = document.getElementById('saveAllBtn');
+    function renderEvents(events) {
+      const container = document.getElementById('eventsContainer');
+      if (!events.length) {
+        container.innerHTML = '<div style="color:var(--text-muted);font-size:0.9rem;padding:12px 0;">No calendar events yet for today. Use the box above to schedule.</div>';
+        return;
+      }
 
-      drawFuelBarometer(currentParsedEvents);
+      // Sort combined list chronologically
+      events.sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
 
-      saveAllBtn.disabled = false;
-      saveAllBtn.classList.remove('success');
-      saveAllBtn.innerText = currentParsedEvents.length > 1 
-        ? 'Add All (' + currentParsedEvents.length + ') to Calendar' 
-        : 'Add to Calendar';
-
-      eventsContainer.innerHTML = currentParsedEvents.map(ev => {
+      container.innerHTML = events.map(ev => {
         const dateDisplay = formatReadableDate(ev.date);
         const timeDisplay = formatReadableTimeRange(ev.start_time, ev.end_time);
         const delta = ev.energy_delta || 0;
 
         let massClass = '';
         let badgeHtml = '';
-        if (delta <= -2) {
+
+        if (ev.is_existing) {
+          massClass = 'existing';
+          badgeHtml = '<span class="event-energy-badge badge-existing">On Calendar</span>';
+        } else if (delta <= -2) {
           massClass = 'heavy-drain';
           badgeHtml = '<span class="event-energy-badge badge-drain">High Cognitive Tax</span>';
         } else if (delta >= 1) {
           massClass = 'restorative';
           badgeHtml = '<span class="event-energy-badge badge-restore">Restorative</span>';
         } else {
-          badgeHtml = '<span class="event-energy-badge badge-neutral">Maintenance</span>';
+          badgeHtml = '<span class="event-energy-badge badge-neutral">Pending Add</span>';
         }
 
         return (
           '<div class="event-card ' + massClass + '" data-color="' + (ev.color_id || '9') + '">' +
             '<div class="event-header">' +
-              '<div class="event-title">' + (ev.title || 'New Event') + '</div>' +
+              '<div class="event-title">' + (ev.title || 'Event') + '</div>' +
               badgeHtml +
             '</div>' +
             '<div class="event-detail"><span>Time:</span> <strong>' + dateDisplay + ' · ' + timeDisplay + '</strong></div>' +
@@ -385,12 +440,35 @@
           '</div>'
         );
       }).join('');
-
-      outputContainer.classList.remove('hidden');
     }
 
-    async function commitAllEvents() {
-      if (!currentParsedEvents.length) return;
+    async function loadLiveSchedule() {
+      const liveBadge = document.getElementById('liveBadge');
+      try {
+        const response = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'LIST' })
+        });
+        const data = await response.json();
+        const existing = data.events || [];
+        combinedEvents = [...existing];
+
+        liveBadge.innerText = 'Google Calendar Synced';
+        liveBadge.style.background = '#064e3b';
+        liveBadge.style.color = '#6ee7b7';
+
+        drawFuelBarometer(combinedEvents);
+        renderEvents(combinedEvents);
+      } catch (err) {
+        liveBadge.innerText = 'Sync Offline';
+        liveBadge.style.background = '#450a0a';
+        liveBadge.style.color = '#fca5a5';
+      }
+    }
+
+    async function commitPendingEvents() {
+      if (!pendingEvents.length) return;
       const saveBtn = document.getElementById('saveAllBtn');
       saveBtn.disabled = true;
       saveBtn.innerText = 'Writing to Calendar...';
@@ -399,12 +477,19 @@
         const response = await fetch(WORKER_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'INSERT', events: currentParsedEvents })
+          body: JSON.stringify({ action: 'INSERT', events: pendingEvents })
         });
         if (!response.ok) throw new Error('Insert failed');
 
         saveBtn.classList.add('success');
-        saveBtn.innerText = '✓ All Events Written to Calendar';
+        saveBtn.innerText = '✓ Added to Calendar';
+
+        // Reload live schedule to show newly added events as existing
+        setTimeout(() => {
+          pendingEvents = [];
+          saveBtn.classList.add('hidden');
+          loadLiveSchedule();
+        }, 1200);
       } catch (err) {
         saveBtn.disabled = false;
         saveBtn.innerText = 'Retry Adding';
@@ -416,11 +501,14 @@
       stopVoice();
       const input = document.getElementById('promptInput');
       const btn = document.getElementById('submitBtn');
+      const planSummary = document.getElementById('planSummary');
+      const saveBtn = document.getElementById('saveAllBtn');
+
       const text = input.value.trim();
       if (!text) return;
 
       btn.disabled = true;
-      btn.innerText = 'Calculating Energy Arc...';
+      btn.innerText = 'Sequencing Day...';
 
       try {
         const response = await fetch(WORKER_URL, {
@@ -428,10 +516,27 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: text })
         });
-        if (!response.ok) throw new Error('Parsing failed');
+        if (!response.ok) throw new Error('Planning failed');
 
         const data = await response.json();
-        renderPlan(data);
+        pendingEvents = data.events || [];
+
+        if (data.summary_message) {
+          planSummary.innerText = data.summary_message;
+          planSummary.classList.remove('hidden');
+        }
+
+        // Merge newly parsed events into live events
+        const merged = [...combinedEvents.filter(e => e.is_existing), ...pendingEvents];
+        drawFuelBarometer(merged);
+        renderEvents(merged);
+
+        saveBtn.disabled = false;
+        saveBtn.classList.remove('success', 'hidden');
+        saveBtn.innerText = pendingEvents.length > 1 
+          ? 'Add All (' + pendingEvents.length + ') to Calendar' 
+          : 'Add to Calendar';
+
         input.value = '';
       } catch (err) {
         alert('Error: ' + err.message);
@@ -507,6 +612,9 @@
         processSchedule();
       }
     });
+
+    // Auto-load on page start
+    window.addEventListener('DOMContentLoaded', loadLiveSchedule);
   </script>
 </body>
 </html>
