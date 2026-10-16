@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Micro-App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center p-6">
+  <main class="w-full max-w-xl space-y-4">
+    <header class="border-b border-slate-800 pb-4">
+      <h1 class="text-xl font-bold tracking-tight text-white">Edge Micro-Tool</h1>
+      <p class="text-xs text-slate-400">Deployed via Cloudflare Pages & Workers</p>
+    </header>
+
+    <div class="space-y-3">
+      <label for="promptInput" class="block text-sm font-medium text-slate-300">Prompt / Input Data</label>
+      <textarea id="promptInput" rows="4" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 placeholder-slate-500" placeholder="Enter input payload..."></textarea>
+      
+      <button id="submitBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 rounded-lg text-sm transition-all shadow-sm">
+        Process Request
+      </button>
+    </div>
+
+    <section id="resultCard" class="hidden rounded-lg bg-slate-900 border border-slate-800 p-4 space-y-2">
+      <span class="text-xs font-semibold tracking-wider uppercase text-slate-400">Output</span>
+      <pre id="outputPre" class="text-xs text-emerald-400 overflow-x-auto whitespace-pre-wrap font-mono"></pre>
+    </section>
+  </main>
+
+  <script>
+    const submitBtn = document.getElementById('submitBtn');
+    const promptInput = document.getElementById('promptInput');
+    const resultCard = document.getElementById('resultCard');
+    const outputPre = document.getElementById('outputPre');
+
+    async function callEdgeProxy(prompt) {
+      const res = await fetch('https://gemini-proxy.strand-troy.workers.dev', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: prompt,
+          systemInstruction: "You are a concise, structured edge assistant. Return all responses formatted strictly as a single valid JSON object."
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        const msg = typeof err.error === 'object' ? JSON.stringify(err.error) : (err.error || JSON.stringify(err));
+        throw new Error(msg);
+      }
+
+      return await res.json();
+    }
+
+    submitBtn.addEventListener('click', async () => {
+      const val = promptInput.value.trim();
+      if (!val) return;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Processing...';
+      resultCard.classList.remove('hidden');
+      outputPre.textContent = 'Fetching response from Cloudflare Worker edge...';
+
+      try {
+        const data = await callEdgeProxy(val);
+        outputPre.textContent = JSON.stringify(data, null, 2);
+      } catch (e) {
+        outputPre.textContent = `Error: ${e.message}`;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Process Request';
+      }
+    });
+  </script>
+</body>
+</html>
