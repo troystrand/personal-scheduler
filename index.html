@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Personal Scheduler</title>
-  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Scheduler">
   <style>
@@ -141,7 +141,7 @@
     <div>
       <h1>Personal Scheduler</h1>
       <p class="subtitle">Parse natural language scheduling requests straight to Google Calendar.</p>
-      <div class="version-tag">VERSION 1.3</div>
+      <div class="version-tag">VERSION 1.4</div>
     </div>
 
     <div class="card">
@@ -157,9 +157,7 @@
   <script>
     const WORKER_URL = 'https://gemini-proxy.strand-troy.workers.dev';
 
-    function renderEventCard(ev) {
-      const container = document.getElementById('renderedEvent');
-
+    function buildCalendarUrl(ev) {
       const cleanDate = (ev.date || '').replace(/-/g, '');
       const cleanStart = (ev.start_time || '').replace(/:/g, '') + '00';
       const cleanEnd = (ev.end_time || '').replace(/:/g, '') + '00';
@@ -173,13 +171,19 @@
       if (ev.description) gcal.searchParams.set('details', ev.description);
       gcal.searchParams.set('ctz', 'America/Chicago');
 
+      return gcal.toString();
+    }
+
+    function renderEventCard(ev, targetUrl) {
+      const container = document.getElementById('renderedEvent');
+
       container.innerHTML = 
         '<div class="event-card">' +
           '<div class="event-title">' + (ev.title || 'New Event') + '</div>' +
           '<div class="event-detail"><span>Date:</span> <strong>' + ev.date + '</strong></div>' +
           '<div class="event-detail"><span>Time:</span> <strong>' + ev.start_time + ' - ' + ev.end_time + '</strong> (Central)</div>' +
           (ev.location ? '<div class="event-detail"><span>Location:</span> <strong>' + ev.location + '</strong></div>' : '') +
-          '<a href="' + gcal.toString() + '" target="_blank" rel="noopener noreferrer" class="btn-gcal">' +
+          '<a href="' + targetUrl + '" target="_blank" rel="noopener noreferrer" class="btn-gcal">' +
             'Open in Google Calendar' +
           '</a>' +
         '</div>';
@@ -210,12 +214,16 @@
         }
 
         const data = await response.json();
+        const calendarUrl = buildCalendarUrl(data);
 
-        renderEventCard(data);
+        renderEventCard(data, calendarUrl);
         outputContainer.classList.remove('hidden');
 
         input.value = '';
         input.focus();
+
+        // Automatically launch Google Calendar
+        window.open(calendarUrl, '_blank');
       } catch (err) {
         renderedEvent.innerHTML = '<div class="error-banner">Error: ' + err.message + '</div>';
         outputContainer.classList.remove('hidden');
