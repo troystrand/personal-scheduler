@@ -14,7 +14,7 @@
       --primary: #38bdf8;
       --primary-hover: #0284c7;
       --gcal: #2563eb;
-      --ics: #059669;
+      --gcal-hover: #1d4ed8;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -30,7 +30,7 @@
 
     .container {
       width: 100%;
-      max-width: 640px;
+      max-width: 600px;
       display: flex;
       flex-direction: column;
       gap: 20px;
@@ -83,43 +83,37 @@
       border: 1px solid var(--border);
       background: #111827;
       border-radius: 8px;
-      padding: 18px;
+      padding: 20px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 12px;
     }
 
-    .event-title { font-size: 1.2rem; font-weight: 600; color: #fff; }
-    .event-detail { font-size: 0.92rem; color: var(--text-muted); display: flex; gap: 8px; }
+    .event-title { font-size: 1.25rem; font-weight: 600; color: #fff; }
+    .event-detail { font-size: 0.95rem; color: var(--text-muted); display: flex; gap: 8px; }
     .event-detail strong { color: var(--text); }
 
-    .action-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 12px;
-    }
-
-    .btn-link {
+    .btn-gcal {
       display: inline-flex;
       align-items: center;
-      padding: 10px 16px;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      font-weight: 500;
-      text-decoration: none;
+      justify-content: center;
+      background: var(--gcal);
       color: white;
-      transition: opacity 0.15s ease;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 1rem;
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin-top: 8px;
+      transition: background 0.15s ease;
     }
 
-    .btn-link:hover { opacity: 0.9; }
-    .btn-gcal { background: var(--gcal); }
-    .btn-ics { background: var(--ics); }
+    .btn-gcal:hover { background: var(--gcal-hover); }
 
     pre {
       background: #0b1120;
       border: 1px solid var(--border);
-      padding: 14px;
+      padding: 12px;
       border-radius: 6px;
       font-size: 0.85rem;
       color: #a5f3fc;
@@ -133,7 +127,7 @@
   <div class="container">
     <div>
       <h1>Personal Scheduler</h1>
-      <p class="subtitle">Enter any scheduling phrase to extract details and generate calendar entries.</p>
+      <p class="subtitle">Parse natural language scheduling requests straight to Google Calendar.</p>
     </div>
 
     <div class="card">
@@ -192,18 +186,12 @@
 
     function renderEventCard(ev) {
       const container = document.getElementById('renderedEvent');
-      if (ev.action !== 'CREATE_EVENT' && ev.action !== 'UPDATE_EVENT') {
-        container.innerHTML = `<p class="event-detail">Action parsed: <strong>${ev.action || 'UNKNOWN'}</strong></p>`;
-        return;
-      }
 
-      // Convert YYYY-MM-DD + HH:MM into URL & ICS formats
       const cleanDate = (ev.date || '').replace(/-/g, '');
       const cleanStart = (ev.start_time || '').replace(/:/g, '') + '00';
       const cleanEnd = (ev.end_time || '').replace(/:/g, '') + '00';
       const datesParam = `${cleanDate}T${cleanStart}/${cleanDate}T${cleanEnd}`;
 
-      // Google Calendar deep link
       const gcal = new URL('https://calendar.google.com/calendar/render');
       gcal.searchParams.set('action', 'TEMPLATE');
       gcal.searchParams.set('text', ev.title || 'Scheduled Event');
@@ -212,41 +200,15 @@
       if (ev.description) gcal.searchParams.set('details', ev.description);
       gcal.searchParams.set('ctz', 'America/Chicago');
 
-      // RFC 5545 iCalendar content (.ics)
-      const icsLines = [
-        'BEGIN:VCALENDAR',
-        'VERSION:2.0',
-        'PRODID:-//Personal Scheduler//EN',
-        'BEGIN:VEVENT',
-        `UID:${Date.now()}@personalscheduler`,
-        `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
-        `DTSTART;TZID=America/Chicago:${cleanDate}T${cleanStart}`,
-        `DTEND;TZID=America/Chicago:${cleanDate}T${cleanEnd}`,
-        `SUMMARY:${ev.title || 'Scheduled Event'}`,
-        ev.location ? `LOCATION:${ev.location}` : '',
-        ev.description ? `DESCRIPTION:${ev.description}` : '',
-        'END:VEVENT',
-        'END:VCALENDAR'
-      ].filter(Boolean).join('\r\n');
-
-      const blob = new Blob([icsLines], { type: 'text/calendar;charset=utf-8' });
-      const icsUrl = URL.createObjectURL(blob);
-      const icsFileName = `${(ev.title || 'event').toLowerCase().replace(/\s+/g, '_')}.ics`;
-
       container.innerHTML = `
         <div class="event-card">
           <div class="event-title">${ev.title || 'New Event'}</div>
           <div class="event-detail"><span>Date:</span> <strong>${ev.date}</strong></div>
-          <div class="event-detail"><span>Time:</span> <strong>${ev.start_time} - ${ev.end_time}</strong> (America/Chicago)</div>
+          <div class="event-detail"><span>Time:</span> <strong>${ev.start_time} - ${ev.end_time}</strong> (Central)</div>
           ${ev.location ? `<div class="event-detail"><span>Location:</span> <strong>${ev.location}</strong></div>` : ''}
-          <div class="action-row">
-            <a href="${gcal.toString()}" target="_blank" rel="noopener noreferrer" class="btn-link btn-gcal">
-              + Google Calendar
-            </a>
-            <a href="${icsUrl}" download="${icsFileName}" class="btn-link btn-ics">
-              Download .ICS
-            </a>
-          </div>
+          <a href="${gcal.toString()}" target="_blank" rel="noopener noreferrer" class="btn-gcal">
+            Open in Google Calendar
+          </a>
         </div>
       `;
     }
