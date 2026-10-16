@@ -789,9 +789,20 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: text })
         });
-        if (!response.ok) throw new Error('Planning failed');
 
-        const data = await response.json();
+        const rawText = await response.text();
+
+        if (!response.ok) {
+          throw new Error(`Google/Worker Error (${response.status}):\n${rawText}`);
+        }
+
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch (jsonErr) {
+          throw new Error(`Invalid JSON returned:\n${rawText.substring(0, 300)}`);
+        }
+
         pendingEvents = data.events || [];
 
         if (data.summary_message) {
@@ -812,7 +823,7 @@
 
         input.value = '';
       } catch (err) {
-        alert('Error: ' + err.message);
+        alert(err.message);
       } finally {
         btn.disabled = false;
         btn.innerText = 'Process Plan';
