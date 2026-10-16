@@ -530,4 +530,191 @@
         }
       });
 
-      container
+      container.innerHTML = html;
+    }
+
+    async function loadLiveSchedule() {
+      const liveBadge = document.getElementById('liveBadge');
+      const scoreText = document.getElementById('fuelScoreText');
+      try {
+        const response = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'LIST' })
+        });
+        
+        if (!response.ok) {
+          const errBody = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errBody}`);
+        }
+
+        const data = await response.json();
+        const existing = data.events || [];
+        combinedEvents = [...existing];
+
+        liveBadge.innerText = 'Calendar Connected';
+        liveBadge.style.background = '#064e3b';
+        liveBadge.style.color = '#6ee7b7';
+
+        drawFuelBarometer(combinedEvents);
+        renderEvents(combinedEvents);
+      } catch (err) {
+        console.error('Schedule fetch error:', err);
+        liveBadge.innerText = 'Sync Offline';
+        liveBadge.style.background = '#450a0a';
+        liveBadge.style.color = '#fca5a5';
+        scoreText.innerText = 'Ready for Intake';
+        scoreText.style.color = 'var(--text-muted)';
+        drawFuelBarometer([]);
+        renderEvents([]);
+      }
+    }
+
+    async function commitPendingEvents() {
+      if (!pendingEvents.length) return;
+      const saveBtn = document.getElementById('saveAllBtn');
+      saveBtn.disabled = true;
+      saveBtn.innerText = 'Writing to Calendar...';
+
+      try {
+        const response = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'INSERT', events: pendingEvents })
+        });
+        if (!response.ok) throw new Error('Insert failed');
+
+        saveBtn.classList.add('success');
+        saveBtn.innerText = '✓ Added to Calendar';
+
+        setTimeout(() => {
+          pendingEvents = [];
+          saveBtn.classList.add('hidden');
+          loadLiveSchedule();
+        }, 1200);
+      } catch (err) {
+        saveBtn.disabled = false;
+        saveBtn.innerText = 'Retry Adding';
+        alert('Failed: ' + err.message);
+      }
+    }
+
+    async function processSchedule() {
+      stopVoice();
+      const input = document.getElementById('promptInput');
+      const btn = document.getElementById('submitBtn');
+      const planSummary = document.getElementById('planSummary');
+      const saveBtn = document.getElementById('saveAllBtn');
+
+      const text = input.value.trim();
+      if (!text) return;
+
+      btn.disabled = true;
+      btn.innerText = 'Simulating Physics Arc...';
+
+      try {
+        const response = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: text })
+        });
+        if (!response.ok) throw new Error('Planning failed');
+
+        const data = await response.json();
+        pendingEvents = data.events || [];
+
+        if (data.summary_message) {
+          planSummary.innerText = data.summary_message;
+          planSummary.classList.remove('hidden');
+        }
+
+        const merged = [...combinedEvents.filter(e => e.is_existing), ...pendingEvents];
+        drawFuelBarometer(merged);
+        renderEvents(merged);
+
+        saveBtn.disabled = false;
+        saveBtn.classList.remove('success', 'hidden');
+        saveBtn.innerText = pendingEvents.length > 1 
+          ? 'Add All (' + pendingEvents.length + ') to Calendar' 
+          : 'Add to Calendar';
+
+        input.value = '';
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Process Plan';
+      }
+    }
+
+    // Hybrid Patience Speech Recognition
+    const micBtn = document.getElementById('micBtn');
+    const micStatus = document.getElementById('micStatus');
+    const promptInput = document.getElementById('promptInput');
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    let recognition = null;
+    let silenceTimer = null;
+    let isListening = false;
+
+    function resetSilenceTimer() {
+      if (silenceTimer) clearTimeout(silenceTimer);
+      micStatus.innerText = 'Listening... (Speak freely, 6s cushion)';
+      silenceTimer = setTimeout(() => {
+        if (isListening && promptInput.value.trim().length > 0) {
+          micStatus.innerText = 'Sequencing...';
+          processSchedule();
+        }
+      }, 6000);
+    }
+
+    function stopVoice() {
+      if (silenceTimer) clearTimeout(silenceTimer);
+      if (recognition && isListening) recognition.stop();
+      isListening = false;
+      micBtn.classList.remove('listening');
+      micStatus.innerText = '';
+    }
+
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = function() {
+        isListening = true;
+        micBtn.classList.add('listening');
+        resetSilenceTimer();
+      };
+      recognition.onresult = function(event) {
+        let transcript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript + ' ';
+        }
+        promptInput.value = transcript.trim();
+        resetSilenceTimer();
+      };
+      recognition.onerror = function() { stopVoice(); };
+      recognition.onend = function() {
+        if (isListening) try { recognition.start(); } catch(e) { stopVoice(); }
+      };
+
+      micBtn.addEventListener('click', function() {
+        if (isListening) stopVoice();
+        else { promptInput.value = ''; try { recognition.start(); } catch(e) {} }
+      });
+    }
+
+    document.getElementById('submitBtn').addEventListener('click', processSchedule);
+    document.getElementById('promptInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        processSchedule();
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', loadLiveSchedule);
+  </script>
+</body>
+</html>
