@@ -184,7 +184,7 @@
     <div>
       <h1>Personal Scheduler</h1>
       <p class="subtitle">Parse natural language scheduling requests straight to Google Calendar.</p>
-      <div class="version-tag">VERSION 1.5</div>
+      <div class="version-tag">VERSION 1.6</div>
     </div>
 
     <div class="card">
@@ -209,6 +209,56 @@
   <script>
     const WORKER_URL = 'https://gemini-proxy.strand-troy.workers.dev';
 
+    function formatReadableDate(dateStr) {
+      if (!dateStr) return '';
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return dateStr;
+      
+      const year = parseInt(parts[0], 10);
+      const monthIdx = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      
+      const months = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'June', 'July', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.'];
+      const monthName = months[monthIdx] || parts[1];
+      const currentYear = new Date().getFullYear();
+
+      if (year === currentYear) {
+        return monthName + ' ' + day;
+      }
+      return monthName + ' ' + day + ', ' + year;
+    }
+
+    function formatTimeComponent(timeStr) {
+      if (!timeStr) return { hour: 0, minute: 0, ampm: 'am', display: '' };
+      const parts = timeStr.split(':');
+      let hour = parseInt(parts[0], 10);
+      const minute = parseInt(parts[1] || '0', 10);
+      const ampm = hour >= 12 ? 'pm' : 'am';
+      
+      hour = hour % 12;
+      if (hour === 0) hour = 12;
+
+      const minStr = minute === 0 ? '' : ':' + (minute < 10 ? '0' + minute : minute);
+      return { hour, minute, ampm, minStr, display: hour + minStr };
+    }
+
+    function formatReadableTimeRange(startTime, endTime) {
+      if (!startTime) return '';
+      const start = formatTimeComponent(startTime);
+
+      if (!endTime || endTime === startTime) {
+        return start.display + start.ampm;
+      }
+
+      const end = formatTimeComponent(endTime);
+
+      // If both am or both pm, omit the first am/pm: 6-7pm vs 11:30am-1pm
+      if (start.ampm === end.ampm) {
+        return start.display + '–' + end.display + end.ampm;
+      }
+      return start.display + start.ampm + '–' + end.display + end.ampm;
+    }
+
     function buildCalendarUrl(ev) {
       const cleanDate = (ev.date || '').replace(/-/g, '');
       const cleanStart = (ev.start_time || '').replace(/:/g, '') + '00';
@@ -228,15 +278,17 @@
 
     function renderEventCard(ev, targetUrl) {
       const container = document.getElementById('renderedEvent');
+      const dateDisplay = formatReadableDate(ev.date);
+      const timeDisplay = formatReadableTimeRange(ev.start_time, ev.end_time);
 
       container.innerHTML = 
         '<div class="event-card">' +
           '<div class="event-title">' + (ev.title || 'New Event') + '</div>' +
-          '<div class="event-detail"><span>Date:</span> <strong>' + ev.date + '</strong></div>' +
-          '<div class="event-detail"><span>Time:</span> <strong>' + ev.start_time + ' - ' + ev.end_time + '</strong> (Central)</div>' +
+          '<div class="event-detail"><span>Date:</span> <strong>' + dateDisplay + '</strong></div>' +
+          '<div class="event-detail"><span>Time:</span> <strong>' + timeDisplay + '</strong></div>' +
           (ev.location ? '<div class="event-detail"><span>Location:</span> <strong>' + ev.location + '</strong></div>' : '') +
           '<a href="' + targetUrl + '" target="_blank" rel="noopener noreferrer" class="btn-gcal">' +
-            'Open in Google Calendar' +
+            'Add to Calendar' +
           '</a>' +
         '</div>';
     }
@@ -249,6 +301,9 @@
 
       const text = input.value.trim();
       if (!text) return;
+
+      // Pre-open blank tab synchronously on click/tap to bypass popup blocker
+      const calWindow = window.open('about:blank', '_blank');
 
       btn.disabled = true;
       btn.innerText = 'Parsing...';
@@ -274,8 +329,12 @@
         input.value = '';
         input.focus();
 
-        window.open(calendarUrl, '_blank');
+        // Redirect the pre-opened tab to the parsed calendar URL
+        if (calWindow) {
+          calWindow.location.href = calendarUrl;
+        }
       } catch (err) {
+        if (calWindow) calWindow.close();
         renderedEvent.innerHTML = '<div class="error-banner">Error: ' + err.message + '</div>';
         outputContainer.classList.remove('hidden');
       } finally {
