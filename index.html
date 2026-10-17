@@ -591,14 +591,10 @@
         saveBtn.innerText = 'Write Order to Calendar';
       }
     }
-    /* ==========================================================================
-       >>> ANCHOR: TASK_API_PARSING_AND_SAVE_END <<<
-       ========================================================================== */
-
-
-    /* ==========================================================================
-       >>> ANCHOR: FORGE_CHAT_CLIENT_START <<<
-       ========================================================================== */
+    
+   /* ==========================================================================
+   >>> ANCHOR: FORGE_CHAT_CLIENT_START <<<
+   ========================================================================== */
     let forgeHistory = JSON.parse(localStorage.getItem('forge_history') || '[]');
 
     function toggleForge() {
@@ -638,11 +634,32 @@
 
         const hasCss = text.includes('```css') || text.includes('<style>');
         const hasJs = text.includes('```javascript') || text.includes('<script>');
+        const hasAnchor = text.includes('>>> ANCHOR:');
 
+        const actionRow = document.createElement('div');
+        actionRow.className = 'patch-btn-row';
+
+        // Live patch button for quick testing
         if (hasCss || hasJs) {
-          const actionRow = document.createElement('div');
-          actionRow.className = 'patch-btn-row';
-          actionRow.innerHTML = `<button class="btn-live-patch" onclick="hotPatchMessage(${index})">⚡ Apply Patch Live</button>`;
+          const patchBtn = document.createElement('button');
+          patchBtn.className = 'btn-live-patch';
+          patchBtn.innerText = '⚡ Apply Patch Live';
+          patchBtn.onclick = () => hotPatchMessage(index);
+          actionRow.appendChild(patchBtn);
+        }
+
+        // Mobile-friendly One-Tap Copy button for GitHub
+        if (hasAnchor || hasCss || hasJs) {
+          const copyBtn = document.createElement('button');
+          copyBtn.className = 'btn-live-patch';
+          copyBtn.style.background = '#1e293b';
+          copyBtn.style.borderColor = '#475569';
+          copyBtn.innerText = '📋 Copy Code Block';
+          copyBtn.onclick = () => copyCodeBlock(index, copyBtn);
+          actionRow.appendChild(copyBtn);
+        }
+
+        if (actionRow.children.length > 0) {
           msgEl.appendChild(actionRow);
         }
       } else {
@@ -724,15 +741,41 @@
       alert('⚡ Patch applied to active page session!');
     };
 
+    window.copyCodeBlock = async function(index, btnEl) {
+      const msg = forgeHistory[index];
+      if (!msg) return;
+      const text = msg.parts?.[0]?.text || '';
+
+      // Extract code inside markdown fences or grab the full anchor block
+      const fenceMatch = text.match(/```(?:css|javascript|html)?([\s\S]*?)```/);
+      const codeToCopy = fenceMatch ? fenceMatch[1].trim() : text;
+
+      try {
+        await navigator.clipboard.writeText(codeToCopy);
+        const originalText = btnEl.innerText;
+        btnEl.innerText = '✓ Copied!';
+        btnEl.style.borderColor = 'var(--success)';
+        btnEl.style.color = 'var(--success)';
+        setTimeout(() => {
+          btnEl.innerText = originalText;
+          btnEl.style.borderColor = '#475569';
+          btnEl.style.color = '#e0f2fe';
+        }, 1500);
+      } catch (e) {
+        alert('Clipboard copy failed: ' + e.message);
+      }
+    };
+
     function clearForgeChat() {
       if (!confirm('Clear Forge conversation history?')) return;
       forgeHistory = [];
       localStorage.removeItem('forge_history');
       renderForgeLog();
     }
-    /* ==========================================================================
-       >>> ANCHOR: FORGE_CHAT_CLIENT_END <<<
-       ========================================================================== */
+/* ==========================================================================
+   >>> ANCHOR: FORGE_CHAT_CLIENT_END <<<
+   ========================================================================== */
+
 
 
     /* ==========================================================================
