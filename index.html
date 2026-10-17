@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Task Sequencer</title>
+  <!-- Fast Markdown Parser for Gemini Replies -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     :root {
       --bg: #090d16;
@@ -28,7 +30,7 @@
       color: var(--text);
       display: flex;
       justify-content: center;
-      padding: 24px 16px 80px 16px;
+      padding: 24px 16px 90px 16px;
       min-height: 100vh;
     }
 
@@ -111,7 +113,6 @@
       flex-direction: column;
       gap: 8px;
       border-left: 5px solid var(--primary);
-      transition: transform 0.15s ease;
     }
 
     .task-card[data-color="11"] { border-left-color: var(--tag-11); }
@@ -201,7 +202,7 @@
     }
     .btn-save:disabled { opacity: 0.5; }
 
-    /* THE DEV FORGE DRAWER */
+    /* THE GEMINI FORGE CHAT INTERFACE */
     .forge-pill {
       position: fixed;
       bottom: 16px;
@@ -209,12 +210,12 @@
       background: #030712;
       border: 1px solid var(--primary);
       color: var(--primary);
-      padding: 8px 14px;
+      padding: 9px 16px;
       border-radius: 9999px;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+      box-shadow: 0 4px 18px rgba(0,0,0,0.7);
       z-index: 999;
       display: flex;
       align-items: center;
@@ -227,62 +228,143 @@
       bottom: 0;
       left: 0;
       right: 0;
-      background: #030712;
+      background: #080d1a;
       border-top: 2px solid var(--primary);
-      padding: 16px;
+      box-shadow: 0 -12px 30px rgba(0,0,0,0.85);
+      z-index: 1000;
+      height: 80vh;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      box-shadow: 0 -10px 25px rgba(0,0,0,0.8);
-      z-index: 1000;
-      max-height: 80vh;
-      overflow-y: auto;
+      max-width: 680px;
+      margin: 0 auto;
+      border-radius: 14px 14px 0 0;
     }
 
     .forge-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: #030712;
+      border-radius: 14px 14px 0 0;
     }
-    .forge-title { font-size: 0.85rem; font-weight: 700; color: var(--primary); letter-spacing: 0.05em; }
+    .forge-title { font-size: 0.85rem; font-weight: 700; color: var(--primary); letter-spacing: 0.05em; display: flex; align-items: center; gap: 8px; }
+    .forge-header-actions { display: flex; gap: 10px; align-items: center; }
+    .btn-icon { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+    .btn-icon:hover { color: var(--text); }
     .btn-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.1rem; }
 
-    .forge-input {
-      width: 100%;
-      background: #0f172a;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: #fff;
-      padding: 8px 10px;
-      font-size: 0.85rem;
-      font-family: inherit;
+    .forge-chat-log {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      scroll-behavior: smooth;
     }
 
-    .forge-output {
-      background: #000;
+    .chat-msg {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-width: 88%;
+      line-height: 1.45;
+      font-size: 0.88rem;
+    }
+    .chat-msg.user {
+      align-self: flex-end;
+      background: #1e293b;
+      color: #f8fafc;
+      padding: 10px 14px;
+      border-radius: 12px 12px 2px 12px;
+      border: 1px solid #334155;
+    }
+    .chat-msg.model {
+      align-self: flex-start;
+      background: #0f172a;
+      color: #cbd5e1;
+      padding: 12px 16px;
+      border-radius: 12px 12px 12px 2px;
       border: 1px solid #1e293b;
-      border-radius: 6px;
-      padding: 10px;
+    }
+    .chat-msg.model p { margin-bottom: 8px; }
+    .chat-msg.model p:last-child { margin-bottom: 0; }
+    .chat-msg.model code {
+      background: #020617;
+      padding: 2px 5px;
+      border-radius: 4px;
       font-family: monospace;
       font-size: 0.8rem;
-      color: #94a3b8;
-      max-height: 250px;
-      overflow-y: auto;
-      white-space: pre-wrap;
+      color: #38bdf8;
+    }
+    .chat-msg.model pre {
+      background: #020617;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 10px;
+      overflow-x: auto;
+      margin: 8px 0;
+    }
+    .chat-msg.model pre code {
+      background: none;
+      padding: 0;
+      color: #f1f5f9;
     }
 
-    .forge-actions { display: flex; gap: 8px; }
-    .btn-forge-action {
-      background: #1e293b;
-      border: 1px solid var(--border);
-      color: #fff;
-      border-radius: 6px;
-      padding: 6px 12px;
-      font-size: 0.75rem;
-      cursor: pointer;
-      font-weight: 600;
+    .patch-btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
     }
-    .btn-forge-action:hover { border-color: var(--primary); }
+    .btn-live-patch {
+      background: #0c4a6e;
+      border: 1px solid var(--primary);
+      color: #e0f2fe;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-live-patch:hover { background: #0284c7; }
+
+    .forge-input-bar {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      background: #030712;
+      display: flex;
+      gap: 8px;
+    }
+    .forge-input-bar input {
+      flex: 1;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: #fff;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      font-family: inherit;
+    }
+    .forge-input-bar input:focus { outline: 2px solid var(--primary); }
+    .forge-input-bar button {
+      background: var(--primary);
+      color: #030712;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .forge-input-bar button:disabled { opacity: 0.5; }
+
+    .typing-dots { display: inline-flex; gap: 4px; padding: 4px 8px; }
+    .typing-dots span { width: 6px; height: 6px; background: var(--primary); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out; }
+    .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
 
     .hidden { display: none !important; }
   </style>
@@ -291,7 +373,7 @@
   <div class="container">
     <header>
       <h1>Task Sequencer</h1>
-      <span class="badge">Forge Ready</span>
+      <span class="badge">Multi-Turn Forge</span>
     </header>
 
     <div class="input-panel">
@@ -307,28 +389,30 @@
     <button id="saveBtn" class="btn-save hidden" onclick="saveToCalendar()">Write Order to Calendar</button>
   </div>
 
-  <!-- THE FORGE TRIGGER -->
-  <button id="forgeToggle" class="forge-pill" onclick="toggleForge()">⚡ Forge</button>
+  <!-- FLOATING FORGE BUTTON -->
+  <button id="forgeToggle" class="forge-pill" onclick="toggleForge()">✦ Gemini Forge</button>
 
-  <!-- THE FORGE DRAWER -->
+  <!-- GEMINI FORGE MULTI-TURN DRAWER -->
   <div id="forgeDrawer" class="forge-drawer hidden">
     <div class="forge-header">
-      <span class="forge-title">⚡ IN-APP DEV FORGE (GEMINI 3.8)</span>
-      <button class="btn-close" onclick="toggleForge()">✕</button>
+      <div class="forge-title">✦ GEMINI 3.8 COMPANION</div>
+      <div class="forge-header-actions">
+        <button class="btn-icon" onclick="clearForgeChat()">Clear History</button>
+        <button class="btn-close" onclick="toggleForge()">✕</button>
+      </div>
     </div>
-    <input id="forgeInput" class="forge-input" placeholder="E.g., 'Make high friction cards have a glowing red outline' or 'Add a 15m delay button'" />
-    <div class="forge-actions">
-      <button id="forgeSendBtn" class="btn-forge-action" onclick="askForge()">Ask Forge</button>
-      <button id="forgePatchBtn" class="btn-forge-action hidden" onclick="applyHotPatch()">⚡ Test Live</button>
-      <button id="forgeCopyBtn" class="btn-forge-action hidden" onclick="copyForgeCode()">Copy Patch</button>
+    
+    <div id="forgeChatLog" class="forge-chat-log"></div>
+
+    <div class="forge-input-bar">
+      <input id="forgeInput" placeholder="Chat with Gemini or request code tweaks..." autocomplete="off" />
+      <button id="forgeSendBtn" onclick="sendForgeMessage()">Send</button>
     </div>
-    <div id="forgeOutput" class="forge-output hidden"></div>
   </div>
 
   <script>
     const WORKER_URL = 'https://gemini-proxy.strand-troy.workers.dev';
     let currentEvents = [];
-    let lastForgeCode = '';
 
     function formatTime12(timeStr) {
       if (!timeStr) return '';
@@ -475,69 +559,141 @@
       }
     }
 
-    // THE FORGE FUNCTIONS
+    // MULTI-TURN GEMINI FORGE CHAT LOGIC
+    let forgeHistory = JSON.parse(localStorage.getItem('forge_history') || '[]');
+
     function toggleForge() {
-      document.getElementById('forgeDrawer').classList.toggle('hidden');
+      const drawer = document.getElementById('forgeDrawer');
+      drawer.classList.toggle('hidden');
+      if (!drawer.classList.contains('hidden')) {
+        renderForgeLog();
+        document.getElementById('forgeInput').focus();
+      }
     }
 
-    async function askForge() {
+    function renderForgeLog() {
+      const container = document.getElementById('forgeChatLog');
+      container.innerHTML = '';
+
+      if (forgeHistory.length === 0) {
+        container.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;padding:12px;">Ask Gemini anything, iterate on UI features, or request live code patches. Memory persists across turns.</div>';
+        return;
+      }
+
+      forgeHistory.forEach((msg, idx) => {
+        const role = msg.role === 'model' ? 'model' : 'user';
+        const text = msg.parts?.[0]?.text || '';
+        appendChatMessageToDOM(role, text, idx);
+      });
+
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function appendChatMessageToDOM(role, text, index) {
+      const container = document.getElementById('forgeChatLog');
+      const msgEl = document.createElement('div');
+      msgEl.className = `chat-msg ${role}`;
+
+      if (role === 'model') {
+        msgEl.innerHTML = marked.parse(text);
+
+        // Check if there are CSS or JS code blocks to offer hot-patching
+        const hasCss = text.includes('```css') || text.includes('<style>');
+        const hasJs = text.includes('```javascript') || text.includes('<script>');
+
+        if (hasCss || hasJs) {
+          const actionRow = document.createElement('div');
+          actionRow.className = 'patch-btn-row';
+          actionRow.innerHTML = `<button class="btn-live-patch" onclick="hotPatchMessage(${index})">⚡ Apply Patch Live</button>`;
+          msgEl.appendChild(actionRow);
+        }
+      } else {
+        msgEl.innerText = text;
+      }
+
+      container.appendChild(msgEl);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function sendForgeMessage() {
       const input = document.getElementById('forgeInput');
-      const output = document.getElementById('forgeOutput');
-      const patchBtn = document.getElementById('forgePatchBtn');
-      const copyBtn = document.getElementById('forgeCopyBtn');
+      const btn = document.getElementById('forgeSendBtn');
       const text = input.value.trim();
       if (!text) return;
 
-      output.innerText = 'Consulting Gemini 3.8-Flash Forge...';
-      output.classList.remove('hidden');
+      input.value = '';
+      btn.disabled = true;
+
+      // Append user turn
+      forgeHistory.push({ role: 'user', parts: [{ text }] });
+      renderForgeLog();
+
+      // Show typing indicator
+      const container = document.getElementById('forgeChatLog');
+      const typingEl = document.createElement('div');
+      typingEl.id = 'typingIndicator';
+      typingEl.className = 'chat-msg model';
+      typingEl.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+      container.appendChild(typingEl);
+      container.scrollTop = container.scrollHeight;
 
       try {
         const res = await fetch(WORKER_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'DEV_FORGE', prompt: text })
+          body: JSON.stringify({ action: 'DEV_FORGE', history: forgeHistory })
         });
 
         const data = await res.json();
-        const responseText = data.response || 'No code returned';
-        output.innerText = responseText;
-        lastForgeCode = responseText;
+        document.getElementById('typingIndicator')?.remove();
 
-        patchBtn.classList.remove('hidden');
-        copyBtn.classList.remove('hidden');
+        const reply = data.response || 'No response returned.';
+        forgeHistory.push({ role: 'model', parts: [{ text: reply }] });
+
+        // Retain last 30 turns in local storage
+        if (forgeHistory.length > 30) forgeHistory = forgeHistory.slice(-30);
+        localStorage.setItem('forge_history', JSON.stringify(forgeHistory));
+
+        renderForgeLog();
       } catch (err) {
-        output.innerText = 'Forge Error: ' + err.message;
+        document.getElementById('typingIndicator')?.remove();
+        appendChatMessageToDOM('model', `**Error:** ${err.message}`, 9999);
+      } finally {
+        btn.disabled = false;
+        input.focus();
       }
     }
 
-    function applyHotPatch() {
-      if (!lastForgeCode) return;
-      
-      // Inject CSS if present in code
-      const cssMatch = lastForgeCode.match(/<style>([\s\S]*?)<\/style>/) || lastForgeCode.match(/```css([\s\S]*?)```/);
+    window.hotPatchMessage = function(index) {
+      const msg = forgeHistory[index];
+      if (!msg) return;
+      const text = msg.parts?.[0]?.text || '';
+
+      const cssMatch = text.match(/```css([\s\S]*?)```/) || text.match(/<style>([\s\S]*?)<\/style>/);
       if (cssMatch) {
-        const styleEl = document.createElement('style');
-        styleEl.innerHTML = cssMatch[1];
-        document.head.appendChild(styleEl);
+        const style = document.createElement('style');
+        style.innerHTML = cssMatch[1];
+        document.head.appendChild(style);
       }
 
-      // Inject JS if present
-      const jsMatch = lastForgeCode.match(/<script>([\s\S]*?)<\/script>/) || lastForgeCode.match(/```javascript([\s\S]*?)```/);
+      const jsMatch = text.match(/```javascript([\s\S]*?)```/) || text.match(/<script>([\s\S]*?)<\/script>/);
       if (jsMatch) {
         try {
           eval(jsMatch[1]);
         } catch (e) {
-          alert('Patch eval failed: ' + e.message);
+          alert('JS Patch Error: ' + e.message);
+          return;
         }
       }
 
-      alert('⚡ Live Patch Injected! Test your changes now.');
-    }
+      alert('⚡ Patch applied to active page session!');
+    };
 
-    function copyForgeCode() {
-      if (!lastForgeCode) return;
-      navigator.clipboard.writeText(lastForgeCode);
-      alert('Code copied to clipboard!');
+    function clearForgeChat() {
+      if (!confirm('Clear Forge conversation history?')) return;
+      forgeHistory = [];
+      localStorage.removeItem('forge_history');
+      renderForgeLog();
     }
 
     // Voice setup
@@ -564,7 +720,7 @@
 
     document.getElementById('submitBtn').onclick = parseTasks;
     document.getElementById('forgeInput').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') askForge();
+      if (e.key === 'Enter') sendForgeMessage();
     });
   </script>
 </body>
