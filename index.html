@@ -573,7 +573,10 @@
       try {
         const res = await fetch(WORKER_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-App-Key': APP_KEY
+          },
           body: JSON.stringify({ prompt: text })
         });
 
@@ -601,7 +604,10 @@
       try {
         const res = await fetch(WORKER_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-App-Key': APP_KEY
+          },
           body: JSON.stringify({ action: 'INSERT', events: currentEvents })
         });
 
