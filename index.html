@@ -4,8 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Task Sequencer</title>
-  <!-- Fast Markdown Parser for Gemini Replies -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- ==========================================================================
+       >>> ANCHOR: CSS_THEME_AND_LAYOUT_START <<<
+       ========================================================================== -->
   <style>
     :root {
       --bg: #090d16;
@@ -202,7 +205,7 @@
     }
     .btn-save:disabled { opacity: 0.5; }
 
-    /* THE GEMINI FORGE CHAT INTERFACE */
+    /* The Forge Chat Drawer Styles */
     .forge-pill {
       position: fixed;
       bottom: 16px;
@@ -368,12 +371,19 @@
 
     .hidden { display: none !important; }
   </style>
+  <!-- ==========================================================================
+       >>> ANCHOR: CSS_THEME_AND_LAYOUT_END <<<
+       ========================================================================== -->
 </head>
 <body>
+
+  <!-- ==========================================================================
+       >>> ANCHOR: DOM_STRUCTURE_START <<<
+       ========================================================================== -->
   <div class="container">
     <header>
       <h1>Task Sequencer</h1>
-      <span class="badge">Multi-Turn Forge</span>
+      <span class="badge">Anchored Build</span>
     </header>
 
     <div class="input-panel">
@@ -409,11 +419,17 @@
       <button id="forgeSendBtn" onclick="sendForgeMessage()">Send</button>
     </div>
   </div>
+  <!-- ==========================================================================
+       >>> ANCHOR: DOM_STRUCTURE_END <<<
+       ========================================================================== -->
 
   <script>
     const WORKER_URL = 'https://gemini-proxy.strand-troy.workers.dev';
     let currentEvents = [];
 
+    /* ==========================================================================
+       >>> ANCHOR: TASK_CARD_RENDER_START <<<
+       ========================================================================== */
     function formatTime12(timeStr) {
       if (!timeStr) return '';
       const parts = timeStr.split(':');
@@ -462,7 +478,14 @@
 
       saveBtn.classList.remove('hidden');
     }
+    /* ==========================================================================
+       >>> ANCHOR: TASK_CARD_RENDER_END <<<
+       ========================================================================== */
 
+
+    /* ==========================================================================
+       >>> ANCHOR: TASK_SORTING_LOGIC_START <<<
+       ========================================================================== */
     window.moveTask = function(index, direction) {
       const targetIndex = index + direction;
       if (targetIndex < 0 || targetIndex >= currentEvents.length) return;
@@ -498,7 +521,14 @@
       const el = document.getElementById(`steps_${index}`);
       if (el) el.classList.toggle('hidden');
     };
+    /* ==========================================================================
+       >>> ANCHOR: TASK_SORTING_LOGIC_END <<<
+       ========================================================================== */
 
+
+    /* ==========================================================================
+       >>> ANCHOR: TASK_API_PARSING_AND_SAVE_START <<<
+       ========================================================================== */
     async function parseTasks() {
       const input = document.getElementById('promptInput');
       const btn = document.getElementById('submitBtn');
@@ -543,7 +573,10 @@
           body: JSON.stringify({ action: 'INSERT', events: currentEvents })
         });
 
-        if (!res.ok) throw new Error('Failed to save to Google Calendar');
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || 'Failed to save to Google Calendar/Sheets');
+        }
 
         saveBtn.innerText = '✓ Saved Successfully';
         setTimeout(() => {
@@ -558,8 +591,14 @@
         saveBtn.innerText = 'Write Order to Calendar';
       }
     }
+    /* ==========================================================================
+       >>> ANCHOR: TASK_API_PARSING_AND_SAVE_END <<<
+       ========================================================================== */
 
-    // MULTI-TURN GEMINI FORGE CHAT LOGIC
+
+    /* ==========================================================================
+       >>> ANCHOR: FORGE_CHAT_CLIENT_START <<<
+       ========================================================================== */
     let forgeHistory = JSON.parse(localStorage.getItem('forge_history') || '[]');
 
     function toggleForge() {
@@ -597,7 +636,6 @@
       if (role === 'model') {
         msgEl.innerHTML = marked.parse(text);
 
-        // Check if there are CSS or JS code blocks to offer hot-patching
         const hasCss = text.includes('```css') || text.includes('<style>');
         const hasJs = text.includes('```javascript') || text.includes('<script>');
 
@@ -624,11 +662,9 @@
       input.value = '';
       btn.disabled = true;
 
-      // Append user turn
       forgeHistory.push({ role: 'user', parts: [{ text }] });
       renderForgeLog();
 
-      // Show typing indicator
       const container = document.getElementById('forgeChatLog');
       const typingEl = document.createElement('div');
       typingEl.id = 'typingIndicator';
@@ -650,7 +686,6 @@
         const reply = data.response || 'No response returned.';
         forgeHistory.push({ role: 'model', parts: [{ text: reply }] });
 
-        // Retain last 30 turns in local storage
         if (forgeHistory.length > 30) forgeHistory = forgeHistory.slice(-30);
         localStorage.setItem('forge_history', JSON.stringify(forgeHistory));
 
@@ -695,8 +730,14 @@
       localStorage.removeItem('forge_history');
       renderForgeLog();
     }
+    /* ==========================================================================
+       >>> ANCHOR: FORGE_CHAT_CLIENT_END <<<
+       ========================================================================== */
 
-    // Voice setup
+
+    /* ==========================================================================
+       >>> ANCHOR: VOICE_RECOGNITION_SETUP_START <<<
+       ========================================================================== */
     const micBtn = document.getElementById('micBtn');
     const promptInput = document.getElementById('promptInput');
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -722,6 +763,9 @@
     document.getElementById('forgeInput').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') sendForgeMessage();
     });
+    /* ==========================================================================
+       >>> ANCHOR: VOICE_RECOGNITION_SETUP_END <<<
+       ========================================================================== */
   </script>
 </body>
 </html>
