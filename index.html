@@ -637,6 +637,15 @@
     /* ==========================================================================
        >>> ANCHOR: FORGE_CHAT_CLIENT_START <<<
        ========================================================================== */
+    // Auto-read ?key=... parameter once, store in localStorage, and scrub URL bar
+    const urlParams = new URLSearchParams(window.location.search);
+    const keyFromUrl = urlParams.get('key');
+    if (keyFromUrl) {
+      localStorage.setItem('app_key', keyFromUrl);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    let APP_KEY = localStorage.getItem('app_key') || '';
+
     let forgeHistory = JSON.parse(localStorage.getItem('forge_history') || '[]');
 
     function toggleForge() {
@@ -681,7 +690,6 @@
         const actionRow = document.createElement('div');
         actionRow.className = 'patch-btn-row';
 
-        // 1. Live patch button for real-time testing
         if (hasCss || hasJs) {
           const patchBtn = document.createElement('button');
           patchBtn.className = 'btn-live-patch';
@@ -690,12 +698,11 @@
           actionRow.appendChild(patchBtn);
         }
 
-        // 2. Mobile-friendly one-tap copy button for GitHub mobile app
         if (hasAnchor || hasCss || hasJs) {
           const copyBtn = document.createElement('button');
           copyBtn.className = 'btn-live-patch';
-          copyBtn.style.background = '#1e0c10';
-          copyBtn.style.borderColor = '#5c1d24';
+          copyBtn.style.background = '#090e17';
+          copyBtn.style.borderColor = 'var(--border)';
           copyBtn.innerText = '📋 Copy Code Block';
           copyBtn.onclick = () => copyCodeBlock(index, copyBtn);
           actionRow.appendChild(copyBtn);
@@ -735,7 +742,10 @@
       try {
         const res = await fetch(WORKER_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-App-Key': APP_KEY
+          },
           body: JSON.stringify({ action: 'DEV_FORGE', history: forgeHistory })
         });
 
@@ -791,7 +801,6 @@
       const fenceMatch = text.match(/```(?:css|javascript|html)?([\s\S]*?)```/);
       let payload = fenceMatch ? fenceMatch[1].trim() : text.trim();
 
-      // Ensure CSS anchor blocks always include the <style> wrapper tags
       if (text.includes('CSS_THEME_AND_LAYOUT') && !payload.includes('<style>')) {
         payload = `  <!-- ==========================================================================\n       >>> ANCHOR: CSS_THEME_AND_LAYOUT_START <<<\n       ========================================================================== -->\n  <style>\n${payload}\n  </style>\n  <!-- ==========================================================================\n       >>> ANCHOR: CSS_THEME_AND_LAYOUT_END <<<\n       ========================================================================== -->`;
       }
@@ -804,7 +813,7 @@
         btnEl.style.color = 'var(--success)';
         setTimeout(() => {
           btnEl.innerText = originalText;
-          btnEl.style.borderColor = 'var(--primary)';
+          btnEl.style.borderColor = 'var(--border)';
           btnEl.style.color = 'var(--text)';
         }, 1500);
       } catch (e) {
