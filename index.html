@@ -3,30 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Personal Scheduler</title>
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Scheduler">
+  <title>Task Sequencer</title>
   <style>
     :root {
-      --bg: #070d19;
-      --card-bg: #0f172a;
-      --border: #334155;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
+      --bg: #090d16;
+      --card-bg: #131b2e;
+      --border: #23304a;
+      --text: #f1f5f9;
+      --text-muted: #8192b0;
       --primary: #38bdf8;
-      --primary-hover: #0284c7;
-      --gcal: #2563eb;
-      --gcal-hover: #1d4ed8;
-      --success: #22c55e;
+      --success: #10b981;
       --danger: #ef4444;
-      --warning: #f59e0b;
 
-      --color-11: #ef4444;
-      --color-4: #f472b6;
-      --color-8: #64748b;
-      --color-2: #10b981;
-      --color-9: #6366f1;
+      --tag-11: #ef4444; /* High Friction / Tomato */
+      --tag-8: #64748b;  /* Maintenance / Graphite */
+      --tag-2: #10b981;  /* Restorative / Sage */
+      --tag-9: #6366f1;  /* Appointment / Blueberry */
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -36,116 +28,62 @@
       color: var(--text);
       display: flex;
       justify-content: center;
-      padding: 20px 16px;
+      padding: 24px 16px;
       min-height: 100vh;
     }
 
     .container {
       width: 100%;
-      max-width: 620px;
+      max-width: 580px;
       display: flex;
       flex-direction: column;
       gap: 16px;
     }
 
-    .horizon-bar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      overflow-x: auto;
-      padding-bottom: 4px;
-      scrollbar-width: none;
-    }
-    .horizon-pill {
-      background: #1e1b4b;
-      border: 1px solid #4338ca;
-      color: #c7d2fe;
-      padding: 6px 12px;
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      white-space: nowrap;
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-    .horizon-pill strong { color: #fff; }
-
-    .header-row {
+    header {
       display: flex;
       justify-content: space-between;
-      align-items: baseline;
+      align-items: center;
     }
-    h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; }
-    
-    .version-tag {
-      font-size: 0.75rem;
-      color: var(--primary);
-      font-weight: 600;
-      cursor: pointer;
-      padding: 2px 6px;
-      border-radius: 4px;
-      border: 1px dashed var(--primary);
-      user-select: none;
-    }
-    .version-tag:hover { background: #38bdf822; }
+    h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; }
+    .badge { font-size: 0.75rem; color: var(--primary); background: #0c4a6e33; border: 1px solid #0284c7; padding: 2px 8px; border-radius: 9999px; }
 
-    /* Diagnostic Console Panel */
-    .diagnostic-panel {
-      background: #030712;
-      border: 1px solid #38bdf8;
-      border-radius: 8px;
-      padding: 12px 14px;
-      font-family: monospace;
-      font-size: 0.8rem;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .diag-title { font-weight: 700; color: var(--primary); margin-bottom: 4px; }
-    .diag-pass { color: var(--success); }
-    .diag-fail { color: var(--danger); }
-    .diag-running { color: var(--warning); }
-
-    .card {
+    .input-panel {
       background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 20px;
+      padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
     }
 
     textarea {
       width: 100%;
-      min-height: 85px;
-      background: #030712;
+      min-height: 80px;
+      background: #060911;
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 12px;
       color: var(--text);
-      font-size: 1rem;
-      resize: vertical;
+      font-size: 0.95rem;
       font-family: inherit;
+      resize: vertical;
     }
     textarea:focus { outline: 2px solid var(--primary); }
 
-    .button-group { display: flex; gap: 10px; align-items: center; }
-
-    button.btn-primary {
+    .button-row { display: flex; gap: 8px; }
+    button.btn-main {
       flex: 1;
       background: var(--primary);
       color: #030712;
       border: none;
       border-radius: 8px;
-      padding: 12px 20px;
+      padding: 12px;
       font-weight: 600;
-      font-size: 0.95rem;
       cursor: pointer;
-      transition: background 0.15s ease;
     }
-    button.btn-primary:hover { background: var(--primary-hover); }
-    button.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    button.btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
 
     button.btn-mic {
       background: #1e293b;
@@ -153,626 +91,313 @@
       color: var(--text);
       border-radius: 8px;
       padding: 12px 16px;
+      cursor: pointer;
+    }
+    button.btn-mic.listening { background: var(--danger); }
+
+    /* Task Sorting List */
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .task-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-left: 5px solid var(--primary);
+    }
+
+    .task-card[data-color="11"] { border-left-color: var(--tag-11); }
+    .task-card[data-color="8"]  { border-left-color: var(--tag-8); }
+    .task-card[data-color="2"]  { border-left-color: var(--tag-2); }
+    .task-card[data-color="9"]  { border-left-color: var(--tag-9); }
+
+    .task-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .task-title {
+      font-size: 1rem;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    .sort-controls {
+      display: flex;
+      gap: 4px;
+    }
+
+    .btn-arrow {
+      background: #0b1120;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: all 0.15s ease;
+      font-size: 0.8rem;
     }
-    button.btn-mic.listening {
-      background: var(--danger);
-      animation: pulse 1.5s infinite;
-    }
+    .btn-arrow:hover { color: var(--text); border-color: var(--primary); }
 
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
-      70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-    }
-
-    .mic-icon { width: 20px; height: 20px; fill: currentColor; }
-    .mic-status { font-size: 0.8rem; color: var(--text-muted); min-height: 16px; }
-
-    .barometer-container {
-      background: #030712;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .barometer-title {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+    .task-meta {
+      font-size: 0.8rem;
       color: var(--text-muted);
       display: flex;
       justify-content: space-between;
-    }
-    .curve-svg { width: 100%; height: 60px; overflow: visible; }
-
-    .timeline-header {
-      display: flex;
-      justify-content: space-between;
       align-items: center;
     }
-    .timeline-title { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
 
-    .events-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      align-items: center;
-      width: 100%;
-    }
-
-    .event-card {
-      border: 1px solid var(--border);
-      background: #111827;
-      border-radius: 10px;
-      padding: 14px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      border-left: 6px solid var(--primary);
-      position: relative;
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      width: 100%;
-    }
-
-    .event-card[data-color="11"] { border-left-color: var(--color-11); }
-    .event-card[data-color="4"]  { border-left-color: var(--color-4); }
-    .event-card[data-color="8"]  { border-left-color: var(--color-8); }
-    .event-card[data-color="2"]  { border-left-color: var(--color-2); }
-    .event-card[data-color="9"]  { border-left-color: var(--color-9); }
-
-    .event-card.mass-light { width: 84%; background: #0f172a; border-color: #334155; }
-    .event-card.mass-medium { width: 92%; }
-    .event-card.mass-heavy {
-      width: 100%;
-      border-color: #7f1d1d;
-      background: repeating-linear-gradient(
-        -45deg,
-        #111827,
-        #111827 8px,
-        #1f1414 8px,
-        #1f1414 16px
-      );
-      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.15), inset 0 0 12px rgba(239, 68, 68, 0.08);
-    }
-
-    .initiation-ramp {
-      position: absolute;
-      top: -1px;
-      right: 14px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 0.65rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: 2px 8px;
-      border-radius: 0 0 6px 6px;
-    }
-    .ramp-sheer { background: #7f1d1d; color: #fca5a5; border: 1px solid #b91c1c; border-top: none; }
-    .ramp-moderate { background: #451a03; color: #fed7aa; border: 1px solid #c2410c; border-top: none; }
-    .ramp-flat { background: #064e3b; color: #6ee7b7; border: 1px solid #047857; border-top: none; }
-
-    .event-card.momentum-booster {
-      border-color: #059669;
-      background: #064e3b18;
-      box-shadow: 0 0 16px rgba(16, 185, 129, 0.15);
-    }
-    .momentum-filament {
-      width: 2px;
-      height: 12px;
-      background: linear-gradient(to bottom, #10b981, transparent);
-      margin: -6px 0;
-      border-radius: 1px;
-    }
-
-    .event-card.existing { opacity: 0.85; border-style: dashed; }
-    .event-header { display: flex; justify-content: space-between; align-items: baseline; padding-top: 4px; }
-    .event-title { font-size: 1.05rem; font-weight: 600; color: #fff; }
-    .event-detail { font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 8px; }
-    .event-detail strong { color: var(--text); }
-
-    /* Task Chunking Container */
-    .chunk-action-bar {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: 2px;
-    }
-    .btn-chunk {
+    .btn-split {
       background: #1e1b4b;
       border: 1px solid #4338ca;
       color: #c7d2fe;
-      border-radius: 6px;
-      padding: 4px 10px;
-      font-size: 0.75rem;
-      font-weight: 600;
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 4px;
       cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
+      font-weight: 600;
     }
-    .btn-chunk:hover { background: #312e81; }
 
-    .chunked-steps-container {
+    .step-checklist {
       display: flex;
       flex-direction: column;
       gap: 6px;
-      margin-top: 6px;
-      padding-top: 6px;
-      border-top: 1px solid #334155;
+      margin-top: 4px;
+      padding-top: 8px;
+      border-top: 1px solid #1e293b;
     }
-    .chunk-step {
+
+    .step-item {
+      font-size: 0.8rem;
+      color: #cbd5e1;
       display: flex;
       align-items: center;
       gap: 8px;
-      background: #0f172a;
-      border: 1px solid #1e293b;
-      border-radius: 6px;
-      padding: 6px 10px;
-      font-size: 0.8rem;
-      color: #cbd5e1;
     }
-    .chunk-step input[type="checkbox"] { accent-color: var(--primary); }
 
-    .btn-action {
-      background: var(--gcal);
+    .btn-save {
+      background: var(--success);
       color: white;
       border: none;
-      font-weight: 600;
-      font-size: 1rem;
-      padding: 14px 20px;
+      padding: 14px;
       border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
       cursor: pointer;
-      width: 100%;
-      transition: background 0.15s ease;
+      margin-top: 8px;
     }
-    .btn-action:hover { background: var(--gcal-hover); }
-    .btn-action:disabled { opacity: 0.7; cursor: not-allowed; }
-    .btn-action.success { background: var(--success); cursor: default; }
+    .btn-save:disabled { opacity: 0.5; }
 
     .hidden { display: none !important; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="horizon-bar">
-      <div class="horizon-pill"><span>🎯</span> <strong>Licensure Review</strong> (5d)</div>
-      <div class="horizon-pill"><span>🌲</span> <strong>Jay Cooke Trip</strong> (16d)</div>
-      <div class="horizon-pill"><span>📦</span> <strong>Laser Restock</strong> (24d)</div>
-    </div>
+    <header>
+      <h1>Task Sequencer</h1>
+      <span class="badge">Sorting Baseline</span>
+    </header>
 
-    <div class="header-row">
-      <h1>Personal Scheduler</h1>
-      <div id="diagTrigger" class="version-tag" title="Click to run system diagnostics">VERSION 2.4 · TEST</div>
-    </div>
-
-    <!-- Diagnostic Self-Test Panel (Hidden until clicked) -->
-    <div id="diagnosticPanel" class="diagnostic-panel hidden">
-      <div class="diag-title">SYSTEM DIAGNOSTIC RUNNER</div>
-      <div id="diagWorkerStatus">Worker Ping: Pending...</div>
-      <div id="diagCalendarStatus">Calendar LIST: Pending...</div>
-      <div id="diagModelStatus">Gemini 3.8-Flash Test: Pending...</div>
-    </div>
-
-    <div class="card">
-      <textarea id="promptInput" placeholder="Morning dump: 'Meeting at 9, grade portfolios, lift at 1, post office run, coffee with Dalton at 3'"></textarea>
-      <div class="mic-status" id="micStatus"></div>
-      <div class="button-group">
-        <button id="micBtn" class="btn-mic" type="button" title="Speak to dictate">
-          <svg class="mic-icon" viewBox="0 0 24 24">
-            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-          </svg>
-        </button>
-        <button id="submitBtn" class="btn-primary">Process Plan</button>
+    <div class="input-panel">
+      <textarea id="promptInput" placeholder="Morning list: 'Grade 10 essays, mail package, 30m gym session, call Dalton at 2'"></textarea>
+      <div class="button-row">
+        <button id="micBtn" class="btn-mic" type="button">🎙</button>
+        <button id="submitBtn" class="btn-main">Parse & Sequence</button>
       </div>
     </div>
 
-    <div id="outputContainer" class="card">
-      <div class="timeline-header">
-        <span class="timeline-title">Cognitive Physics Timeline</span>
-        <span id="fuelScoreText" style="font-size: 0.8rem; font-weight:600; color: var(--text-muted);">Ready</span>
-      </div>
+    <div id="taskList" class="task-list"></div>
 
-      <div class="barometer-container">
-        <div class="barometer-title">
-          <span>Predicted Fuel Reserves</span>
-          <span id="fuelStatusBadge">Optimal</span>
-        </div>
-        <svg id="curveSvg" class="curve-svg" viewBox="0 0 400 60"></svg>
-      </div>
-
-      <div id="eventsContainer" class="events-list"></div>
-      
-      <button id="saveAllBtn" class="btn-action hidden" onclick="commitPendingEvents()">Add New Events to Calendar</button>
-    </div>
+    <button id="saveBtn" class="btn-save hidden" onclick="saveToCalendar()">Write Order to Calendar</button>
   </div>
 
   <script>
     const WORKER_URL = 'https://gemini-proxy.strand-troy.workers.dev';
-    let combinedEvents = [];
-    let pendingEvents = [];
+    let currentEvents = [];
 
-    // Diagnostic Self-Test Trigger
-    document.getElementById('diagTrigger').addEventListener('click', async function() {
-      const panel = document.getElementById('diagnosticPanel');
-      panel.classList.remove('hidden');
-
-      const workerLine = document.getElementById('diagWorkerStatus');
-      const calLine = document.getElementById('diagCalendarStatus');
-      const modelLine = document.getElementById('diagModelStatus');
-
-      workerLine.innerHTML = 'Worker Ping: <span class="diag-running">Testing...</span>';
-      calLine.innerHTML = 'Calendar LIST: <span class="diag-running">Testing...</span>';
-      modelLine.innerHTML = 'Gemini 3.8-Flash Test: <span class="diag-running">Testing...</span>';
-
-      const t0 = performance.now();
-      try {
-        const calRes = await fetch(WORKER_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'LIST' })
-        });
-        const elapsed = Math.round(performance.now() - t0);
-        
-        if (calRes.ok) {
-          workerLine.innerHTML = `Worker Ping: <span class="diag-pass">✓ Connected (${elapsed}ms)</span>`;
-          calLine.innerHTML = 'Calendar LIST: <span class="diag-pass">✓ Authorized & Synced</span>';
-        } else {
-          const errText = await calRes.text();
-          workerLine.innerHTML = `Worker Ping: <span class="diag-pass">✓ Connected</span>`;
-          calLine.innerHTML = `Calendar LIST: <span class="diag-fail">✗ Error HTTP ${calRes.status}: ${errText}</span>`;
-        }
-      } catch (err) {
-        workerLine.innerHTML = `Worker Ping: <span class="diag-fail">✗ Failed: ${err.message}</span>`;
-        calLine.innerHTML = 'Calendar LIST: <span class="diag-fail">✗ Skipped (Worker Offline)</span>';
-      }
-
-      try {
-        const geminiRes = await fetch(WORKER_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: 'Quick coffee at 10am' })
-        });
-
-        if (geminiRes.ok) {
-          modelLine.innerHTML = 'Gemini 3.8-Flash: <span class="diag-pass">✓ Responding (Schema Valid)</span>';
-        } else {
-          const gemErr = await geminiRes.text();
-          modelLine.innerHTML = `Gemini 3.8-Flash: <span class="diag-fail">✗ Error HTTP ${geminiRes.status}: ${gemErr}</span>`;
-        }
-      } catch (err) {
-        modelLine.innerHTML = `Gemini 3.8-Flash: <span class="diag-fail">✗ Failed: ${err.message}</span>`;
-      }
-    });
-
-    function formatReadableDate(dateStr) {
-      if (!dateStr) return '';
-      const parts = dateStr.split('-');
-      if (parts.length !== 3) return dateStr;
-      const months = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'June', 'July', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.'];
-      const monthIdx = parseInt(parts[1], 10) - 1;
-      const day = parseInt(parts[2], 10);
-      return (months[monthIdx] || parts[1]) + ' ' + day;
-    }
-
-    function formatTimeComponent(timeStr) {
-      if (!timeStr) return { display: '', ampm: 'am' };
+    function formatTime12(timeStr) {
+      if (!timeStr) return '';
       const parts = timeStr.split(':');
-      let hour = parseInt(parts[0], 10);
-      const minute = parseInt(parts[1] || '0', 10);
-      const ampm = hour >= 12 ? 'pm' : 'am';
-      hour = hour % 12 || 12;
-      const minStr = minute === 0 ? '' : ':' + (minute < 10 ? '0' + minute : minute);
-      return { display: hour + minStr, ampm };
+      let h = parseInt(parts[0], 10);
+      const m = parts[1] || '00';
+      const ampm = h >= 12 ? 'pm' : 'am';
+      h = h % 12 || 12;
+      return `${h}:${m}${ampm}`;
     }
 
-    function formatReadableTimeRange(startTime, endTime) {
-      if (!startTime) return '';
-      const start = formatTimeComponent(startTime);
-      if (!endTime || endTime === startTime) return start.display + start.ampm;
-      const end = formatTimeComponent(endTime);
-      return start.ampm === end.ampm 
-        ? start.display + '–' + end.display + end.ampm
-        : start.display + start.ampm + '–' + end.display + end.ampm;
-    }
+    function renderTaskList() {
+      const container = document.getElementById('taskList');
+      const saveBtn = document.getElementById('saveBtn');
 
-    function drawFuelBarometer(events) {
-      const svg = document.getElementById('curveSvg');
-      const badge = document.getElementById('fuelStatusBadge');
-      if (!events || events.length === 0) {
-        badge.innerText = 'Intake Ready';
-        badge.style.color = 'var(--text-muted)';
-        svg.innerHTML = '<line x1="0" y1="30" x2="400" y2="30" stroke="#334155" stroke-dasharray="4" stroke-width="1" />';
+      if (!currentEvents.length) {
+        container.innerHTML = '';
+        saveBtn.classList.add('hidden');
         return;
       }
 
-      let currentFuel = 85;
-      const points = [{ x: 10, y: currentFuel }];
-      const step = 380 / Math.max(events.length, 1);
-      let minFuel = 100;
+      container.innerHTML = currentEvents.map((ev, index) => {
+        const timeDisplay = `${formatTime12(ev.start_time)} – ${formatTime12(ev.end_time)}`;
+        const hasSteps = ev.steps && ev.steps.length > 0;
 
-      events.forEach((ev, idx) => {
-        const delta = (ev.energy_delta || 0) * 12;
-        currentFuel = Math.max(15, Math.min(95, currentFuel + delta));
-        if (currentFuel < minFuel) minFuel = currentFuel;
-        points.push({ x: 10 + (idx + 1) * step, y: currentFuel });
-      });
-
-      if (minFuel < 35) {
-        badge.innerText = '⚠️ Deficit Flagged';
-        badge.style.color = 'var(--danger)';
-      } else {
-        badge.innerText = 'Balanced';
-        badge.style.color = 'var(--success)';
-      }
-
-      const pathData = points.map((p, i) => {
-        const svgY = 60 - (p.y * 0.5);
-        return (i === 0 ? 'M' : 'L') + p.x + ',' + svgY;
-      }).join(' ');
-
-      const strokeColor = minFuel < 35 ? '#ef4444' : '#38bdf8';
-      svg.innerHTML = `
-        <line x1="0" y1="42" x2="400" y2="42" stroke="#334155" stroke-dasharray="4" stroke-width="1" />
-        <path d="${pathData}" fill="none" stroke="${strokeColor}" stroke-width="3" stroke-linecap="round" />
-        ${points.map(p => `<circle cx="${p.x}" cy="${60 - (p.y * 0.5)}" r="3.5" fill="${strokeColor}" />`).join('')}
-      `;
-    }
-
-    // In-place Task Fracture
-    window.chunkTask = function(eventIndex) {
-      const container = document.getElementById(`chunkContainer_${eventIndex}`);
-      const btn = document.getElementById(`chunkBtn_${eventIndex}`);
-      if (!container) return;
-
-      const ev = combinedEvents[eventIndex] || pendingEvents[eventIndex];
-      const title = ev?.title || 'Task';
-
-      container.innerHTML = `
-        <div class="chunk-step"><input type="checkbox" /> <span>Step 1: Open work environment & setup (10m)</span></div>
-        <div class="chunk-step"><input type="checkbox" /> <span>Step 2: Execute first core section of ${title} (20m)</span></div>
-        <div class="chunk-step"><input type="checkbox" /> <span>Step 3: Document status & review output (10m)</span></div>
-      `;
-      container.classList.remove('hidden');
-      if (btn) btn.style.display = 'none';
-      if (navigator.vibrate) navigator.vibrate(25);
-    };
-
-    function renderEvents(events) {
-      const container = document.getElementById('eventsContainer');
-      if (!events.length) {
-        container.innerHTML = '<div style="color:var(--text-muted);font-size:0.9rem;padding:12px 0;">No calendar events yet for today. Use the box above to schedule.</div>';
-        return;
-      }
-
-      events.sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
-
-      let html = '';
-      events.forEach((ev, idx) => {
-        const dateDisplay = formatReadableDate(ev.date);
-        const timeDisplay = formatReadableTimeRange(ev.start_time, ev.end_time);
-        const delta = ev.energy_delta || 0;
-        const friction = ev.initiation_friction || 2;
-
-        let massClass = 'mass-medium';
-        if (delta <= -2) massClass = 'mass-heavy';
-        else if (delta >= 1 || ev.color_id === '8') massClass = 'mass-light';
-
-        let momentumClass = '';
-        if (delta >= 1 || ev.color_id === '2') {
-          momentumClass = 'momentum-booster';
-        }
-
-        let rampHtml = '';
-        if (friction >= 4) {
-          rampHtml = '<div class="initiation-ramp ramp-sheer">▲ Sheer Incline</div>';
-        } else if (friction === 3) {
-          rampHtml = '<div class="initiation-ramp ramp-moderate">▲ Moderate Slope</div>';
-        } else if (friction <= 1) {
-          rampHtml = '<div class="initiation-ramp ramp-flat">● Effortless</div>';
-        }
-
-        // Chunk action button for high-friction blocks
-        let chunkBtnHtml = '';
-        if (friction >= 3 && !ev.is_existing) {
-          chunkBtnHtml = `
-            <div class="chunk-action-bar">
-              <button id="chunkBtn_${idx}" class="btn-chunk" onclick="chunkTask(${idx})">⚡ Chunk into Steps</button>
+        return `
+          <div class="task-card" data-color="${ev.color_id || '9'}">
+            <div class="task-header">
+              <div class="task-title">${ev.title}</div>
+              <div class="sort-controls">
+                <button class="btn-arrow" onclick="moveTask(${index}, -1)" ${index === 0 ? 'disabled style="opacity:0.3"' : ''}>▲</button>
+                <button class="btn-arrow" onclick="moveTask(${index}, 1)" ${index === currentEvents.length - 1 ? 'disabled style="opacity:0.3"' : ''}>▼</button>
+              </div>
             </div>
-          `;
-        }
-
-        html += `
-          <div class="event-card ${massClass} ${momentumClass} ${ev.is_existing ? 'existing' : ''}" data-color="${ev.color_id || '9'}">
-            ${rampHtml}
-            <div class="event-header">
-              <div class="event-title">${ev.title || 'Event'}</div>
+            <div class="task-meta">
+              <span>${timeDisplay} (${ev.duration_minutes || 30}m)</span>
+              ${hasSteps ? `<button class="btn-split" onclick="toggleSteps(${index})">Micro-Steps</button>` : ''}
             </div>
-            <div class="event-detail"><span>Time:</span> <strong>${dateDisplay} · ${timeDisplay}</strong></div>
-            ${ev.location ? `<div class="event-detail"><span>Location:</span> <strong>${ev.location}</strong></div>` : ''}
-            ${chunkBtnHtml}
-            <div id="chunkContainer_${idx}" class="chunked-steps-container hidden"></div>
+            ${hasSteps ? `
+              <div id="steps_${index}" class="step-checklist hidden">
+                ${ev.steps.map(step => `<label class="step-item"><input type="checkbox"> <span>${step}</span></label>`).join('')}
+              </div>
+            ` : ''}
           </div>
         `;
+      }).join('');
 
-        if (momentumClass && idx < events.length - 1) {
-          html += '<div class="momentum-filament"></div>';
-        }
-      });
-
-      container.innerHTML = html;
+      saveBtn.classList.remove('hidden');
     }
 
-    async function loadLiveSchedule() {
-      try {
-        const response = await fetch(WORKER_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'LIST' })
+    // Moving tasks swaps their position and recalculates start/end times sequentially
+    window.moveTask = function(index, direction) {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= currentEvents.length) return;
+
+      const item = currentEvents.splice(index, 1)[0];
+      currentEvents.splice(targetIndex, 0, item);
+
+      // Re-anchor times starting from the very first event's original start
+      if (currentEvents.length > 0) {
+        let [currentH, currentM] = currentEvents[0].start_time.split(':').map(Number);
+
+        currentEvents.forEach(ev => {
+          const duration = ev.duration_minutes || 30;
+          const startStr = `${String(currentH).padStart(2, '0')}:${String(currentM).padStart(2, '0')}`;
+
+          let endTotalMin = currentH * 60 + currentM + duration;
+          let endH = Math.floor(endTotalMin / 60) % 24;
+          let endM = endTotalMin % 60;
+          const endStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+
+          ev.start_time = startStr;
+          ev.end_time = endStr;
+
+          // Add a 5m transition buffer for the next task
+          let nextTotalMin = endTotalMin + 5;
+          currentH = Math.floor(nextTotalMin / 60) % 24;
+          currentM = nextTotalMin % 60;
         });
-        const data = await response.json();
-        const existing = data.events || [];
-        combinedEvents = [...existing];
-
-        drawFuelBarometer(combinedEvents);
-        renderEvents(combinedEvents);
-      } catch (err) {
-        drawFuelBarometer([]);
-        renderEvents([]);
       }
-    }
 
-    async function commitPendingEvents() {
-      if (!pendingEvents.length) return;
-      const saveBtn = document.getElementById('saveAllBtn');
-      saveBtn.disabled = true;
-      saveBtn.innerText = 'Writing to Calendar...';
+      renderTaskList();
+    };
 
-      try {
-        const response = await fetch(WORKER_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'INSERT', events: pendingEvents })
-        });
-        if (!response.ok) throw new Error('Insert failed');
+    window.toggleSteps = function(index) {
+      const el = document.getElementById(`steps_${index}`);
+      if (el) el.classList.toggle('hidden');
+    };
 
-        saveBtn.classList.add('success');
-        saveBtn.innerText = '✓ Added to Calendar';
-
-        setTimeout(() => {
-          pendingEvents = [];
-          saveBtn.classList.add('hidden');
-          loadLiveSchedule();
-        }, 1200);
-      } catch (err) {
-        saveBtn.disabled = false;
-        saveBtn.innerText = 'Retry Adding';
-        alert('Failed: ' + err.message);
-      }
-    }
-
-    async function processSchedule() {
-      stopVoice();
+    async function parseTasks() {
       const input = document.getElementById('promptInput');
       const btn = document.getElementById('submitBtn');
-      const saveBtn = document.getElementById('saveAllBtn');
-
       const text = input.value.trim();
       if (!text) return;
 
       btn.disabled = true;
-      btn.innerText = 'Sequencing Physics Arc...';
+      btn.innerText = 'Sorting...';
 
       try {
-        const response = await fetch(WORKER_URL, {
+        const res = await fetch(WORKER_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: text })
         });
 
-        const rawText = await response.text();
-        if (!response.ok) {
-          throw new Error(`Server returned error HTTP ${response.status}:\n${rawText}`);
-        }
+        const raw = await res.text();
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${raw}`);
 
-        const data = JSON.parse(rawText);
-        pendingEvents = data.events || [];
-
-        const merged = [...combinedEvents.filter(e => e.is_existing), ...pendingEvents];
-        drawFuelBarometer(merged);
-        renderEvents(merged);
-
-        saveBtn.disabled = false;
-        saveBtn.classList.remove('success', 'hidden');
-        saveBtn.innerText = pendingEvents.length > 1 
-          ? `Add All (${pendingEvents.length}) to Calendar` 
-          : 'Add to Calendar';
-
+        const data = JSON.parse(raw);
+        currentEvents = data.events || [];
+        renderTaskList();
         input.value = '';
       } catch (err) {
         alert(err.message);
       } finally {
         btn.disabled = false;
-        btn.innerText = 'Process Plan';
+        btn.innerText = 'Parse & Sequence';
       }
     }
 
-    // Hybrid Patience Speech Recognition
+    async function saveToCalendar() {
+      if (!currentEvents.length) return;
+      const saveBtn = document.getElementById('saveBtn');
+      saveBtn.disabled = true;
+      saveBtn.innerText = 'Saving...';
+
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'INSERT', events: currentEvents })
+        });
+
+        if (!res.ok) throw new Error('Failed to save to Google Calendar');
+
+        saveBtn.innerText = '✓ Saved Successfully';
+        setTimeout(() => {
+          currentEvents = [];
+          renderTaskList();
+          saveBtn.innerText = 'Write Order to Calendar';
+          saveBtn.disabled = false;
+        }, 1200);
+      } catch (err) {
+        alert(err.message);
+        saveBtn.disabled = false;
+        saveBtn.innerText = 'Write Order to Calendar';
+      }
+    }
+
+    // Voice setup
     const micBtn = document.getElementById('micBtn');
-    const micStatus = document.getElementById('micStatus');
     const promptInput = document.getElementById('promptInput');
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    let recognition = null;
-    let silenceTimer = null;
-    let isListening = false;
-
-    function resetSilenceTimer() {
-      if (silenceTimer) clearTimeout(silenceTimer);
-      micStatus.innerText = 'Listening... (Speak freely, 6s cushion)';
-      silenceTimer = setTimeout(() => {
-        if (isListening && promptInput.value.trim().length > 0) {
-          micStatus.innerText = 'Sequencing...';
-          processSchedule();
-        }
-      }, 6000);
-    }
-
-    function stopVoice() {
-      if (silenceTimer) clearTimeout(silenceTimer);
-      if (recognition && isListening) recognition.stop();
-      isListening = false;
-      micBtn.classList.remove('listening');
-      micStatus.innerText = '';
-    }
-
     if (SpeechRecognition) {
-      recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = 'en-US';
+      const rec = new SpeechRecognition();
+      rec.continuous = false;
+      rec.lang = 'en-US';
 
-      recognition.onstart = function() {
-        isListening = true;
-        micBtn.classList.add('listening');
-        resetSilenceTimer();
-      };
-      recognition.onresult = function(event) {
-        let transcript = '';
-        for (let i = 0; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript + ' ';
-        }
-        promptInput.value = transcript.trim();
-        resetSilenceTimer();
-      };
-      recognition.onerror = function() { stopVoice(); };
-      recognition.onend = function() {
-        if (isListening) try { recognition.start(); } catch(e) { stopVoice(); }
+      rec.onstart = () => micBtn.classList.add('listening');
+      rec.onend = () => micBtn.classList.remove('listening');
+      rec.onresult = (e) => {
+        promptInput.value = e.results[0][0].transcript;
+        parseTasks();
       };
 
-      micBtn.addEventListener('click', function() {
-        if (isListening) stopVoice();
-        else { promptInput.value = ''; try { recognition.start(); } catch(e) {} }
-      });
+      micBtn.onclick = () => {
+        try { rec.start(); } catch(e) { rec.stop(); }
+      };
     }
 
-    document.getElementById('submitBtn').addEventListener('click', processSchedule);
-    document.getElementById('promptInput').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        processSchedule();
-      }
-    });
-
-    window.addEventListener('DOMContentLoaded', loadLiveSchedule);
+    document.getElementById('submitBtn').onclick = parseTasks;
   </script>
 </body>
 </html>
