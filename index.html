@@ -783,18 +783,23 @@
       const text = msg.parts?.[0]?.text || '';
 
       const fenceMatch = text.match(/```(?:css|javascript|html)?([\s\S]*?)```/);
-      const codeToCopy = fenceMatch ? fenceMatch[1].trim() : text;
+      let payload = fenceMatch ? fenceMatch[1].trim() : text.trim();
+
+      // Ensure CSS anchor blocks always include the <style> wrapper tags
+      if (text.includes('CSS_THEME_AND_LAYOUT') && !payload.includes('<style>')) {
+        payload = `  <!-- ==========================================================================\n       >>> ANCHOR: CSS_THEME_AND_LAYOUT_START <<<\n       ========================================================================== -->\n  <style>\n${payload}\n  </style>\n  <!-- ==========================================================================\n       >>> ANCHOR: CSS_THEME_AND_LAYOUT_END <<<\n       ========================================================================== -->`;
+      }
 
       try {
-        await navigator.clipboard.writeText(codeToCopy);
+        await navigator.clipboard.writeText(payload);
         const originalText = btnEl.innerText;
-        btnEl.innerText = '✓ Copied!';
+        btnEl.innerText = '✓ Copied Safe Block!';
         btnEl.style.borderColor = 'var(--success)';
         btnEl.style.color = 'var(--success)';
         setTimeout(() => {
           btnEl.innerText = originalText;
-          btnEl.style.borderColor = '#5c1d24';
-          btnEl.style.color = '#fca5a5';
+          btnEl.style.borderColor = 'var(--primary)';
+          btnEl.style.color = 'var(--text)';
         }, 1500);
       } catch (e) {
         alert('Clipboard copy failed: ' + e.message);
