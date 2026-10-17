@@ -28,7 +28,7 @@
       color: var(--text);
       display: flex;
       justify-content: center;
-      padding: 24px 16px;
+      padding: 24px 16px 80px 16px;
       min-height: 100vh;
     }
 
@@ -111,6 +111,7 @@
       flex-direction: column;
       gap: 8px;
       border-left: 5px solid var(--primary);
+      transition: transform 0.15s ease;
     }
 
     .task-card[data-color="11"] { border-left-color: var(--tag-11); }
@@ -200,6 +201,89 @@
     }
     .btn-save:disabled { opacity: 0.5; }
 
+    /* THE DEV FORGE DRAWER */
+    .forge-pill {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: #030712;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      padding: 8px 14px;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .forge-pill:hover { background: #0c4a6e; }
+
+    .forge-drawer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #030712;
+      border-top: 2px solid var(--primary);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 -10px 25px rgba(0,0,0,0.8);
+      z-index: 1000;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .forge-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .forge-title { font-size: 0.85rem; font-weight: 700; color: var(--primary); letter-spacing: 0.05em; }
+    .btn-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.1rem; }
+
+    .forge-input {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: #fff;
+      padding: 8px 10px;
+      font-size: 0.85rem;
+      font-family: inherit;
+    }
+
+    .forge-output {
+      background: #000;
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      max-height: 250px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    .forge-actions { display: flex; gap: 8px; }
+    .btn-forge-action {
+      background: #1e293b;
+      border: 1px solid var(--border);
+      color: #fff;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-forge-action:hover { border-color: var(--primary); }
+
     .hidden { display: none !important; }
   </style>
 </head>
@@ -207,7 +291,7 @@
   <div class="container">
     <header>
       <h1>Task Sequencer</h1>
-      <span class="badge">Sorting Baseline</span>
+      <span class="badge">Forge Ready</span>
     </header>
 
     <div class="input-panel">
@@ -223,9 +307,28 @@
     <button id="saveBtn" class="btn-save hidden" onclick="saveToCalendar()">Write Order to Calendar</button>
   </div>
 
+  <!-- THE FORGE TRIGGER -->
+  <button id="forgeToggle" class="forge-pill" onclick="toggleForge()">⚡ Forge</button>
+
+  <!-- THE FORGE DRAWER -->
+  <div id="forgeDrawer" class="forge-drawer hidden">
+    <div class="forge-header">
+      <span class="forge-title">⚡ IN-APP DEV FORGE (GEMINI 3.8)</span>
+      <button class="btn-close" onclick="toggleForge()">✕</button>
+    </div>
+    <input id="forgeInput" class="forge-input" placeholder="E.g., 'Make high friction cards have a glowing red outline' or 'Add a 15m delay button'" />
+    <div class="forge-actions">
+      <button id="forgeSendBtn" class="btn-forge-action" onclick="askForge()">Ask Forge</button>
+      <button id="forgePatchBtn" class="btn-forge-action hidden" onclick="applyHotPatch()">⚡ Test Live</button>
+      <button id="forgeCopyBtn" class="btn-forge-action hidden" onclick="copyForgeCode()">Copy Patch</button>
+    </div>
+    <div id="forgeOutput" class="forge-output hidden"></div>
+  </div>
+
   <script>
     const WORKER_URL = 'https://gemini-proxy.strand-troy.workers.dev';
     let currentEvents = [];
+    let lastForgeCode = '';
 
     function formatTime12(timeStr) {
       if (!timeStr) return '';
@@ -276,7 +379,6 @@
       saveBtn.classList.remove('hidden');
     }
 
-    // Moving tasks swaps their position and recalculates start/end times sequentially
     window.moveTask = function(index, direction) {
       const targetIndex = index + direction;
       if (targetIndex < 0 || targetIndex >= currentEvents.length) return;
@@ -284,7 +386,6 @@
       const item = currentEvents.splice(index, 1)[0];
       currentEvents.splice(targetIndex, 0, item);
 
-      // Re-anchor times starting from the very first event's original start
       if (currentEvents.length > 0) {
         let [currentH, currentM] = currentEvents[0].start_time.split(':').map(Number);
 
@@ -300,7 +401,6 @@
           ev.start_time = startStr;
           ev.end_time = endStr;
 
-          // Add a 5m transition buffer for the next task
           let nextTotalMin = endTotalMin + 5;
           currentH = Math.floor(nextTotalMin / 60) % 24;
           currentM = nextTotalMin % 60;
@@ -375,6 +475,71 @@
       }
     }
 
+    // THE FORGE FUNCTIONS
+    function toggleForge() {
+      document.getElementById('forgeDrawer').classList.toggle('hidden');
+    }
+
+    async function askForge() {
+      const input = document.getElementById('forgeInput');
+      const output = document.getElementById('forgeOutput');
+      const patchBtn = document.getElementById('forgePatchBtn');
+      const copyBtn = document.getElementById('forgeCopyBtn');
+      const text = input.value.trim();
+      if (!text) return;
+
+      output.innerText = 'Consulting Gemini 3.8-Flash Forge...';
+      output.classList.remove('hidden');
+
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'DEV_FORGE', prompt: text })
+        });
+
+        const data = await res.json();
+        const responseText = data.response || 'No code returned';
+        output.innerText = responseText;
+        lastForgeCode = responseText;
+
+        patchBtn.classList.remove('hidden');
+        copyBtn.classList.remove('hidden');
+      } catch (err) {
+        output.innerText = 'Forge Error: ' + err.message;
+      }
+    }
+
+    function applyHotPatch() {
+      if (!lastForgeCode) return;
+      
+      // Inject CSS if present in code
+      const cssMatch = lastForgeCode.match(/<style>([\s\S]*?)<\/style>/) || lastForgeCode.match(/```css([\s\S]*?)```/);
+      if (cssMatch) {
+        const styleEl = document.createElement('style');
+        styleEl.innerHTML = cssMatch[1];
+        document.head.appendChild(styleEl);
+      }
+
+      // Inject JS if present
+      const jsMatch = lastForgeCode.match(/<script>([\s\S]*?)<\/script>/) || lastForgeCode.match(/```javascript([\s\S]*?)```/);
+      if (jsMatch) {
+        try {
+          eval(jsMatch[1]);
+        } catch (e) {
+          alert('Patch eval failed: ' + e.message);
+        }
+      }
+
+      alert('⚡ Live Patch Injected! Test your changes now.');
+    }
+
+    function copyForgeCode() {
+      if (!lastForgeCode) return;
+      navigator.clipboard.writeText(lastForgeCode);
+      alert('Code copied to clipboard!');
+    }
+
     // Voice setup
     const micBtn = document.getElementById('micBtn');
     const promptInput = document.getElementById('promptInput');
@@ -398,6 +563,9 @@
     }
 
     document.getElementById('submitBtn').onclick = parseTasks;
+    document.getElementById('forgeInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') askForge();
+    });
   </script>
 </body>
 </html>
