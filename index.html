@@ -51,13 +51,6 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    body.recording-locked {
-      overflow: hidden !important;
-      touch-action: none !important;
-      user-select: none !important;
-      -webkit-user-select: none !important;
-    }
-
     .container {
       width: 100%;
       max-width: 580px;
@@ -73,16 +66,31 @@
       padding-bottom: 4px;
     }
     h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
-    .badge {
-      font-size: 0.7rem;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      font-weight: 600;
+
+    /* VIEW SWITCHER TABS */
+    .view-tabs {
+      display: flex;
+      background: #090e17;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .view-tab {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .view-tab.active {
+      background: var(--card-bg);
       color: var(--primary);
-      background: rgba(56, 189, 248, 0.1);
-      border: 1px solid rgba(56, 189, 248, 0.25);
-      padding: 3px 8px;
-      border-radius: 9999px;
     }
 
     /* THE MINIMAL HOPPER */
@@ -96,18 +104,8 @@
       gap: 10px;
     }
 
-    .hopper-bar {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .hopper-input-wrap {
-      flex: 1;
-      display: flex;
-      align-items: center;
-    }
-
+    .hopper-bar { display: flex; gap: 8px; align-items: center; }
+    .hopper-input-wrap { flex: 1; display: flex; align-items: center; }
     .hopper-input-wrap input {
       width: 100%;
       background: #090e17;
@@ -135,20 +133,13 @@
       justify-content: center;
       transition: all 0.15s ease;
       flex-shrink: 0;
-      user-select: none;
-      -webkit-user-select: none;
-      -webkit-touch-callout: none;
-      touch-action: none;
     }
     .btn-hopper-submit:hover { background: #0c4a6e; border-color: var(--primary); color: #fff; }
-    .btn-hopper-submit:disabled { opacity: 0.4; cursor: not-allowed; }
-
     .btn-hopper-submit.ptt-active {
       background: var(--ptt-orange) !important;
       border-color: var(--ptt-orange) !important;
       color: #fff !important;
       box-shadow: 0 0 16px var(--ptt-glow);
-      transform: scale(0.97);
     }
 
     .hopper-header {
@@ -159,7 +150,6 @@
       user-select: none;
       padding: 2px 2px;
     }
-
     .hopper-title {
       font-size: 0.75rem;
       font-weight: 700;
@@ -170,7 +160,6 @@
       align-items: center;
       gap: 6px;
     }
-
     .hopper-count-badge {
       background: #090e17;
       border: 1px solid var(--border);
@@ -180,21 +169,9 @@
       padding: 1px 6px;
       border-radius: 9999px;
     }
-
-    .hopper-chevron {
-      color: var(--text-muted);
-      font-size: 0.7rem;
-      transition: transform 0.2s ease;
-    }
-
+    .hopper-chevron { color: var(--text-muted); font-size: 0.7rem; }
     .hopper-tray.collapsed { display: none; }
-
-    .hopper-items {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      padding-top: 4px;
-    }
+    .hopper-items { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
 
     .hopper-card {
       background: #090e17;
@@ -204,16 +181,11 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      transition: border-color 0.15s ease, background-color 0.15s ease;
     }
-    .hopper-card.selected {
-      border-color: var(--primary);
-      background: rgba(56, 189, 248, 0.05);
-    }
+    .hopper-card.selected { border-color: var(--primary); background: rgba(56, 189, 248, 0.05); }
 
     .hopper-check {
       appearance: none;
-      -webkit-appearance: none;
       width: 18px;
       height: 18px;
       border: 1px solid var(--border);
@@ -224,37 +196,12 @@
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      transition: all 0.15s ease;
     }
-    .hopper-check:checked {
-      background: var(--primary);
-      border-color: var(--primary);
-    }
-    .hopper-check:checked::after {
-      content: '✓';
-      color: #090e17;
-      font-size: 0.75rem;
-      font-weight: 900;
-    }
-
-    .hopper-text {
-      font-size: 0.85rem;
-      color: var(--text-sub);
-      flex: 1;
-      word-break: break-word;
-      cursor: pointer;
-    }
-
+    .hopper-check:checked { background: var(--primary); border-color: var(--primary); }
+    .hopper-check:checked::after { content: '✓'; color: #090e17; font-size: 0.75rem; font-weight: 900; }
+    .hopper-text { font-size: 0.85rem; color: var(--text-sub); flex: 1; cursor: pointer; }
     .hopper-actions { display: flex; gap: 4px; align-items: center; }
-
-    .hopper-delete-btn {
-      background: transparent;
-      color: var(--text-muted);
-      border: none;
-      padding: 4px 6px;
-      font-size: 0.75rem;
-      cursor: pointer;
-    }
+    .hopper-delete-btn { background: transparent; color: var(--text-muted); border: none; padding: 4px 6px; font-size: 0.75rem; cursor: pointer; }
     .hopper-delete-btn:hover { color: var(--record-red); }
 
     .hopper-batch-bar {
@@ -263,10 +210,8 @@
       border-top: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
-      align-items: center;
       gap: 8px;
     }
-
     .btn-stage-hopper {
       flex: 1;
       background: #0c4a6e;
@@ -276,30 +221,12 @@
       border-radius: 6px;
       font-size: 0.78rem;
       font-weight: 700;
-      letter-spacing: 0.02em;
       cursor: pointer;
-      transition: background 0.15s ease;
     }
-    .btn-stage-hopper:hover { background: #0369a1; color: #fff; }
+    .btn-clear-selection { background: transparent; border: none; color: var(--text-muted); font-size: 0.75rem; cursor: pointer; }
+    .hopper-empty { padding: 8px; text-align: center; color: var(--text-muted); font-size: 0.8rem; }
 
-    .btn-clear-selection {
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      font-size: 0.75rem;
-      cursor: pointer;
-      padding: 6px 8px;
-    }
-    .btn-clear-selection:hover { color: var(--text); }
-
-    .hopper-empty {
-      padding: 8px;
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 0.8rem;
-    }
-
-    /* TODAY'S WORKBENCH (REFINED SEQUENCER PANEL) */
+    /* WORKBENCH PANEL */
     .input-panel {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -308,64 +235,24 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.35);
     }
+    .workbench-header { display: flex; justify-content: space-between; align-items: center; }
+    .workbench-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--primary); }
+    .workbench-counter { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; }
 
-    .workbench-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .workbench-label {
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--primary);
-    }
-    .workbench-counter {
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      font-weight: 600;
-    }
-
-    /* Staged Chips Flow */
-    .staged-chips-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      padding: 2px 0;
-    }
-    .staged-chips-container.hidden { display: none; }
-
+    .staged-chips-container { display: flex; flex-wrap: wrap; gap: 6px; }
     .staged-chip {
       background: #090e17;
       border: 1px solid #0284c7;
       color: #e0f2fe;
       border-radius: 6px;
-      padding: 4px 8px 4px 10px;
+      padding: 4px 8px;
       font-size: 0.78rem;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      max-width: 100%;
     }
-    .staged-chip-text {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      max-width: 220px;
-    }
-    .staged-chip-remove {
-      background: transparent;
-      border: none;
-      color: #7dd3fc;
-      cursor: pointer;
-      font-size: 0.75rem;
-      padding: 0 2px;
-      line-height: 1;
-    }
-    .staged-chip-remove:hover { color: #f87171; }
+    .staged-chip-remove { background: transparent; border: none; color: #7dd3fc; cursor: pointer; }
 
     textarea {
       width: 100%;
@@ -377,56 +264,10 @@
       color: var(--text);
       font-size: 0.9rem;
       font-family: inherit;
-      resize: vertical;
-      line-height: 1.4;
     }
-    textarea:focus { outline: 1px solid var(--primary); border-color: var(--primary); }
+    textarea:focus { outline: 1px solid var(--primary); }
 
-    /* Energy & Rhythm Modifiers */
-    .pacing-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      overflow-x: auto;
-      padding-bottom: 2px;
-      -webkit-overflow-scrolling: touch;
-    }
-    .pacing-label {
-      font-size: 0.68rem;
-      text-transform: uppercase;
-      font-weight: 700;
-      color: var(--text-muted);
-      letter-spacing: 0.05em;
-      margin-right: 2px;
-    }
-    .pacing-pill {
-      background: #090e17;
-      border: 1px solid var(--border);
-      color: var(--text-sub);
-      border-radius: 9999px;
-      padding: 3px 10px;
-      font-size: 0.72rem;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: all 0.15s ease;
-      user-select: none;
-    }
-    .pacing-pill:hover { border-color: var(--primary); color: var(--text); }
-    .pacing-pill.active {
-      background: #0c4a6e;
-      border-color: var(--primary);
-      color: #38bdf8;
-    }
-
-    /* Workbench Controls Footer */
-    .workbench-actions {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      margin-top: 2px;
-    }
-
+    .workbench-actions { display: flex; gap: 8px; align-items: center; }
     button.btn-main {
       flex: 1;
       background: var(--primary);
@@ -437,12 +278,7 @@
       font-weight: 700;
       font-size: 0.88rem;
       cursor: pointer;
-      box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
-      transition: background 0.15s ease;
     }
-    button.btn-main:hover { background: var(--primary-hover); color: #fff; }
-    button.btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
-
     .btn-workbench-reset {
       background: #090e17;
       border: 1px solid var(--border);
@@ -450,107 +286,119 @@
       border-radius: 8px;
       padding: 0 12px;
       height: 44px;
-      font-size: 0.8rem;
       cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transition: color 0.15s ease, border-color 0.15s ease;
     }
-    .btn-workbench-reset:hover { color: var(--record-red); border-color: var(--record-red); }
 
-    /* Task Sorting List */
-    .task-list { display: flex; flex-direction: column; gap: 10px; }
+    /* BUNDLED BLOCKS LIST (STAGING) */
+    .blocks-container { display: flex; flex-direction: column; gap: 12px; }
 
-    .task-card {
+    .block-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: 10px;
       padding: 12px 14px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
       border-left: 4px solid var(--primary);
     }
+    .block-card[data-color="11"] { border-left-color: var(--tag-11); }
+    .block-card[data-color="8"]  { border-left-color: var(--tag-8); }
+    .block-card[data-color="2"]  { border-left-color: var(--tag-2); }
+    .block-card[data-color="9"]  { border-left-color: var(--tag-9); }
 
-    .task-card[data-color="11"] { border-left-color: var(--tag-11); }
-    .task-card[data-color="8"]  { border-left-color: var(--tag-8); }
-    .task-card[data-color="2"]  { border-left-color: var(--tag-2); }
-    .task-card[data-color="9"]  { border-left-color: var(--tag-9); }
-
-    .task-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 8px;
+    .block-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .block-title-row { display: flex; flex-direction: column; gap: 2px; }
+    .block-title { font-size: 0.96rem; font-weight: 700; }
+    .block-badge-domain {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
-    .task-title { font-size: 0.95rem; font-weight: 600; line-height: 1.35; }
-    .sort-controls { display: flex; gap: 4px; }
-    .btn-arrow {
-      background: #090e17;
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 0.75rem;
-    }
-    .btn-arrow:hover { color: var(--text); border-color: var(--primary); }
+    .block-time { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; }
 
-    .task-meta {
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .btn-split {
-      background: #0c4a6e;
-      border: 1px solid #0284c7;
-      color: #bae6fd;
-      font-size: 0.7rem;
-      padding: 3px 8px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    .step-checklist {
+    /* ATOMS LIST (INSIDE A BLOCK) */
+    .block-atoms-list {
       display: flex;
       flex-direction: column;
       gap: 6px;
-      margin-top: 4px;
-      padding-top: 8px;
-      border-top: 1px solid var(--border);
-    }
-    .step-item {
-      font-size: 0.8rem;
-      color: #cbd5e1;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      background: #090e17;
+      border-radius: 8px;
+      padding: 8px;
+      border: 1px solid var(--border);
     }
 
+    .atom-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: #e2e8f0;
+      padding: 4px 6px;
+      border-radius: 4px;
+      background: #111c2e;
+    }
+    .atom-item.done { text-decoration: line-through; opacity: 0.45; }
+    .atom-left { display: flex; align-items: center; gap: 8px; flex: 1; }
+    .atom-check {
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #090e17;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .atom-check:checked { background: var(--primary); border-color: var(--primary); }
+    .atom-check:checked::after { content: '✓'; color: #090e17; font-size: 0.65rem; font-weight: 900; }
+
+    .atom-controls { display: flex; gap: 4px; align-items: center; }
+    .btn-atom-split {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 0.68rem;
+      cursor: pointer;
+    }
+    .btn-atom-split:hover { color: var(--primary); border-color: var(--primary); }
+
+    /* SAVE BUTTON */
     .btn-save {
       background: #0284c7;
       color: white;
       border: 1px solid var(--primary);
       padding: 14px;
       border-radius: 8px;
-      font-weight: 600;
+      font-weight: 700;
       font-size: 0.92rem;
       cursor: pointer;
       margin-top: 8px;
     }
     .btn-save:hover { background: #0369a1; }
-    .btn-save:disabled { opacity: 0.5; }
 
-    /* Forge */
+    /* TRACK VIEW */
+    .track-active-banner {
+      background: #0c4a6e;
+      border: 1px solid var(--primary);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .track-active-label { font-size: 0.68rem; text-transform: uppercase; font-weight: 800; color: #bae6fd; }
+    .track-active-title { font-size: 1rem; font-weight: 700; color: #fff; }
+
+    /* FORGE */
     .forge-pill {
       position: fixed;
       bottom: calc(16px + env(safe-area-inset-bottom));
@@ -664,12 +512,6 @@
       font-size: 0.88rem;
       cursor: pointer;
     }
-    .typing-dots { display: inline-flex; gap: 4px; padding: 4px 8px; }
-    .typing-dots span { width: 6px; height: 6px; background: var(--primary); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out; }
-    .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
-    .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
-    @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
-
     .hidden { display: none !important; }
   </style>
   <!-- ==========================================================================
@@ -685,73 +527,76 @@
   <div class="container">
     <header>
       <h1>Task Sequencer</h1>
-      <span class="badge">Standalone</span>
+      <div class="view-tabs">
+        <button type="button" class="view-tab active" id="tabPlan" onclick="switchView('plan')">Plan & Bundle</button>
+        <button type="button" class="view-tab" id="tabTrack" onclick="switchView('track')">Track Today</button>
+      </div>
     </header>
 
-    <!-- THE MINIMAL HOPPER -->
-    <section class="hopper-section">
-      <div class="hopper-bar">
-        <div class="hopper-input-wrap">
-          <input 
-            type="text" 
-            id="hopperInput" 
-            placeholder="Quick dump (or hold Capture to speak)..." 
-            autocomplete="off" 
-          />
+    <!-- VIEW 1: PLANNING & BUNDLING -->
+    <div id="viewPlan">
+      <!-- THE MINIMAL HOPPER -->
+      <section class="hopper-section">
+        <div class="hopper-bar">
+          <div class="hopper-input-wrap">
+            <input 
+              type="text" 
+              id="hopperInput" 
+              placeholder="Quick dump (or tap Capture to speak)..." 
+              autocomplete="off" 
+            />
+          </div>
+          <button type="button" id="hopperAddBtn" class="btn-hopper-submit">Capture</button>
         </div>
-        <button type="button" id="hopperAddBtn" class="btn-hopper-submit">Capture</button>
-      </div>
 
-      <div class="hopper-header" id="toggleHopperTray">
-        <span class="hopper-title">
-          <span>The Hopper</span>
-          <span class="hopper-count-badge" id="hopperCount">0</span>
-        </span>
-        <span class="hopper-chevron" id="hopperChevron">▼</span>
-      </div>
-
-      <div class="hopper-tray collapsed" id="hopperTray">
-        <div id="hopperList" class="hopper-items">
-          <!-- Dynamic Hopper Cards -->
+        <div class="hopper-header" id="toggleHopperTray">
+          <span class="hopper-title">
+            <span>The Hopper</span>
+            <span class="hopper-count-badge" id="hopperCount">0</span>
+          </span>
+          <span class="hopper-chevron" id="hopperChevron">▼</span>
         </div>
-      </div>
-    </section>
 
-    <!-- TODAY'S WORKBENCH (SEQUENCER PANEL) -->
-    <section class="input-panel">
-      <div class="workbench-header">
-        <span class="workbench-label">Today's Workbench</span>
-        <span class="workbench-counter" id="workbenchCount">0 items staged</span>
-      </div>
+        <div class="hopper-tray collapsed" id="hopperTray">
+          <div id="hopperList" class="hopper-items">
+            <!-- Dynamic Hopper Cards -->
+          </div>
+        </div>
+      </section>
 
-      <!-- Hopper Chips Tray -->
-      <div id="stagedChips" class="staged-chips-container hidden"></div>
+      <!-- TODAY'S WORKBENCH -->
+      <section class="input-panel" style="margin-top: 14px;">
+        <div class="workbench-header">
+          <span class="workbench-label">Today's Workbench</span>
+          <span class="workbench-counter" id="workbenchCount">0 items staged</span>
+        </div>
 
-      <!-- Anchor / Context Notes -->
-      <textarea 
-        id="promptInput" 
-        placeholder="Morning context & fixed anchors (e.g. 'Meeting at 10, workout at 4, feeling low energy')..."
-      ></textarea>
+        <div id="stagedChips" class="staged-chips-container hidden"></div>
 
-      <!-- Energy & Pacing Pills -->
-      <div class="pacing-row">
-        <span class="pacing-label">Rhythm:</span>
-        <span class="pacing-pill" data-mode="balanced" onclick="selectPacing(this)">⚡ Balanced</span>
-        <span class="pacing-pill" data-mode="low-friction" onclick="selectPacing(this)">🛡️ Low Friction</span>
-        <span class="pacing-pill" data-mode="sprint" onclick="selectPacing(this)">🔥 Focus Sprint</span>
-      </div>
+        <textarea 
+          id="promptInput" 
+          placeholder="Morning context & fixed anchors (e.g. 'Meeting at 10, gym at 4, low energy today')..."
+        ></textarea>
 
-      <!-- Action Row -->
-      <div class="workbench-actions">
-        <button id="submitBtn" class="btn-main" type="button">Sequence Today</button>
-        <button type="button" class="btn-workbench-reset" title="Clear Workbench" onclick="resetWorkbench()">✕</button>
-      </div>
-    </section>
+        <div class="workbench-actions">
+          <button id="submitBtn" class="btn-main" type="button">⚡ Bundle & Sequence</button>
+          <button type="button" class="btn-workbench-reset" title="Clear Workbench" onclick="resetWorkbench()">✕</button>
+        </div>
+      </section>
 
-    <!-- RESULTING TIMELINE -->
-    <div id="taskList" class="task-list"></div>
+      <!-- RESULTING BUNDLED BLOCKS -->
+      <div id="blocksContainer" class="blocks-container" style="margin-top: 14px;"></div>
 
-    <button id="saveBtn" class="btn-save hidden" onclick="saveToCalendar()">Write Order to Calendar</button>
+      <button id="saveBtn" class="btn-save hidden" onclick="saveToCalendar()" style="width: 100%;">
+        Write Schedule to Calendar & Start Tracking
+      </button>
+    </div>
+
+    <!-- VIEW 2: EXECUTION / TRACK MODE -->
+    <div id="viewTrack" class="hidden">
+      <div id="trackActiveBanner" class="track-active-banner hidden" style="margin-bottom: 12px;"></div>
+      <div id="trackBlocksContainer" class="blocks-container"></div>
+    </div>
   </div>
 
   <!-- FLOATING FORGE BUTTON -->
@@ -766,9 +611,7 @@
         <button class="btn-close" onclick="toggleForge()">✕</button>
       </div>
     </div>
-    
     <div id="forgeChatLog" class="forge-chat-log"></div>
-
     <div class="forge-input-bar">
       <input id="forgeInput" placeholder="Chat with Gemini or request code tweaks..." autocomplete="off" />
       <button id="forgeSendBtn" onclick="sendForgeMessage()">Send</button>
@@ -784,12 +627,34 @@
     let currentEvents = [];
 
  /* ==========================================================================
+/* ==========================================================================
        >>> ANCHOR: TASK_CARD_RENDER_START <<<
        ========================================================================== */
+    let currentBlocks = JSON.parse(localStorage.getItem('current_blocks') || '[]');
+    let currentView = 'plan'; // 'plan' | 'track'
+
+    window.switchView = function(viewName) {
+      currentView = viewName;
+      const tabPlan = document.getElementById('tabPlan');
+      const tabTrack = document.getElementById('tabTrack');
+      const viewPlan = document.getElementById('viewPlan');
+      const viewTrack = document.getElementById('viewTrack');
+
+      if (tabPlan) tabPlan.classList.toggle('active', viewName === 'plan');
+      if (tabTrack) tabTrack.classList.toggle('active', viewName === 'track');
+      if (viewPlan) viewPlan.classList.toggle('hidden', viewName !== 'plan');
+      if (viewTrack) viewTrack.classList.toggle('hidden', viewName !== 'track');
+
+      if (viewName === 'track') {
+        renderTrackView();
+      } else {
+        renderBlocks();
+      }
+    };
+
     let hopperItems = JSON.parse(localStorage.getItem('hopper_items') || '[]');
     let selectedHopperIds = new Set();
-    let stagedWorkbenchTasks = []; // Array of { id, text } staged as chips
-    let activePacingMode = null;   // 'balanced' | 'low-friction' | 'sprint' | null
+    let stagedWorkbenchTasks = [];
 
     function saveHopper() {
       localStorage.setItem('hopper_items', JSON.stringify(hopperItems));
@@ -841,17 +706,13 @@
     }
 
     window.toggleHopperSelection = function(id, isSelected) {
-      if (isSelected) {
-        selectedHopperIds.add(id);
-      } else {
-        selectedHopperIds.delete(id);
-      }
+      if (isSelected) selectedHopperIds.add(id);
+      else selectedHopperIds.delete(id);
       renderHopper();
     };
 
     window.toggleHopperCheckbox = function(id) {
-      const isCurrentlySelected = selectedHopperIds.has(id);
-      window.toggleHopperSelection(id, !isCurrentlySelected);
+      window.toggleHopperSelection(id, !selectedHopperIds.has(id));
     };
 
     window.clearHopperSelection = function() {
@@ -859,24 +720,18 @@
       renderHopper();
     };
 
-    /**
-     * Pulls checked Hopper items directly into Workbench chips
-     */
     window.stageSelectedHopperItems = function() {
       if (selectedHopperIds.size === 0) return;
-
       const itemsToStage = hopperItems.filter(item => selectedHopperIds.has(item.id));
       itemsToStage.forEach(item => {
         if (!stagedWorkbenchTasks.some(t => t.id === item.id)) {
           stagedWorkbenchTasks.push({ id: item.id, text: item.rawText });
         }
       });
-
       selectedHopperIds.clear();
       renderHopper();
       renderWorkbench();
 
-      // Collapse the hopper tray gracefully after pull
       const tray = document.getElementById('hopperTray');
       const chevron = document.getElementById('hopperChevron');
       if (tray && !tray.classList.contains('collapsed')) {
@@ -885,9 +740,6 @@
       }
     };
 
-    /**
-     * Renders Staged Chips & updates the Sequence button label
-     */
     function renderWorkbench() {
       const container = document.getElementById('stagedChips');
       const countLabel = document.getElementById('workbenchCount');
@@ -900,7 +752,7 @@
       if (count === 0) {
         container.classList.add('hidden');
         container.innerHTML = '';
-        submitBtn.innerText = 'Sequence Today';
+        submitBtn.innerText = '⚡ Bundle & Sequence';
       } else {
         container.classList.remove('hidden');
         container.innerHTML = stagedWorkbenchTasks.map((t, idx) => `
@@ -909,7 +761,7 @@
             <button type="button" class="staged-chip-remove" onclick="removeStagedTask(${idx})">✕</button>
           </div>
         `).join('');
-        submitBtn.innerText = `⚡ Sequence ${count} Item${count === 1 ? '' : 's'} into Day`;
+        submitBtn.innerText = `⚡ Bundle ${count} Item${count === 1 ? '' : 's'}`;
       }
     }
 
@@ -922,21 +774,7 @@
       stagedWorkbenchTasks = [];
       const promptInput = document.getElementById('promptInput');
       if (promptInput) promptInput.value = '';
-      activePacingMode = null;
-      document.querySelectorAll('.pacing-pill').forEach(p => p.classList.remove('active'));
       renderWorkbench();
-    };
-
-    window.selectPacing = function(pillEl) {
-      const mode = pillEl.getAttribute('data-mode');
-      if (activePacingMode === mode) {
-        activePacingMode = null;
-        pillEl.classList.remove('active');
-      } else {
-        document.querySelectorAll('.pacing-pill').forEach(p => p.classList.remove('active'));
-        pillEl.classList.add('active');
-        activePacingMode = mode;
-      }
     };
 
     window.parseHopperInput = async function(audioPayload = null) {
@@ -954,9 +792,7 @@
         requestBody.audioData = audioPayload.data;
         requestBody.mimeType = audioPayload.mimeType;
       }
-      if (text) {
-        requestBody.text = text;
-      }
+      if (text) requestBody.text = text;
 
       try {
         const res = await fetch(WORKER_URL, {
@@ -1008,7 +844,7 @@
           if (input) input.value = '';
           saveHopper();
         } else {
-          alert('Voice intake failed: ' + err.message);
+          alert('Intake failed: ' + err.message);
         }
       } finally {
         btn.disabled = false;
@@ -1032,64 +868,150 @@
       return `${h}:${m}${ampm}`;
     }
 
-    function renderTaskList() {
-      const container = document.getElementById('taskList');
+    function renderBlocks() {
+      const container = document.getElementById('blocksContainer');
       const saveBtn = document.getElementById('saveBtn');
+      if (!container) return;
 
-      if (!currentEvents.length) {
+      if (!currentBlocks.length) {
         container.innerHTML = '';
-        saveBtn.classList.add('hidden');
+        if (saveBtn) saveBtn.classList.add('hidden');
         return;
       }
 
-      container.innerHTML = currentEvents.map((ev, index) => {
-        const timeDisplay = `${formatTime12(ev.start_time)} – ${formatTime12(ev.end_time)}`;
-        const hasSteps = ev.steps && ev.steps.length > 0;
+      container.innerHTML = currentBlocks.map((blk, blkIdx) => {
+        const timeDisplay = `${formatTime12(blk.start_time)} – ${formatTime12(blk.end_time)}`;
+        const atoms = blk.atoms || [];
 
         return `
-          <div class="task-card" data-color="${ev.color_id || '9'}">
-            <div class="task-header">
-              <div class="task-title">${ev.title}</div>
-              <div class="sort-controls">
-                <button class="btn-arrow" onclick="moveTask(${index}, -1)" ${index === 0 ? 'disabled style="opacity:0.3"' : ''}>▲</button>
-                <button class="btn-arrow" onclick="moveTask(${index}, 1)" ${index === currentEvents.length - 1 ? 'disabled style="opacity:0.3"' : ''}>▼</button>
+          <div class="block-card" data-color="${blk.color_id || '9'}">
+            <div class="block-header">
+              <div class="block-title-row">
+                <span class="block-badge-domain">${blk.domain || 'Batch'}</span>
+                <div class="block-title">${blk.title}</div>
               </div>
+              <span class="block-time">${timeDisplay} (${blk.duration_minutes}m)</span>
             </div>
-            <div class="task-meta">
-              <span>${timeDisplay} (${ev.duration_minutes || 30}m)</span>
-              ${hasSteps ? `<button class="btn-split" onclick="toggleSteps(${index})">Micro-Steps</button>` : ''}
+
+            <div class="block-atoms-list">
+              ${atoms.map((atom, atomIdx) => `
+                <div class="atom-item ${atom.done ? 'done' : ''}">
+                  <div class="atom-left">
+                    <span>${atom.text}</span>
+                  </div>
+                  <div class="atom-controls">
+                    <span style="font-size:0.7rem;color:var(--text-muted);">${atom.est_minutes || 15}m</span>
+                    <button class="btn-atom-split" title="Split into Standalone Block" onclick="splitAtomToBlock(${blkIdx},${atomIdx})">⚡ Standalone</button>
+                  </div>
+                </div>
+              `).join('')}
             </div>
-            ${hasSteps ? `
-              <div id="steps_${index}" class="step-checklist hidden">
-                ${ev.steps.map(step => `<label class="step-item"><input type="checkbox"> <span>${step}</span></label>`).join('')}
-              </div>
-            ` : ''}
           </div>
         `;
       }).join('');
 
-      saveBtn.classList.remove('hidden');
+      if (saveBtn) saveBtn.classList.remove('hidden');
     }
+
+    window.splitAtomToBlock = function(blkIdx, atomIdx) {
+      const sourceBlock = currentBlocks[blkIdx];
+      const [atom] = sourceBlock.atoms.splice(atomIdx, 1);
+
+      const newBlock = {
+        id: 'blk_' + Date.now(),
+        title: atom.text,
+        domain: sourceBlock.domain,
+        date: sourceBlock.date,
+        start_time: sourceBlock.start_time,
+        end_time: sourceBlock.end_time,
+        duration_minutes: atom.est_minutes || 30,
+        color_id: sourceBlock.color_id,
+        is_standalone: true,
+        atoms: [atom]
+      };
+
+      currentBlocks.splice(blkIdx + 1, 0, newBlock);
+
+      if (sourceBlock.atoms.length === 0) {
+        currentBlocks.splice(blkIdx, 1);
+      }
+
+      localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
+      renderBlocks();
+    };
+
+    function renderTrackView() {
+      const container = document.getElementById('trackBlocksContainer');
+      const banner = document.getElementById('trackActiveBanner');
+      if (!container) return;
+
+      if (!currentBlocks.length) {
+        container.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:30px;">No blocks sequenced today yet. Switch to Plan & Bundle to stage your morning.</div>';
+        if (banner) banner.classList.add('hidden');
+        return;
+      }
+
+      container.innerHTML = currentBlocks.map((blk, blkIdx) => {
+        const timeDisplay = `${formatTime12(blk.start_time)} – ${formatTime12(blk.end_time)}`;
+        const atoms = blk.atoms || [];
+
+        return `
+          <div class="block-card" data-color="${blk.color_id || '9'}">
+            <div class="block-header">
+              <div class="block-title-row">
+                <span class="block-badge-domain">${blk.domain}</span>
+                <div class="block-title">${blk.title}</div>
+              </div>
+              <span class="block-time">${timeDisplay}</span>
+            </div>
+
+            <div class="block-atoms-list">
+              ${atoms.map((atom, atomIdx) => `
+                <div class="atom-item ${atom.done ? 'done' : ''}">
+                  <div class="atom-left">
+                    <input 
+                      type="checkbox" 
+                      class="atom-check" 
+                      ${atom.done ? 'checked' : ''} 
+                      onchange="toggleAtomDone(${blkIdx},${atomIdx}, this.checked)"
+                    />
+                    <span>${atom.text}</span>
+                  </div>
+                  <span style="font-size:0.7rem;color:var(--text-muted);">${atom.est_minutes || 15}m</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    window.toggleAtomDone = function(blkIdx, atomIdx, isDone) {
+      if (!currentBlocks[blkIdx] || !currentBlocks[blkIdx].atoms[atomIdx]) return;
+      currentBlocks[blkIdx].atoms[atomIdx].done = isDone;
+      localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
+      renderTrackView();
+    };
     /* ==========================================================================
        >>> ANCHOR: TASK_CARD_RENDER_END <<<
        ========================================================================== */
 
 
-    /* ==========================================================================
+/* ==========================================================================
        >>> ANCHOR: TASK_SORTING_LOGIC_START <<<
        ========================================================================== */
-    window.moveTask = function(index, direction) {
+    window.moveBlock = function(index, direction) {
       const targetIndex = index + direction;
-      if (targetIndex < 0 || targetIndex >= currentEvents.length) return;
+      if (targetIndex < 0 || targetIndex >= currentBlocks.length) return;
 
-      const item = currentEvents.splice(index, 1)[0];
-      currentEvents.splice(targetIndex, 0, item);
+      const item = currentBlocks.splice(index, 1)[0];
+      currentBlocks.splice(targetIndex, 0, item);
 
-      if (currentEvents.length > 0) {
-        let [currentH, currentM] = currentEvents[0].start_time.split(':').map(Number);
+      if (currentBlocks.length > 0) {
+        let [currentH, currentM] = (currentBlocks[0].start_time || '08:00').split(':').map(Number);
 
-        currentEvents.forEach(ev => {
-          const duration = ev.duration_minutes || 30;
+        currentBlocks.forEach(blk => {
+          const duration = blk.duration_minutes || 30;
           const startStr = `${String(currentH).padStart(2, '0')}:${String(currentM).padStart(2, '0')}`;
 
           let endTotalMin = currentH * 60 + currentM + duration;
@@ -1097,8 +1019,8 @@
           let endM = endTotalMin % 60;
           const endStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
 
-          ev.start_time = startStr;
-          ev.end_time = endStr;
+          blk.start_time = startStr;
+          blk.end_time = endStr;
 
           let nextTotalMin = endTotalMin + 5;
           currentH = Math.floor(nextTotalMin / 60) % 24;
@@ -1106,14 +1028,14 @@
         });
       }
 
-      renderTaskList();
+      localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
+      renderBlocks();
     };
-
-    window.toggleSteps = function(index) {
-      const el = document.getElementById(`steps_${index}`);
-      if (el) el.classList.toggle('hidden');
-    };
- /* ==========================================================================
+    /* ==========================================================================
+       >>> ANCHOR: TASK_SORTING_LOGIC_END <<<
+       ========================================================================== */
+    
+/* ==========================================================================
        >>> ANCHOR: TASK_API_PARSING_AND_SAVE_START <<<
        ========================================================================== */
     async function parseTasks() {
@@ -1122,29 +1044,21 @@
       const contextText = input ? input.value.trim() : '';
 
       if (stagedWorkbenchTasks.length === 0 && !contextText) {
-        alert('Stage some items from The Hopper or type your morning plan first.');
+        alert('Stage some items from The Hopper or type your plan first.');
         return;
       }
 
       const originalBtnText = btn.innerText;
       btn.disabled = true;
-      btn.innerText = 'Sequencing...';
+      btn.innerText = 'Bundling...';
 
-      // Assemble unified prompt payload
       let promptParts = [];
       if (stagedWorkbenchTasks.length > 0) {
-        promptParts.push('Specific obligations to sequence into today:\n' + stagedWorkbenchTasks.map(t => `- ${t.text}`).join('\n'));
+        promptParts.push('Obligations to bundle and sequence:\n' + stagedWorkbenchTasks.map(t => `- ${t.text}`).join('\n'));
       }
       if (contextText) {
         promptParts.push(`Daily anchors and context:\n${contextText}`);
       }
-      if (activePacingMode === 'low-friction') {
-        promptParts.push('PACING DIRECTIVE: Low-friction / spoon-saver mode. Generous 15m transition buffers between tasks, sequence high-friction administrative items earlier or break them down heavily, protect rest periods.');
-      } else if (activePacingMode === 'sprint') {
-        promptParts.push('PACING DIRECTIVE: Focus sprint mode. Tight sequencing, consolidate similar administrative items together, minimize downtime.');
-      }
-
-      const finalPrompt = promptParts.join('\n\n');
 
       try {
         const res = await fetch(WORKER_URL, {
@@ -1153,25 +1067,24 @@
             'Content-Type': 'application/json',
             'X-App-Key': APP_KEY
           },
-          body: JSON.stringify({ prompt: finalPrompt })
+          body: JSON.stringify({ prompt: promptParts.join('\n\n') })
         });
 
         const raw = await res.text();
         if (!res.ok) throw new Error(`HTTP ${res.status}: ${raw}`);
 
         const data = JSON.parse(raw);
-        currentEvents = data.events || [];
-        renderTaskList();
+        currentBlocks = data.blocks || [];
+        localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
 
-        // Remove sequenced tasks from Hopper permanently
+        renderBlocks();
+
         const sequencedIds = stagedWorkbenchTasks.map(t => t.id);
         hopperItems = hopperItems.filter(item => !sequencedIds.includes(item.id));
         saveHopper();
-
-        // Clear workbench
         resetWorkbench();
       } catch (err) {
-        alert('Sequencing failed: ' + err.message);
+        alert('Bundling failed: ' + err.message);
         btn.innerText = originalBtnText;
       } finally {
         btn.disabled = false;
@@ -1179,10 +1092,10 @@
     }
 
     async function saveToCalendar() {
-      if (!currentEvents.length) return;
+      if (!currentBlocks.length) return;
       const saveBtn = document.getElementById('saveBtn');
       saveBtn.disabled = true;
-      saveBtn.innerText = 'Saving...';
+      saveBtn.innerText = 'Writing to Calendar...';
 
       try {
         const res = await fetch(WORKER_URL, {
@@ -1191,7 +1104,7 @@
             'Content-Type': 'application/json',
             'X-App-Key': APP_KEY
           },
-          body: JSON.stringify({ action: 'INSERT', events: currentEvents })
+          body: JSON.stringify({ action: 'INSERT', blocks: currentBlocks })
         });
 
         if (!res.ok) {
@@ -1199,17 +1112,15 @@
           throw new Error(errData.error || 'Failed to save to Google Calendar/Sheets');
         }
 
-        saveBtn.innerText = '✓ Saved Successfully';
+        saveBtn.innerText = '✓ Saved to Calendar!';
         setTimeout(() => {
-          currentEvents = [];
-          renderTaskList();
-          saveBtn.innerText = 'Write Order to Calendar';
           saveBtn.disabled = false;
-        }, 1200);
+          switchView('track');
+        }, 800);
       } catch (err) {
         alert(err.message);
         saveBtn.disabled = false;
-        saveBtn.innerText = 'Write Order to Calendar';
+        saveBtn.innerText = 'Write Schedule to Calendar & Start Tracking';
       }
     }
     /* ==========================================================================
