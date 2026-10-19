@@ -27,8 +27,9 @@
       --text-sub: #94a3b8;
       --primary: #38bdf8;
       --primary-hover: #0284c7;
+      --ptt-orange: #f97316;
+      --ptt-glow: rgba(249, 115, 22, 0.45);
       --record-red: #ef4444;
-      --record-glow: rgba(239, 68, 68, 0.4);
 
       --tag-11: #38bdf8;
       --tag-8: #a855f7;
@@ -115,43 +116,13 @@
     }
     .hopper-input-wrap input:focus { outline: 1px solid var(--primary); border-color: var(--primary); }
 
-    .btn-hopper-voice {
-      background: #111c2e;
-      border: 1px solid var(--border);
-      color: var(--text-sub);
-      width: 44px;
-      height: 42px;
-      border-radius: 8px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.15s ease;
-      flex-shrink: 0;
-    }
-    .btn-hopper-voice svg { width: 18px; height: 18px; fill: currentColor; }
-    .btn-hopper-voice:hover { color: var(--text); border-color: var(--primary); background: #0c4a6e; }
-
-    .btn-hopper-voice.recording {
-      color: #fff;
-      background: var(--record-red);
-      border-color: var(--record-red);
-      box-shadow: 0 0 12px var(--record-glow);
-      animation: recordPulse 1.4s infinite ease-in-out;
-    }
-
-    @keyframes recordPulse {
-      0% { transform: scale(1); box-shadow: 0 0 0 0 var(--record-glow); }
-      50% { transform: scale(1.03); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
-      100% { transform: scale(1); box-shadow: 0 0 0 0 var(--record-glow); }
-    }
-
+    /* Push-to-Talk Capture Button */
     .btn-hopper-submit {
       background: #111c2e;
       color: var(--primary);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 0 14px;
+      padding: 0 16px;
       height: 42px;
       font-size: 0.85rem;
       font-weight: 600;
@@ -161,9 +132,21 @@
       justify-content: center;
       transition: all 0.15s ease;
       flex-shrink: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
     }
     .btn-hopper-submit:hover { background: #0c4a6e; border-color: var(--primary); color: #fff; }
     .btn-hopper-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Walkie-Talkie Active State */
+    .btn-hopper-submit.ptt-active {
+      background: var(--ptt-orange) !important;
+      border-color: var(--ptt-orange) !important;
+      color: #fff !important;
+      box-shadow: 0 0 16px var(--ptt-glow);
+      transform: scale(0.97);
+    }
 
     .hopper-header {
       display: flex;
@@ -271,7 +254,6 @@
     }
     .hopper-delete-btn:hover { color: var(--record-red); }
 
-    /* Staging Batch Bar */
     .hopper-batch-bar {
       margin-top: 6px;
       padding-top: 8px;
@@ -341,6 +323,7 @@
     textarea:focus { outline: 1px solid var(--primary); border-color: var(--primary); }
 
     .button-row { display: flex; gap: 8px; }
+    
     button.btn-main {
       flex: 1;
       background: var(--primary);
@@ -351,29 +334,21 @@
       font-weight: 600;
       cursor: pointer;
       box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
-      transition: background 0.15s ease;
+      transition: background 0.15s ease, transform 0.1s ease;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
     }
     button.btn-main:hover { background: var(--primary-hover); color: #fff; }
     button.btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    button.btn-mic {
-      background: #111c2e;
-      border: 1px solid var(--border);
-      color: var(--text-sub);
-      border-radius: 8px;
-      padding: 12px 16px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    /* Push-to-Talk on Sequencer Main Button */
+    button.btn-main.ptt-active {
+      background: var(--ptt-orange) !important;
+      color: #fff !important;
+      box-shadow: 0 0 20px var(--ptt-glow);
+      transform: scale(0.98);
     }
-    button.btn-mic.listening {
-      border-color: var(--record-red);
-      color: #fff;
-      background: var(--record-red);
-      animation: recordPulse 1.4s infinite ease-in-out;
-    }
-    button.btn-mic svg { width: 18px; height: 18px; fill: currentColor; }
 
     /* Task Sorting List */
     .task-list { display: flex; flex-direction: column; gap: 10px; }
@@ -611,14 +586,11 @@
           <input 
             type="text" 
             id="hopperInput" 
-            placeholder="Quick capture or voice dump..." 
+            placeholder="Quick capture or hold Capture to dictate..." 
             autocomplete="off" 
           />
         </div>
-        <button type="button" id="hopperVoiceBtn" class="btn-hopper-voice" title="Dictate to Hopper">
-          <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
-        </button>
-        <button type="button" id="hopperAddBtn" class="btn-hopper-submit" onclick="parseHopperInput()">Capture</button>
+        <button type="button" id="hopperAddBtn" class="btn-hopper-submit">Capture</button>
       </div>
 
       <div class="hopper-header" id="toggleHopperTray">
@@ -638,12 +610,9 @@
 
     <!-- MAIN SEQUENCER INPUT PANEL -->
     <div class="input-panel">
-      <textarea id="promptInput" placeholder="Morning list: 'Grade 10 essays, mail package, 30m gym session, call Dalton at 2'"></textarea>
+      <textarea id="promptInput" placeholder="Morning list or hold Parse & Sequence to dictate..."></textarea>
       <div class="button-row">
-        <button id="micBtn" class="btn-mic" type="button" title="Voice Dictate Morning Plan">
-          <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
-        </button>
-        <button id="submitBtn" class="btn-main">Parse & Sequence</button>
+        <button id="submitBtn" class="btn-main" type="button">Parse & Sequence</button>
       </div>
     </div>
 
@@ -1233,115 +1202,133 @@
 /* ==========================================================================
        >>> ANCHOR: VOICE_RECOGNITION_SETUP_START <<<
        ========================================================================== */
-    const micBtn = document.getElementById('micBtn');
+    const submitBtn = document.getElementById('submitBtn');
     const promptInput = document.getElementById('promptInput');
-    const hopperVoiceBtn = document.getElementById('hopperVoiceBtn');
+    const hopperAddBtn = document.getElementById('hopperAddBtn');
     const hopperInput = document.getElementById('hopperInput');
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     let activeVoiceTarget = null; // 'sequencer' | 'hopper' | null
+    let sharedRec = null;
 
     if (SpeechRecognition) {
-      const rec = new SpeechRecognition();
-      rec.continuous = false;
-      // Stream live speech tokens so you see your words immediately on screen
-      rec.interimResults = true;
-      rec.lang = 'en-US';
+      sharedRec = new SpeechRecognition();
+      sharedRec.continuous = false;
+      sharedRec.interimResults = true;
+      sharedRec.lang = 'en-US';
 
-      rec.onstart = () => {
-        if (activeVoiceTarget === 'hopper' && hopperVoiceBtn) {
-          hopperVoiceBtn.classList.add('recording');
-        } else if (activeVoiceTarget === 'sequencer' && micBtn) {
-          micBtn.classList.add('listening');
-        }
-      };
-
-      rec.onend = () => {
-        const target = activeVoiceTarget;
-        if (hopperVoiceBtn) hopperVoiceBtn.classList.remove('recording');
-        if (micBtn) micBtn.classList.remove('listening');
-        activeVoiceTarget = null;
-
-        // Auto-trigger ingestion when speaking naturally stops
-        if (target === 'hopper' && hopperInput && hopperInput.value.trim()) {
-          parseHopperInput();
-        } else if (target === 'sequencer' && promptInput && promptInput.value.trim()) {
-          parseTasks();
-        }
-      };
-
-      rec.onerror = (e) => {
-        if (hopperVoiceBtn) hopperVoiceBtn.classList.remove('recording');
-        if (micBtn) micBtn.classList.remove('listening');
-        activeVoiceTarget = null;
-        console.warn('Speech recognition error:', e.error);
-      };
-
-      rec.onresult = (e) => {
-        let interimTranscript = '';
-        let finalTranscript = '';
+      sharedRec.onresult = (e) => {
+        let interim = '';
+        let final = '';
 
         for (let i = e.resultIndex; i < e.results.length; ++i) {
           if (e.results[i].isFinal) {
-            finalTranscript += e.results[i][0].transcript;
+            final += e.results[i][0].transcript;
           } else {
-            interimTranscript += e.results[i][0].transcript;
+            interim += e.results[i][0].transcript;
           }
         }
 
-        const currentText = finalTranscript || interimTranscript;
-        if (!currentText) return;
+        const transcript = final || interim;
+        if (!transcript) return;
 
-        // Live visual feedback directly in the field
         if (activeVoiceTarget === 'hopper' && hopperInput) {
-          hopperInput.value = currentText;
+          hopperInput.value = transcript;
         } else if (activeVoiceTarget === 'sequencer' && promptInput) {
-          promptInput.value = currentText;
+          promptInput.value = transcript;
         }
       };
 
-      // Hopper Mic Toggle
-      if (hopperVoiceBtn) {
-        hopperVoiceBtn.onclick = () => {
-          try {
-            if (activeVoiceTarget === 'hopper') {
-              rec.stop();
-            } else {
-              if (activeVoiceTarget) rec.stop();
-              activeVoiceTarget = 'hopper';
-              if (hopperInput) hopperInput.value = '';
-              rec.start();
-            }
-          } catch (err) {
-            rec.stop();
-            activeVoiceTarget = null;
-          }
-        };
+      sharedRec.onerror = (e) => {
+        console.warn('Speech engine error:', e.error);
+      };
+    }
+
+    /**
+     * Attach Walkie-Talkie Push-to-Talk + Tap handling to a button
+     */
+    function attachPushToTalk(buttonEl, targetName, inputEl, onCommit) {
+      if (!buttonEl) return;
+
+      let pressTimer = null;
+      let isRecordingPTT = false;
+      let originalBtnText = buttonEl.innerText;
+
+      function startRecording() {
+        if (!sharedRec) return;
+        isRecordingPTT = true;
+        activeVoiceTarget = targetName;
+        buttonEl.classList.add('ptt-active');
+        buttonEl.innerText = 'Listening...';
+        if (inputEl) inputEl.value = '';
+
+        try {
+          sharedRec.start();
+        } catch (e) {
+          // If already started, ignore
+        }
       }
 
-      // Sequencer Mic Toggle
-      if (micBtn) {
-        micBtn.onclick = () => {
+      function stopRecordingAndCommit() {
+        if (!isRecordingPTT) return;
+        isRecordingPTT = false;
+        buttonEl.classList.remove('ptt-active');
+        buttonEl.innerText = originalBtnText;
+
+        if (sharedRec) {
           try {
-            if (activeVoiceTarget === 'sequencer') {
-              rec.stop();
-            } else {
-              if (activeVoiceTarget) rec.stop();
-              activeVoiceTarget = 'sequencer';
-              if (promptInput) promptInput.value = '';
-              rec.start();
-            }
-          } catch (err) {
-            rec.stop();
-            activeVoiceTarget = null;
+            sharedRec.stop();
+          } catch (e) {}
+        }
+
+        // Small grace period for speech engine to deliver final transcript
+        setTimeout(() => {
+          activeVoiceTarget = null;
+          if (inputEl && inputEl.value.trim()) {
+            onCommit();
           }
-        };
+        }, 350);
       }
-    } else {
-      const fallbackMsg = () => alert('Speech recognition not available on this browser.');
-      if (hopperVoiceBtn) hopperVoiceBtn.onclick = fallbackMsg;
-      if (micBtn) micBtn.onclick = fallbackMsg;
+
+      // Pointer / Touch Handlers
+      buttonEl.addEventListener('pointerdown', (e) => {
+        // Prevent default text selection/callout on mobile
+        pressTimer = setTimeout(() => {
+          startRecording();
+        }, 280); // 280ms hold threshold triggers PTT
+      });
+
+      const cancelPress = () => {
+        if (pressTimer) {
+          clearTimeout(pressTimer);
+          pressTimer = null;
+        }
+        if (isRecordingPTT) {
+          stopRecordingAndCommit();
+        }
+      };
+
+      buttonEl.addEventListener('pointerup', (e) => {
+        if (pressTimer && !isRecordingPTT) {
+          // It was a short tap!
+          clearTimeout(pressTimer);
+          pressTimer = null;
+          onCommit();
+        } else if (isRecordingPTT) {
+          stopRecordingAndCommit();
+        }
+      });
+
+      buttonEl.addEventListener('pointercancel', cancelPress);
+      buttonEl.addEventListener('pointerleave', cancelPress);
+      buttonEl.addEventListener('contextmenu', (e) => e.preventDefault());
     }
+
+    // Bind Walkie-Talkie to Hopper "Capture"
+    attachPushToTalk(hopperAddBtn, 'hopper', hopperInput, parseHopperInput);
+
+    // Bind Walkie-Talkie to Sequencer "Parse & Sequence"
+    attachPushToTalk(submitBtn, 'sequencer', promptInput, parseTasks);
 
     // Hopper Enter Key Trigger
     if (hopperInput) {
@@ -1353,7 +1340,6 @@
       });
     }
 
-    document.getElementById('submitBtn').onclick = parseTasks;
     document.getElementById('forgeInput').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') sendForgeMessage();
     });
