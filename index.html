@@ -1193,22 +1193,26 @@
 █████████████████████████████████████████████████████████████████████████████*/
 
     let forgeHistory = JSON.parse(localStorage.getItem('forge_history') || '[]');
+    let activeVariants = {}; // Tracks { [index]: 'A' | 'B' }
 
     function toggleForge() {
       const drawer = document.getElementById('forgeDrawer');
+      if (!drawer) return;
       drawer.classList.toggle('hidden');
       if (!drawer.classList.contains('hidden')) {
         renderForgeLog();
-        document.getElementById('forgeInput').focus();
+        const input = document.getElementById('forgeInput');
+        if (input) input.focus();
       }
     }
 
     function renderForgeLog() {
       const container = document.getElementById('forgeChatLog');
+      if (!container) return;
       container.innerHTML = '';
 
       if (forgeHistory.length === 0) {
-        container.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;padding:12px;">Ask Gemini anything, iterate on UI features, or request live code patches. Memory persists across turns.</div>';
+        container.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;padding:12px;">Ask Gemini for design variants, ergonomic tweaks, or styling tests. Live A/B toggles will appear below proposals.</div>';
         return;
       }
 
@@ -1223,38 +1227,43 @@
 
     function appendChatMessageToDOM(role, text, index) {
       const container = document.getElementById('forgeChatLog');
+      if (!container) return;
       const msgEl = document.createElement('div');
       msgEl.className = `chat-msg ${role}`;
 
       if (role === 'model') {
-        msgEl.innerHTML = marked.parse(text);
+        msgEl.innerHTML = typeof marked !== 'undefined' ? marked.parse(text) : text;
 
         const hasCss = text.includes('```css') || text.includes('<style>');
         const hasJs = text.includes('```javascript') || text.includes('<script>');
-        const hasAnchor = text.includes('>>> ANCHOR:');
+        const hasAnchor = text.includes('ANCHOR:');
 
-        const actionRow = document.createElement('div');
-        actionRow.className = 'patch-btn-row';
+        if (hasCss || hasJs || hasAnchor) {
+          const actionRow = document.createElement('div');
+          actionRow.className = 'patch-btn-row';
+          actionRow.style.display = 'flex';
+          actionRow.style.flexWrap = 'wrap';
+          actionRow.style.gap = '6px';
+          actionRow.style.marginTop = '8px';
 
-        if (hasCss || hasJs) {
-          const patchBtn = document.createElement('button');
-          patchBtn.className = 'btn-live-patch';
-          patchBtn.innerText = '⚡ Apply Patch Live';
-          patchBtn.onclick = () => hotPatchMessage(index);
-          actionRow.appendChild(patchBtn);
-        }
+          // A/B Toggle Button
+          const abBtn = document.createElement('button');
+          abBtn.className = 'btn-live-patch';
+          const currentVariant = activeVariants[index] || 'A';
+          abBtn.innerText = currentVariant === 'B' ? 'Active: Variant [B] (Tap for A)' : '⚡ Test Variant [B]';
+          abBtn.style.background = currentVariant === 'B' ? '#047857' : '#0c4a6e';
+          abBtn.onclick = () => toggleVariantAB(index, abBtn);
+          actionRow.appendChild(abBtn);
 
-        if (hasAnchor || hasCss || hasJs) {
+          // Copy Block Button
           const copyBtn = document.createElement('button');
           copyBtn.className = 'btn-live-patch';
           copyBtn.style.background = '#090e17';
           copyBtn.style.borderColor = 'var(--border)';
-          copyBtn.innerText = '📋 Copy Code Block';
+          copyBtn.innerText = '📋 Copy Block';
           copyBtn.onclick = () => copyCodeBlock(index, copyBtn);
           actionRow.appendChild(copyBtn);
-        }
 
-        if (actionRow.children.length > 0) {
           msgEl.appendChild(actionRow);
         }
       } else {
@@ -1268,6 +1277,7 @@
     async function sendForgeMessage() {
       const input = document.getElementById('forgeInput');
       const btn = document.getElementById('forgeSendBtn');
+      if (!input || !btn) return;
       const text = input.value.trim();
       if (!text) return;
 
@@ -1314,29 +1324,53 @@
       }
     }
 
-    window.hotPatchMessage = function(index) {
+    window.toggleVariantAB = function(index, btnEl) {
       const msg = forgeHistory[index];
       if (!msg) return;
       const text = msg.parts?.[0]?.text || '';
+      const state = activeVariants[index] || 'A';
+      const targetState = state === 'A' ? 'B' : 'A';
 
-      const cssMatch = text.match(/```css([\s\S]*?)```/) || text.match(/<style>([\s\S]*?)<\/style>/);
-      if (cssMatch) {
-        const style = document.createElement('style');
-        style.innerHTML = cssMatch[1];
-        document.head.appendChild(style);
-      }
+      const styleId = `forge-variant-style-${index}`;
+      let styleTag = document.getElementById(styleId);
 
-      const jsMatch = text.match(/```javascript([\s\S]*?)```/) || text.match(/<script>([\s\S]*?)<\/script>/);
-      if (jsMatch) {
-        try {
-          eval(jsMatch[1]);
-        } catch (e) {
-          alert('JS Patch Error: ' + e.message);
-          return;
+      if (targetState === 'B') {
+        // Apply Variant B
+        const cssMatch = text.match(/```css([\s\S]*?)```/) || text.match(/<style>([\s\S]*?)<\/style>/);
+        if (cssMatch) {
+          if (!styleTag) {
+            styleTag = document.createElement('style');
+            styleTag.id = styleId;
+            document.head.appendChild(styleTag);
+          }
+          styleTag.innerHTML = cssMatch[1];
         }
-      }
 
-      alert('⚡ Patch applied to active page session!');
+        const jsMatch = text.match(/```javascript([\s\S]*?)```/) || text.match(/<script>([\s\S]*?)<\/script>/);
+        if (jsMatch) {
+          try {
+            eval(jsMatch[1]);
+          } catch (e) {
+            console.error('JS Variant B execution error:', e);
+          }
+        }
+
+        activeVariants[index] = 'B';
+        if (btnEl) {
+          btnEl.innerText = 'Active: Variant [B] (Tap for A)';
+          btnEl.style.background = '#047857';
+        }
+      } else {
+        // Revert to Variant A (Original baseline)
+        if (styleTag) styleTag.remove();
+        activeVariants[index] = 'A';
+        if (btnEl) {
+          btnEl.innerText = '⚡ Test Variant [B]';
+          btnEl.style.background = '#0c4a6e';
+        }
+        // Force clean UI redraw
+        if (typeof switchView === 'function') switchView(currentView);
+      }
     };
 
     window.copyCodeBlock = async function(index, btnEl) {
@@ -1347,19 +1381,13 @@
       const fenceMatch = text.match(/```(?:css|javascript|html)?([\s\S]*?)```/);
       let payload = fenceMatch ? fenceMatch[1].trim() : text.trim();
 
-      if (text.includes('CSS_THEME_AND_LAYOUT') && !payload.includes('<style>')) {
-        payload = `  <!-- ==========================================================================\n       >>> ANCHOR: CSS_THEME_AND_LAYOUT_START <<<\n       ========================================================================== -->\n  <style>\n${payload}\n  </style>\n  <!-- ==========================================================================\n       >>> ANCHOR: CSS_THEME_AND_LAYOUT_END <<<\n       ========================================================================== -->`;
-      }
-
       try {
         await navigator.clipboard.writeText(payload);
         const originalText = btnEl.innerText;
-        btnEl.innerText = '✓ Copied Safe Block!';
-        btnEl.style.borderColor = 'var(--success)';
-        btnEl.style.color = 'var(--success)';
+        btnEl.innerText = '✓ Copied!';
+        btnEl.style.color = '#38bdf8';
         setTimeout(() => {
           btnEl.innerText = originalText;
-          btnEl.style.borderColor = 'var(--border)';
           btnEl.style.color = 'var(--text)';
         }, 1500);
       } catch (e) {
@@ -1370,6 +1398,8 @@
     function clearForgeChat() {
       if (!confirm('Clear Forge conversation history?')) return;
       forgeHistory = [];
+      activeVariants = {};
+      document.querySelectorAll('[id^="forge-variant-style-"]').forEach(el => el.remove());
       localStorage.removeItem('forge_history');
       renderForgeLog();
     }
