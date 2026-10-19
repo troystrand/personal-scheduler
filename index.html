@@ -1145,7 +1145,7 @@
        ========================================================================== */
 
 
-    /* ==========================================================================
+/* ==========================================================================
        >>> ANCHOR: VOICE_RECOGNITION_SETUP_START <<<
        ========================================================================== */
     const micBtn = document.getElementById('micBtn');
@@ -1157,7 +1157,7 @@
     function createRecognizer(buttonEl, onTranscript) {
       if (!SpeechRecognition) {
         buttonEl.onclick = () => {
-          alert('Voice dictation is not supported in this browser mode. If on iOS Home Screen, open in Safari to grant microphone permissions first, or check Settings > Safari > Microphone.');
+          alert('Web Speech API is unavailable in this container. Use the iOS keyboard microphone for seamless dictation.');
         };
         return null;
       }
@@ -1168,6 +1168,7 @@
       rec.lang = 'en-US';
 
       let isRecording = false;
+      let activeStream = null;
 
       rec.onstart = () => {
         isRecording = true;
@@ -1177,13 +1178,21 @@
       rec.onend = () => {
         isRecording = false;
         buttonEl.classList.remove('recording', 'listening');
+        if (activeStream) {
+          activeStream.getTracks().forEach(track => track.stop());
+          activeStream = null;
+        }
       };
 
       rec.onerror = (e) => {
         isRecording = false;
         buttonEl.classList.remove('recording', 'listening');
+        if (activeStream) {
+          activeStream.getTracks().forEach(track => track.stop());
+          activeStream = null;
+        }
         if (e.error !== 'no-speech' && e.error !== 'aborted') {
-          alert(`Mic error (${e.error}). Ensure microphone access is allowed in iOS Safari settings.`);
+          alert(`Speech Engine Error: ${e.error}`);
         }
       };
 
@@ -1192,16 +1201,27 @@
         if (text) onTranscript(text);
       };
 
-      buttonEl.onclick = () => {
+      buttonEl.onclick = async () => {
         try {
           if (isRecording) {
             rec.stop();
-          } else {
-            rec.start();
+            return;
           }
+
+          // Prime iOS audio hardware explicitly before invoking speech recognition
+          if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            try {
+              activeStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            } catch (permErr) {
+              console.warn('Microphone stream priming skipped or rejected:', permErr);
+            }
+          }
+
+          rec.start();
         } catch (err) {
-          console.error(err);
-          rec.stop();
+          console.error('Recognition start failure:', err);
+          isRecording = false;
+          buttonEl.classList.remove('recording', 'listening');
         }
       };
 
