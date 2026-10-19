@@ -1230,7 +1230,6 @@
     let isRecordingPTT = false;
     let recordingTimer = null;
     let currentStream = null;
-    let activePointerId = null;
 
     function getSupportedMimeType() {
       const types = [
@@ -1264,15 +1263,9 @@
       if (!buttonEl) return;
       const originalText = buttonEl.innerText;
 
-      async function startRecordSession(pointerId) {
+      async function startRecordSession() {
         try {
-          currentStream = await navigator.mediaDevices.getUserMedia({ 
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true
-            } 
-          });
+          currentStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         } catch (err) {
           alert('Microphone access rejected or unavailable: ' + err.message);
           buttonEl.classList.remove('ptt-active');
@@ -1282,7 +1275,7 @@
           return;
         }
 
-        // Check if user lifted while getUserMedia was resolving
+        // If user lifted before mic hardware opened
         if (!isRecordingPTT) {
           if (currentStream) {
             currentStream.getTracks().forEach(t => t.stop());
@@ -1293,7 +1286,7 @@
 
         const mimeType = getSupportedMimeType();
         audioChunks = [];
-        
+
         try {
           mediaRecorder = mimeType ? new MediaRecorder(currentStream, { mimeType }) : new MediaRecorder(currentStream);
         } catch (e) {
@@ -1305,6 +1298,7 @@
         };
 
         mediaRecorder.onstop = async () => {
+          // Shut down hardware tracks AFTER buffer flush
           if (currentStream) {
             currentStream.getTracks().forEach(t => t.stop());
             currentStream = null;
@@ -1316,8 +1310,8 @@
 
           const finalMime = mediaRecorder.mimeType || 'audio/mp4';
           const audioBlob = new Blob(audioChunks, { type: finalMime });
-          
-          if (audioBlob.size > 1500) {
+
+          if (audioBlob.size > 500) {
             const base64Data = await blobToBase64(audioBlob);
             onAudioCaptured({ data: base64Data, mimeType: finalMime });
           }
@@ -1328,17 +1322,10 @@
       }
 
       function stopRecordSession() {
-        const wasRecording = isRecordingPTT;
+        if (!isRecordingPTT) return;
         isRecordingPTT = false;
         buttonEl.classList.remove('ptt-active');
         buttonEl.innerText = originalText;
-
-        if (activePointerId !== null && buttonEl.releasePointerCapture) {
-          try {
-            buttonEl.releasePointerCapture(activePointerId);
-          } catch (e) {}
-          activePointerId = null;
-        }
 
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
           mediaRecorder.stop();
@@ -1351,25 +1338,15 @@
         }
       }
 
+      // Pointer event handlers without setPointerCapture interference
       buttonEl.addEventListener('pointerdown', (e) => {
         e.preventDefault();
-        const pId = e.pointerId;
-
-        // Lock touch tracking immediately on down
-        if (buttonEl.setPointerCapture) {
-          try {
-            buttonEl.setPointerCapture(pId);
-            activePointerId = pId;
-          } catch (err) {}
-        }
-
-        // Snappy threshold: 140ms separates a quick tap from intentional hold
         recordingTimer = setTimeout(() => {
           isRecordingPTT = true;
           buttonEl.classList.add('ptt-active');
           document.body.classList.add('recording-locked');
-          startRecordSession(pId);
-        }, 140);
+          startRecordSession();
+        }, 180);
       });
 
       buttonEl.addEventListener('pointerup', (e) => {
@@ -1378,11 +1355,6 @@
           clearTimeout(recordingTimer);
           recordingTimer = null;
           if (!isRecordingPTT) {
-            // Lifted under 140ms -> execute text action
-            if (activePointerId !== null && buttonEl.releasePointerCapture) {
-              try { buttonEl.releasePointerCapture(activePointerId); } catch (err) {}
-              activePointerId = null;
-            }
             onShortTap();
             return;
           }
@@ -1413,7 +1385,7 @@
       () => parseHopperInput()
     );
 
-    // Bind Sequencer: Standard tap for text sequencing
+    // Bind Sequencer: Clean tap for text sequencing
     if (submitBtn) {
       submitBtn.onclick = () => parseTasks();
     }
