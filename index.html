@@ -1453,127 +1453,77 @@ function attachHardwarePTT(buttonEl, onAudioCaptured, onShortTap) {
       if (!buttonEl) return;
       const originalText = buttonEl.innerText;
 
-      async function startRecordSession() {
-        try {
-          currentStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        } catch (err) {
-          alert('Microphone access unavailable or denied: ' + err.message);
-          buttonEl.classList.remove('ptt-active');
-          buttonEl.innerText = originalText;
-          document.body.classList.remove('recording-locked');
-          isRecordingPTT = false;
-          return;
-        }
+      buttonEl.addEventListener('click', async (e) => {
+        e.preventDefault();
 
+        // 1. If we are NOT recording yet, start recording on this tap
         if (!isRecordingPTT) {
-          if (currentStream) {
-            currentStream.getTracks().forEach(t => t.stop());
-            currentStream = null;
-          }
-          return;
-        }
-
-        const mimeType = getSupportedMimeType();
-        audioChunks = [];
-
-        try {
-          mediaRecorder = mimeType ? new MediaRecorder(currentStream, { mimeType }) : new MediaRecorder(currentStream);
-        } catch (e) {
-          mediaRecorder = new MediaRecorder(currentStream);
-        }
-
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data && e.data.size > 0) {
-            audioChunks.push(e.data);
-          }
-        };
-
-        mediaRecorder.onstop = async () => {
-          if (currentStream) {
-            currentStream.getTracks().forEach(t => t.stop());
-            currentStream = null;
-          }
-
-          document.body.classList.remove('recording-locked');
-
-          if (audioChunks.length === 0) {
-            alert('No audio recorded. Check microphone input.');
-            return;
-          }
-
-          const finalMime = mediaRecorder.mimeType || mimeType || 'audio/mp4';
-          const audioBlob = new Blob(audioChunks, { type: finalMime });
-
-          try {
-            const base64Data = await blobToBase64(audioBlob);
-            onAudioCaptured({ data: base64Data, mimeType: finalMime });
-          } catch (encodeErr) {
-            alert('Failed to process audio: ' + encodeErr.message);
-          }
-        };
-
-        // Request data slice every 250ms to guarantee data chunks are populated
-        mediaRecorder.start(250);
-        buttonEl.innerText = 'Listening...';
-      }
-
-      function stopRecordSession() {
-        if (!isRecordingPTT) return;
-        isRecordingPTT = false;
-        buttonEl.classList.remove('ptt-active');
-        buttonEl.innerText = originalText;
-
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-          // Request any remaining data before stop
-          try { mediaRecorder.requestData(); } catch (e) {}
-          mediaRecorder.stop();
-        } else {
-          document.body.classList.remove('recording-locked');
-          if (currentStream) {
-            currentStream.getTracks().forEach(t => t.stop());
-            currentStream = null;
-          }
-        }
-      }
-
-      // Pointer event handlers without premature preventDefault
-      buttonEl.addEventListener('pointerdown', (e) => {
-        recordingTimer = setTimeout(() => {
-          isRecordingPTT = true;
-          buttonEl.classList.add('ptt-active');
-          document.body.classList.add('recording-locked');
-          startRecordSession();
-        }, 180);
-      });
-
-      buttonEl.addEventListener('pointerup', (e) => {
-        if (recordingTimer) {
-          clearTimeout(recordingTimer);
-          recordingTimer = null;
-          if (!isRecordingPTT) {
+          const input = document.getElementById('hopperInput');
+          // If the user already typed text, process the text instead of opening mic
+          if (input && input.value.trim().length > 0) {
             onShortTap();
             return;
           }
-        }
 
-        if (isRecordingPTT) {
-          stopRecordSession();
+          try {
+            currentStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          } catch (err) {
+            alert('Microphone access unavailable or denied: ' + err.message);
+            return;
+          }
+
+          isRecordingPTT = true;
+          buttonEl.classList.add('ptt-active');
+          buttonEl.innerText = 'Done';
+
+          const mimeType = getSupportedMimeType();
+          audioChunks = [];
+
+          try {
+            mediaRecorder = mimeType ? new MediaRecorder(currentStream, { mimeType }) : new MediaRecorder(currentStream);
+          } catch (e) {
+            mediaRecorder = new MediaRecorder(currentStream);
+          }
+
+          mediaRecorder.ondataavailable = (ev) => {
+            if (ev.data && ev.data.size > 0) {
+              audioChunks.push(ev.data);
+            }
+          };
+
+          mediaRecorder.onstop = async () => {
+            if (currentStream) {
+              currentStream.getTracks().forEach(t => t.stop());
+              currentStream = null;
+            }
+            buttonEl.classList.remove('ptt-active');
+            buttonEl.innerText = originalText;
+
+            if (audioChunks.length === 0) return;
+
+            const finalMime = mediaRecorder.mimeType || mimeType || 'audio/mp4';
+            const audioBlob = new Blob(audioChunks, { type: finalMime });
+
+            try {
+              const base64Data = await blobToBase64(audioBlob);
+              onAudioCaptured({ data: base64Data, mimeType: finalMime });
+            } catch (encodeErr) {
+              alert('Failed to process audio: ' + encodeErr.message);
+            }
+          };
+
+          mediaRecorder.start(250);
+        } else {
+          // 2. If we ARE currently recording, this tap stops and sequences it
+          isRecordingPTT = false;
+          if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            try { mediaRecorder.requestData(); } catch (err) {}
+            mediaRecorder.stop();
+          }
         }
       });
-
-      buttonEl.addEventListener('pointercancel', () => {
-        if (recordingTimer) {
-          clearTimeout(recordingTimer);
-          recordingTimer = null;
-        }
-        if (isRecordingPTT) {
-          stopRecordSession();
-        }
-      });
-
-      buttonEl.addEventListener('contextmenu', (e) => e.preventDefault());
     }
-
+    
     // Attach PTT to Hopper Capture
     attachHardwarePTT(
       hopperAddBtn,
