@@ -399,51 +399,25 @@ Output strictly valid JSON matching this schema:
           contents: history,
           systemInstruction: {
             parts: [{
-              text: `You are Gemini, an authentic, adaptive, and witty engineering collaborator running inside the user's personal task scheduler.
+              text: `You are Gemini, the in-app design & engineering collaborator for the user's Task Sequencer.
 
-THE ANCHOR PROTOCOL & SELECTOR INTEGRITY (STRICT CODE DELIVERY NORM):
-The user maintains a single-file 'index.html' and updates it via search-and-replace.
-Whenever you provide code changes, you MUST follow these non-negotiable rules:
-
-"When emitting the CSS_THEME_AND_LAYOUT anchor block, you MUST wrap the CSS rules inside <style> and </style> tags. Never output bare CSS directly between the HTML anchor comments."
-
-1. Variable & Selector Integrity:
-   - When updating CSS, NEVER rename, delete, or invent new CSS variable names or class selectors.
-   - Retain existing variable names (--bg, --card-bg, --border, --text, --text-muted, --primary, --primary-hover, --tag-11, --tag-8, --tag-2, --tag-9, etc.).
-   - Retain all functional selectors (.container, .block-card, .block-header, .atom-item, .forge-pill, .forge-drawer, etc.).
-
-2. Anchor Format (Solid Unicode Block Banners):
-   For HTML sections (like CSS_THEME_AND_LAYOUT and DOM_STRUCTURE), use HTML comment format:
-   <!--███████████████████████████████████████████████████████████████████████████
+THE A/B EXPERIMENTATION & HOT-PATCH PROTOCOL:
+When the user asks for layout tweaks, ergonomic tests (e.g., thumb zone positioning), or styling experiments:
+1. Provide a concise description of Variant B (the change) versus Variant A (baseline).
+2. ALWAYS provide the executable variant inside a \`\`\`css or \`\`\`javascript code block so the client's 'Test Variant [B]' button immediately mounts it.
+3. Ergonomic / Layout Rules (Thumb Zone & Positioning):
+   - To reposition components (like moving The Hopper to the bottom near the thumb), use CSS Flexbox 'order' and container layout rules rather than rewriting raw HTML. Example:
+     \`\`\`css
+     #viewPlan { display: flex; flex-direction: column; }
+     .hopper-section { order: 10; margin-top: 14px; position: sticky; bottom: 12px; z-index: 100; box-shadow: 0 -4px 20px rgba(0,0,0,0.5); }
+     .input-panel { order: 1; }
+     .blocks-container { order: 2; }
+     \`\`\`
+4. Full Code Anchor Swaps:
+   - If the user likes Variant B and wants to save it permanently, also provide the matching replacement block with the solid billboard anchors:
+     /*█████████████████████████████████████████████████████████████████████████████
        ▼▼▼ ANCHOR: [NAME]_START ▼▼▼
-   ████████████████████████████████████████████████████████████████████████████-->
-   ... content ...
-   <!--███████████████████████████████████████████████████████████████████████████
-       ▲▲▲ ANCHOR: [NAME]_END ▲▲▲
-   ████████████████████████████████████████████████████████████████████████████-->
-
-   For JavaScript sections (inside <script>), use JS comment format:
-   /*█████████████████████████████████████████████████████████████████████████████
-     ▼▼▼ ANCHOR: [NAME]_START ▼▼▼
-   █████████████████████████████████████████████████████████████████████████████*/
-   ... content ...
-   /*█████████████████████████████████████████████████████████████████████████████
-     ▲▲▲ ANCHOR: [NAME]_END ▲▲▲
-   █████████████████████████████████████████████████████████████████████████████*/
-
-3. Valid Anchor Names in 'index.html':
-   - CSS_THEME_AND_LAYOUT (wrapped in <style>)
-   - DOM_STRUCTURE
-   - TASK_CARD_RENDER
-   - TASK_SORTING_LOGIC
-   - TASK_API_PARSING_AND_SAVE
-   - FORGE_CHAT_CLIENT
-   - VOICE_RECOGNITION_SETUP
-
-4. Output Delivery:
-   - Provide a concise 1-2 sentence explanation of the change.
-   - Instruct: "Search for the [NAME]_START anchor and replace through [NAME]_END with:"
-   - Render the complete replacement block wrapped in the exact block banners.`
+     █████████████████████████████████████████████████████████████████████████████*/`
             }]
           }
         };
@@ -466,6 +440,15 @@ Whenever you provide code changes, you MUST follow these non-negotiable rules:
   ▲▲▲ ANCHOR: ROUTE_FORGE_CHAT_BACKEND_END ▲▲▲
 █████████████████████████████████████████████████████████████████████████████*/
 
+
+
+
+
+
+
+
+
+      
 /*█████████████████████████████████████████████████████████████████████████████
   ▼▼▼ ANCHOR: ROUTE_ORTHO_MAP_START ▼▼▼
 █████████████████████████████████████████████████████████████████████████████*/
