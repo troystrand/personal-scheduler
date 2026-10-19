@@ -1266,13 +1266,28 @@
 
       async function startRecordSession(pointerId) {
         try {
-          currentStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          currentStream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            } 
+          });
         } catch (err) {
           alert('Microphone access rejected or unavailable: ' + err.message);
           buttonEl.classList.remove('ptt-active');
           buttonEl.innerText = originalText;
           document.body.classList.remove('recording-locked');
           isRecordingPTT = false;
+          return;
+        }
+
+        // Check if user lifted while getUserMedia was resolving
+        if (!isRecordingPTT) {
+          if (currentStream) {
+            currentStream.getTracks().forEach(t => t.stop());
+            currentStream = null;
+          }
           return;
         }
 
@@ -1302,29 +1317,18 @@
           const finalMime = mediaRecorder.mimeType || 'audio/mp4';
           const audioBlob = new Blob(audioChunks, { type: finalMime });
           
-          if (audioBlob.size > 2000) {
+          if (audioBlob.size > 1500) {
             const base64Data = await blobToBase64(audioBlob);
             onAudioCaptured({ data: base64Data, mimeType: finalMime });
           }
         };
 
-        // Lock pointer capture to this button and freeze background scroll
-        if (pointerId && buttonEl.setPointerCapture) {
-          try {
-            buttonEl.setPointerCapture(pointerId);
-            activePointerId = pointerId;
-          } catch (e) {}
-        }
-        document.body.classList.add('recording-locked');
-
         mediaRecorder.start();
-        isRecordingPTT = true;
-        buttonEl.classList.add('ptt-active');
         buttonEl.innerText = 'Listening...';
       }
 
       function stopRecordSession() {
-        if (!isRecordingPTT) return;
+        const wasRecording = isRecordingPTT;
         isRecordingPTT = false;
         buttonEl.classList.remove('ptt-active');
         buttonEl.innerText = originalText;
@@ -1340,31 +1344,55 @@
           mediaRecorder.stop();
         } else {
           document.body.classList.remove('recording-locked');
+          if (currentStream) {
+            currentStream.getTracks().forEach(t => t.stop());
+            currentStream = null;
+          }
         }
       }
 
       buttonEl.addEventListener('pointerdown', (e) => {
-        // Prevent scroll initiation immediately on down
         e.preventDefault();
         const pId = e.pointerId;
 
+        // Lock touch tracking immediately on down
+        if (buttonEl.setPointerCapture) {
+          try {
+            buttonEl.setPointerCapture(pId);
+            activePointerId = pId;
+          } catch (err) {}
+        }
+
+        // Snappy threshold: 140ms separates a quick tap from intentional hold
         recordingTimer = setTimeout(() => {
+          isRecordingPTT = true;
+          buttonEl.classList.add('ptt-active');
+          document.body.classList.add('recording-locked');
           startRecordSession(pId);
-        }, 250);
+        }, 140);
       });
 
       buttonEl.addEventListener('pointerup', (e) => {
         e.preventDefault();
-        if (recordingTimer && !isRecordingPTT) {
+        if (recordingTimer) {
           clearTimeout(recordingTimer);
           recordingTimer = null;
-          onShortTap();
-        } else if (isRecordingPTT) {
+          if (!isRecordingPTT) {
+            // Lifted under 140ms -> execute text action
+            if (activePointerId !== null && buttonEl.releasePointerCapture) {
+              try { buttonEl.releasePointerCapture(activePointerId); } catch (err) {}
+              activePointerId = null;
+            }
+            onShortTap();
+            return;
+          }
+        }
+
+        if (isRecordingPTT) {
           stopRecordSession();
         }
       });
 
-      // Pointer cancel acts as release rather than hard-failing
       buttonEl.addEventListener('pointercancel', (e) => {
         if (recordingTimer) {
           clearTimeout(recordingTimer);
