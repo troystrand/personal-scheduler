@@ -646,10 +646,12 @@
   ▼▼▼ ANCHOR: TASK_CARD_RENDER_START ▼▼▼
 █████████████████████████████████████████████████████████████████████████████*/
     let currentBlocks = JSON.parse(localStorage.getItem('current_blocks') || '[]');
-    let currentView = 'plan'; // 'plan' | 'track'
+    let currentView = localStorage.getItem('current_view') || 'plan'; // Persist active tab across refreshes
 
     window.switchView = function(viewName) {
       currentView = viewName;
+      localStorage.setItem('current_view', viewName);
+
       const tabPlan = document.getElementById('tabPlan');
       const tabTrack = document.getElementById('tabTrack');
       const viewPlan = document.getElementById('viewPlan');
@@ -669,7 +671,7 @@
 
     let hopperItems = JSON.parse(localStorage.getItem('hopper_items') || '[]');
     let selectedHopperIds = new Set();
-    let stagedWorkbenchTasks = [];
+    let stagedWorkbenchTasks = JSON.parse(localStorage.getItem('staged_workbench_tasks') || '[]');
 
     function saveHopper() {
       localStorage.setItem('hopper_items', JSON.stringify(hopperItems));
@@ -689,17 +691,25 @@
         return;
       }
 
+      const stagedIdSet = new Set(stagedWorkbenchTasks.map(t => t.id));
+
       const itemsMarkup = hopperItems.map((item) => {
+        const isStaged = stagedIdSet.has(item.id);
         const isChecked = selectedHopperIds.has(item.id);
+
         return `
-          <div class="hopper-card ${isChecked ? 'selected' : ''}" id="card_${item.id}">
+          <div class="hopper-card ${isChecked ? 'selected' : ''} ${isStaged ? 'staged-in-plan' : ''}" id="card_${item.id}" style="${isStaged ? 'opacity: 0.65; border-style: solid; border-color: var(--primary); background: rgba(56, 189, 248, 0.04);' : ''}">
             <input 
               type="checkbox" 
               class="hopper-check" 
               ${isChecked ? 'checked' : ''} 
+              ${isStaged ? 'disabled style="cursor: not-allowed; opacity: 0.4;"' : ''}
               onchange="toggleHopperSelection('${item.id}', this.checked)"
             />
-            <span class="hopper-text" onclick="toggleHopperCheckbox('${item.id}')">${item.rawText}</span>
+            <span class="hopper-text" onclick="${isStaged ? '' : `toggleHopperCheckbox('${item.id}')`}">
+              ${item.rawText}
+            </span>
+            ${isStaged ? '<span style="font-size: 0.65rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; background: rgba(56, 189, 248, 0.12); padding: 2px 6px; border-radius: 4px; white-space: nowrap;">⚡ Staged</span>' : ''}
             <div class="hopper-actions">
               <button class="hopper-delete-btn" onclick="deleteHopperItem('${item.id}')">✕</button>
             </div>
@@ -737,12 +747,15 @@
 
     window.stageSelectedHopperItems = function() {
       if (selectedHopperIds.size === 0) return;
+
       const itemsToStage = hopperItems.filter(item => selectedHopperIds.has(item.id));
       itemsToStage.forEach(item => {
         if (!stagedWorkbenchTasks.some(t => t.id === item.id)) {
           stagedWorkbenchTasks.push({ id: item.id, text: item.rawText });
         }
       });
+
+      localStorage.setItem('staged_workbench_tasks', JSON.stringify(stagedWorkbenchTasks));
       selectedHopperIds.clear();
       renderHopper();
       renderWorkbench();
@@ -782,13 +795,17 @@
 
     window.removeStagedTask = function(index) {
       stagedWorkbenchTasks.splice(index, 1);
+      localStorage.setItem('staged_workbench_tasks', JSON.stringify(stagedWorkbenchTasks));
+      renderHopper(); // Updates the staged status tag in the Hopper list
       renderWorkbench();
     };
 
     window.resetWorkbench = function() {
       stagedWorkbenchTasks = [];
+      localStorage.removeItem('staged_workbench_tasks');
       const promptInput = document.getElementById('promptInput');
       if (promptInput) promptInput.value = '';
+      renderHopper();
       renderWorkbench();
     };
 
@@ -870,7 +887,10 @@
     window.deleteHopperItem = function(id) {
       hopperItems = hopperItems.filter(item => item.id !== id);
       selectedHopperIds.delete(id);
+      stagedWorkbenchTasks = stagedWorkbenchTasks.filter(item => item.id !== id);
+      localStorage.setItem('staged_workbench_tasks', JSON.stringify(stagedWorkbenchTasks));
       saveHopper();
+      renderWorkbench();
     };
 
     function formatTime12(timeStr) {
@@ -1528,6 +1548,7 @@ function attachHardwarePTT(buttonEl, onAudioCaptured, onShortTap) {
 
     renderHopper();
     renderWorkbench();
+    switchView(currentView); // Restores active tab and renders blocks immediately on load
 /*█████████████████████████████████████████████████████████████████████████████
   ▲▲▲ ANCHOR: VOICE_RECOGNITION_SETUP_END ▲▲▲
 █████████████████████████████████████████████████████████████████████████████*/
