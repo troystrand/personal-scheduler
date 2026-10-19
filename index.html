@@ -115,7 +115,6 @@
     }
     .hopper-input-wrap input:focus { outline: 1px solid var(--primary); border-color: var(--primary); }
 
-    /* Dedicated Voice Dictation Button */
     .btn-hopper-voice {
       background: #111c2e;
       border: 1px solid var(--border);
@@ -217,9 +216,39 @@
       border-radius: 8px;
       padding: 8px 12px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+    .hopper-card.selected {
+      border-color: var(--primary);
+      background: rgba(56, 189, 248, 0.05);
+    }
+
+    .hopper-check {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #111c2e;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s ease;
+    }
+    .hopper-check:checked {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+    .hopper-check:checked::after {
+      content: '✓';
+      color: #090e17;
+      font-size: 0.75rem;
+      font-weight: 900;
     }
 
     .hopper-text {
@@ -227,21 +256,10 @@
       color: var(--text-sub);
       flex: 1;
       word-break: break-word;
-    }
-
-    .hopper-actions { display: flex; gap: 4px; }
-
-    .hopper-promote-btn {
-      background: #0c4a6e;
-      border: 1px solid #0284c7;
-      color: #bae6fd;
-      padding: 4px 8px;
-      border-radius: 5px;
-      font-size: 0.7rem;
-      font-weight: 600;
       cursor: pointer;
     }
-    .hopper-promote-btn:hover { background: #0369a1; }
+
+    .hopper-actions { display: flex; gap: 4px; align-items: center; }
 
     .hopper-delete-btn {
       background: transparent;
@@ -252,6 +270,42 @@
       cursor: pointer;
     }
     .hopper-delete-btn:hover { color: var(--record-red); }
+
+    /* Staging Batch Bar */
+    .hopper-batch-bar {
+      margin-top: 6px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-stage-hopper {
+      flex: 1;
+      background: #0c4a6e;
+      border: 1px solid var(--primary);
+      color: #bae6fd;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .btn-stage-hopper:hover { background: #0369a1; color: #fff; }
+
+    .btn-clear-selection {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      cursor: pointer;
+      padding: 6px 8px;
+    }
+    .btn-clear-selection:hover { color: var(--text); }
 
     .hopper-empty {
       padding: 8px;
@@ -626,10 +680,12 @@
     const WORKER_URL = 'https://gemini-proxy.strand-troy.workers.dev';
     let currentEvents = [];
 
-    /* ==========================================================================
+ /* ==========================================================================
        >>> ANCHOR: TASK_CARD_RENDER_START <<<
        ========================================================================== */
     let hopperItems = JSON.parse(localStorage.getItem('hopper_items') || '[]');
+    let selectedHopperIds = new Set();
+    let stagedHopperItemIds = []; // Tracks items currently staged into promptInput
 
     function saveHopper() {
       localStorage.setItem('hopper_items', JSON.stringify(hopperItems));
@@ -645,21 +701,85 @@
 
       if (hopperItems.length === 0) {
         listEl.innerHTML = '<div class="hopper-empty">Hopper is clear. Mind is free.</div>';
+        selectedHopperIds.clear();
         return;
       }
 
-      listEl.innerHTML = hopperItems.map((item, index) => `
-        <div class="hopper-card">
-          <span class="hopper-text">${item.rawText}</span>
-          <div class="hopper-actions">
-            <button class="hopper-promote-btn" onclick="promoteHopperItem(${index})">Sequence ➔</button>
-            <button class="hopper-delete-btn" onclick="deleteHopperItem(${index})">✕</button>
+      const itemsMarkup = hopperItems.map((item) => {
+        const isChecked = selectedHopperIds.has(item.id);
+        return `
+          <div class="hopper-card ${isChecked ? 'selected' : ''}" id="card_${item.id}">
+            <input 
+              type="checkbox" 
+              class="hopper-check" 
+              ${isChecked ? 'checked' : ''} 
+              onchange="toggleHopperSelection('${item.id}', this.checked)"
+            />
+            <span class="hopper-text" onclick="toggleHopperCheckbox('${item.id}')">${item.rawText}</span>
+            <div class="hopper-actions">
+              <button class="hopper-delete-btn" onclick="deleteHopperItem('${item.id}')">✕</button>
+            </div>
           </div>
+        `;
+      }).join('');
+
+      const count = selectedHopperIds.size;
+      const batchBar = count > 0 ? `
+        <div class="hopper-batch-bar">
+          <button class="btn-stage-hopper" onclick="stageSelectedHopperItems()">
+            Pull ${count} into Today's Plan ➔
+          </button>
+          <button class="btn-clear-selection" onclick="clearHopperSelection()">Deselect</button>
         </div>
-      `).join('');
+      ` : '';
+
+      listEl.innerHTML = itemsMarkup + batchBar;
     }
 
-    // LLM-Powered Hopper Parsing
+    window.toggleHopperSelection = function(id, isSelected) {
+      if (isSelected) {
+        selectedHopperIds.add(id);
+      } else {
+        selectedHopperIds.delete(id);
+      }
+      renderHopper();
+    };
+
+    window.toggleHopperCheckbox = function(id) {
+      const isCurrentlySelected = selectedHopperIds.has(id);
+      window.toggleHopperSelection(id, !isCurrentlySelected);
+    };
+
+    window.clearHopperSelection = function() {
+      selectedHopperIds.clear();
+      renderHopper();
+    };
+
+    window.stageSelectedHopperItems = function() {
+      if (selectedHopperIds.size === 0) return;
+
+      const itemsToStage = hopperItems.filter(item => selectedHopperIds.has(item.id));
+      const formattedTasks = itemsToStage.map(item => `- ${item.rawText}`).join('\n');
+
+      const promptInput = document.getElementById('promptInput');
+      if (promptInput) {
+        const existingText = promptInput.value.trim();
+        const leadText = `Tasks from Hopper:\n${formattedTasks}`;
+        
+        promptInput.value = existingText 
+          ? `${leadText}\n\n${existingText}` 
+          : `${leadText}\n\nToday's context: `;
+        
+        promptInput.focus();
+        promptInput.setSelectionRange(promptInput.value.length, promptInput.value.length);
+      }
+
+      // Record which IDs are currently waiting to be sequenced
+      stagedHopperItemIds = Array.from(selectedHopperIds);
+      selectedHopperIds.clear();
+      renderHopper();
+    };
+
     window.parseHopperInput = async function() {
       const input = document.getElementById('hopperInput');
       const btn = document.getElementById('hopperAddBtn');
@@ -686,7 +806,7 @@
         if (extracted.length > 0) {
           extracted.forEach(str => {
             hopperItems.unshift({
-              id: 'hop_' + Date.now() + Math.random(),
+              id: 'hop_' + Date.now() + Math.random().toString(36).substr(2, 4),
               rawText: str,
               createdAt: new Date().toISOString()
             });
@@ -710,7 +830,6 @@
         }
       } catch (err) {
         console.error('Hopper LLM fallback triggered:', err);
-        // Resilient fallback: save raw thought directly if Worker fails
         hopperItems.unshift({
           id: 'hop_' + Date.now(),
           rawText: text,
@@ -724,47 +843,10 @@
       }
     };
 
-    window.deleteHopperItem = function(index) {
-      hopperItems.splice(index, 1);
+    window.deleteHopperItem = function(id) {
+      hopperItems = hopperItems.filter(item => item.id !== id);
+      selectedHopperIds.delete(id);
       saveHopper();
-    };
-
-    window.promoteHopperItem = function(index) {
-      const item = hopperItems[index];
-      if (!item) return;
-
-      let startH = 8, startM = 0;
-      if (currentEvents.length > 0) {
-        const lastEv = currentEvents[currentEvents.length - 1];
-        if (lastEv.end_time) {
-          const [h, m] = lastEv.end_time.split(':').map(Number);
-          startH = h;
-          startM = m + 5;
-        }
-      } else {
-        const now = new Date();
-        startH = now.getHours();
-        startM = Math.ceil(now.getMinutes() / 5) * 5;
-      }
-
-      const dur = 15;
-      const endTotalMin = startH * 60 + startM + dur;
-      const endH = Math.floor(endTotalMin / 60) % 24;
-      const endM = endTotalMin % 60;
-
-      const newEvent = {
-        title: item.rawText,
-        start_time: `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`,
-        end_time: `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`,
-        duration_minutes: dur,
-        color_id: '11',
-        steps: []
-      };
-
-      currentEvents.push(newEvent);
-      hopperItems.splice(index, 1);
-      saveHopper();
-      renderTaskList();
     };
 
     function formatTime12(timeStr) {
@@ -858,12 +940,7 @@
       const el = document.getElementById(`steps_${index}`);
       if (el) el.classList.toggle('hidden');
     };
-    /* ==========================================================================
-       >>> ANCHOR: TASK_SORTING_LOGIC_END <<<
-       ========================================================================== */
-
-
-    /* ==========================================================================
+  /* ==========================================================================
        >>> ANCHOR: TASK_API_PARSING_AND_SAVE_START <<<
        ========================================================================== */
     async function parseTasks() {
@@ -891,6 +968,14 @@
         const data = JSON.parse(raw);
         currentEvents = data.events || [];
         renderTaskList();
+
+        // If items were staged from The Hopper, prune them out now that they are sequenced
+        if (stagedHopperItemIds.length > 0) {
+          hopperItems = hopperItems.filter(item => !stagedHopperItemIds.includes(item.id));
+          stagedHopperItemIds = [];
+          saveHopper();
+        }
+
         input.value = '';
       } catch (err) {
         alert(err.message);
