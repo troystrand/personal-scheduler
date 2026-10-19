@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Task Sequencer</title>
 
   <!-- iOS Standalone Full-Screen App Meta Tags -->
@@ -40,9 +40,12 @@
       padding: 0;
     }
 
-    html {
+    html, body {
       width: 100%;
+      max-width: 100%;
       overflow-x: hidden;
+      position: relative;
+      touch-action: pan-y;
       -webkit-text-size-adjust: 100%;
     }
 
@@ -54,10 +57,8 @@
       justify-content: center;
       padding: 24px 16px 80px 16px;
       min-height: 100vh;
+      min-height: -webkit-fill-available;
       -webkit-font-smoothing: antialiased;
-      width: 100%;
-      overflow-x: hidden;
-      position: relative;
     }
 
     .container {
@@ -121,7 +122,7 @@
       border-radius: 8px;
       padding: 11px 12px;
       color: var(--text);
-      font-size: 0.9rem;
+      font-size: 16px; /* Prevents auto-zoom in iOS */
       font-family: inherit;
     }
     .hopper-input-wrap input:focus { outline: 1px solid var(--primary); border-color: var(--primary); }
@@ -270,7 +271,7 @@
       border-radius: 8px;
       padding: 12px;
       color: var(--text);
-      font-size: 0.9rem;
+      font-size: 16px; /* Prevents auto-zoom in iOS */
       font-family: inherit;
     }
     textarea:focus { outline: 1px solid var(--primary); }
@@ -464,30 +465,28 @@
       flex-shrink: 0;
     }
 
-    /* FORGE DRAWER: BULLETPROOF MOBILE SAFARI KEYBOARD CONSTRAINTS */
+    /* FORGE DRAWER: BULLETPROOF SAFARI / KEYBOARD INSET */
     .forge-drawer {
       position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      /* Never use width: 100vw or fixed width here */
-      width: auto;
+      inset: auto 0 0 0;
+      width: 100%;
       max-width: 580px;
-      margin: 0 auto;
+      margin-left: auto;
+      margin-right: auto;
       background: #090e17;
       border-top: 2px solid var(--primary);
       border-left: 1px solid var(--border);
       border-right: 1px solid var(--border);
       box-shadow: 0 -12px 30px rgba(0,0,0,0.7);
       z-index: 1000;
-      height: 75vh;
-      max-height: 80dvh;
+      height: 70vh;
+      height: 70dvh;
       display: flex;
       flex-direction: column;
       border-radius: 14px 14px 0 0;
-      padding-bottom: env(safe-area-inset-bottom, 0px);
       box-sizing: border-box;
       overflow: hidden;
+      padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
     }
 
     .forge-header {
@@ -508,7 +507,7 @@
     .btn-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.1rem; padding: 0 4px; }
 
     .forge-chat-log {
-      flex: 1 1 auto;
+      flex: 1 1 0%;
       min-height: 0;
       overflow-y: auto;
       overflow-x: hidden;
@@ -556,38 +555,36 @@
       width: 100%;
     }
 
-    /* THE INPUT BAR: LOCKED INSET TO NEVER TRUNCATE BUTTONS */
+    /* THE INPUT BAR: LOCKED INSET GRID */
     .forge-input-bar {
-      padding: 10px 12px;
-      border-top: 1px solid var(--border);
-      background: #0f172a;
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr auto;
       align-items: center;
       gap: 8px;
       width: 100%;
-      max-width: 100%;
+      padding: 8px 12px;
+      border-top: 1px solid var(--border);
+      background: #0f172a;
       box-sizing: border-box;
       flex-shrink: 0;
     }
     .forge-input-bar input {
-      flex: 1 1 0%;
+      width: 100%;
       min-width: 0;
-      width: 0; /* Forces Flexbox to honor available width rather than content width */
       background: #090e17;
       border: 1px solid var(--border);
       border-radius: 8px;
       color: #fff;
       padding: 10px 12px;
-      font-size: 0.88rem;
+      font-size: 16px; /* Strict 16px to prevent iOS auto-zoom */
       box-sizing: border-box;
     }
     .forge-input-bar button {
-      flex: 0 0 auto;
       background: var(--primary);
       color: #0f172a;
       border: none;
       border-radius: 8px;
-      padding: 10px 14px;
+      padding: 10px 16px;
       font-weight: 700;
       font-size: 0.88rem;
       cursor: pointer;
