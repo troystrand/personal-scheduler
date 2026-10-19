@@ -1,6 +1,6 @@
-/* ==========================================================================
-   >>> ANCHOR: JWT_CRYPTO_ENGINE_START <<<
-   ========================================================================== */
+/*█████████████████████████████████████████████████████████████████████████████
+  ▼▼▼ ANCHOR: JWT_CRYPTO_ENGINE_START ▼▼▼
+█████████████████████████████████████████████████████████████████████████████*/
 function base64url(source) {
   let encoded = btoa(String.fromCharCode(...new Uint8Array(source)));
   return encoded.replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
@@ -69,14 +69,14 @@ async function getGoogleAccessToken(clientEmail, rawPrivateKey) {
   }
   return tokenData.access_token;
 }
-/* ==========================================================================
-   >>> ANCHOR: JWT_CRYPTO_ENGINE_END <<<
-   ========================================================================== */
+/*█████████████████████████████████████████████████████████████████████████████
+  ▲▲▲ ANCHOR: JWT_CRYPTO_ENGINE_END ▲▲▲
+█████████████████████████████████████████████████████████████████████████████*/
 
 
-/* ==========================================================================
-   >>> ANCHOR: SHEETS_LOGGING_HELPER_START <<<
-   ========================================================================== */
+/*█████████████████████████████████████████████████████████████████████████████
+  ▼▼▼ ANCHOR: SHEETS_LOGGING_HELPER_START ▼▼▼
+█████████████████████████████████████████████████████████████████████████████*/
 async function appendToSheet(accessToken, sheetId, rows) {
   if (!sheetId || !rows || !rows.length) return new Response(JSON.stringify({ ok: true }), { status: 200 });
 
@@ -92,14 +92,13 @@ async function appendToSheet(accessToken, sheetId, rows) {
     body: JSON.stringify({ values: rows }),
   });
 }
-/* ==========================================================================
-   >>> ANCHOR: SHEETS_LOGGING_HELPER_END <<<
-   ========================================================================== */
+/*█████████████████████████████████████████████████████████████████████████████
+  ▲▲▲ ANCHOR: SHEETS_LOGGING_HELPER_END ▲▲▲
+█████████████████████████████████████████████████████████████████████████████*/
 
-
-/* ==========================================================================
-   >>> ANCHOR: SECURITY_GATE_ROUTER_START <<<
-   ========================================================================== */
+/*█████████████████████████████████████████████████████████████████████████████
+  ▼▼▼ ANCHOR: SECURITY_GATE_ROUTER_START ▼▼▼
+█████████████████████████████████████████████████████████████████████████████*/
 export default {
   async fetch(request, env) {
     const corsHeaders = {
@@ -140,13 +139,13 @@ export default {
           headers: corsHeaders
         });
       }
-/* ==========================================================================
-   >>> ANCHOR: SECURITY_GATE_ROUTER_END <<<
-   ========================================================================== */
+/*█████████████████████████████████████████████████████████████████████████████
+  ▲▲▲ ANCHOR: SECURITY_GATE_ROUTER_END ▲▲▲
+█████████████████████████████████████████████████████████████████████████████*/
 
-/* ==========================================================================
-   >>> ANCHOR: ROUTE_INSERT_CALENDAR_SHEETS_START <<<
-   ========================================================================== */
+/*█████████████████████████████████████████████████████████████████████████████
+  ▼▼▼ ANCHOR: ROUTE_INSERT_CALENDAR_SHEETS_START ▼▼▼
+█████████████████████████████████████████████████████████████████████████████*/
       if (body.action === 'INSERT') {
         const blocks = Array.isArray(body.blocks) ? body.blocks : (Array.isArray(body.events) ? body.events : []);
         if (!blocks.length) {
@@ -218,13 +217,13 @@ export default {
 
         return new Response(JSON.stringify({ success: true, count: blocks.length }), { status: 200, headers: corsHeaders });
       }
-/* ==========================================================================
-   >>> ANCHOR: ROUTE_INSERT_CALENDAR_SHEETS_END <<<
-   ========================================================================== */
+/*█████████████████████████████████████████████████████████████████████████████
+  ▲▲▲ ANCHOR: ROUTE_INSERT_CALENDAR_SHEETS_END ▲▲▲
+█████████████████████████████████████████████████████████████████████████████*/
 
-/* ==========================================================================
-         >>> ANCHOR: ROUTE_CODE_SNAPSHOT_START <<<
-         ========================================================================== */
+/*█████████████████████████████████████████████████████████████████████████████
+  ▼▼▼ ANCHOR: ROUTE_CODE_SNAPSHOT_START ▼▼▼
+█████████████████████████████████████████████████████████████████████████████*/
       if (body.action === 'SAVE_SNAPSHOT') {
         const { note, anchorName, payload, author } = body;
         if (!env.GOOGLE_SHEET_ID) {
@@ -256,13 +255,13 @@ export default {
 
         return new Response(JSON.stringify({ success: true, timestamp }), { status: 200, headers: corsHeaders });
       }
-      /* ==========================================================================
-         >>> ANCHOR: ROUTE_CODE_SNAPSHOT_END <<<
-         ========================================================================== */
+/*█████████████████████████████████████████████████████████████████████████████
+  ▲▲▲ ANCHOR: ROUTE_CODE_SNAPSHOT_END ▲▲▲
+█████████████████████████████████████████████████████████████████████████████*/
 
-/* ==========================================================================
-         >>> ANCHOR: ROUTE_HOPPER_PARSE_START <<<
-         ========================================================================== */
+/*█████████████████████████████████████████████████████████████████████████████
+  ▼▼▼ ANCHOR: ROUTE_HOPPER_PARSE_START ▼▼▼
+█████████████████████████████████████████████████████████████████████████████*/
       if (body.action === 'HOPPER_PARSE') {
         const text = body.text || '';
         const audioData = body.audioData || null;
@@ -337,13 +336,13 @@ Output strictly valid JSON matching this schema:
         const outputJson = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '{"items":[]}';
         return new Response(outputJson, { status: 200, headers: corsHeaders });
       }
-      /* ==========================================================================
-         >>> ANCHOR: ROUTE_HOPPER_PARSE_END <<<
-         ========================================================================== */
+/*█████████████████████████████████████████████████████████████████████████████
+  ▲▲▲ ANCHOR: ROUTE_HOPPER_PARSE_END ▲▲▲
+█████████████████████████████████████████████████████████████████████████████*/
          
-      /* ==========================================================================
-         >>> ANCHOR: ROUTE_FORGE_CHAT_BACKEND_START <<<
-         ========================================================================== */
+/*█████████████████████████████████████████████████████████████████████████████
+  ▼▼▼ ANCHOR: ROUTE_FORGE_CHAT_BACKEND_START ▼▼▼
+█████████████████████████████████████████████████████████████████████████████*/
       if (body.action === 'DEV_FORGE') {
         const history = Array.isArray(body.history) && body.history.length > 0
           ? body.history
@@ -437,13 +436,13 @@ Whenever you provide code changes, you MUST follow these non-negotiable rules:
         const replyText = devData.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated.';
         return new Response(JSON.stringify({ response: replyText }), { status: 200, headers: corsHeaders });
       }
-      /* ==========================================================================
-         >>> ANCHOR: ROUTE_FORGE_CHAT_BACKEND_END <<<
-         ========================================================================== */
+/*█████████████████████████████████████████████████████████████████████████████
+  ▲▲▲ ANCHOR: ROUTE_FORGE_CHAT_BACKEND_END ▲▲▲
+█████████████████████████████████████████████████████████████████████████████*/
 
-/* ==========================================================================
-         >>> ANCHOR: ROUTE_ORTHO_MAP_START <<<
-         ========================================================================== */
+/*█████████████████████████████████████████████████████████████████████████████
+  ▼▼▼ ANCHOR: ROUTE_ORTHO_MAP_START ▼▼▼
+█████████████████████████████████████████████████████████████████████████████*/
       if (body.action === 'ORTHO_MAP') {
         const words = Array.isArray(body.words) ? body.words : (body.word ? [body.word] : []);
         if (!words.length) {
@@ -515,13 +514,13 @@ Output strictly valid JSON matching the requested schema.`
         const outputJson = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '{"results":[]}';
         return new Response(outputJson, { status: 200, headers: corsHeaders });
       }
-      /* ==========================================================================
-         >>> ANCHOR: ROUTE_ORTHO_MAP_END <<<
-         ========================================================================== */
+/*█████████████████████████████████████████████████████████████████████████████
+  ▲▲▲ ANCHOR: ROUTE_ORTHO_MAP_END ▲▲▲
+█████████████████████████████████████████████████████████████████████████████*/
 
-      /* ==========================================================================
-   >>> ANCHOR: ROUTE_TASK_SEQUENCING_START <<<
-   ========================================================================== */
+/*█████████████████████████████████████████████████████████████████████████████
+  ▼▼▼ ANCHOR: ROUTE_TASK_SEQUENCING_START ▼▼▼
+█████████████████████████████████████████████████████████████████████████████*/
       const prompt = body.prompt;
       if (!prompt) {
         return new Response(JSON.stringify({ error: 'Missing prompt' }), { status: 400, headers: corsHeaders });
@@ -619,9 +618,9 @@ BUNDLING & DURATION LAWS:
       const parsed = JSON.parse(resText);
       const outputText = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '{"blocks":[]}';
       return new Response(outputText, { status: 200, headers: corsHeaders });
-/* ==========================================================================
-   >>> ANCHOR: ROUTE_TASK_SEQUENCING_END <<<
-   ========================================================================== */
+/*█████████████████████████████████████████████████████████████████████████████
+  ▲▲▲ ANCHOR: ROUTE_TASK_SEQUENCING_END ▲▲▲
+█████████████████████████████████████████████████████████████████████████████*/
     } catch (err) {
       return new Response(JSON.stringify({ error: err.message || 'Worker failure' }), { status: 500, headers: corsHeaders });
     }
