@@ -1209,14 +1209,26 @@
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     let activeRec = null;
-    let activeVoiceTarget = null; // 'sequencer' | 'hopper' | null
+    let activeVoiceTarget = null;
+    let isPttActive = false;
 
-    /**
-     * Spawns a fresh recognition engine per press to sidestep iOS WebKit's
-     * single-instance zombie state bug.
-     */
-    function spawnFreshRecognizer() {
+    function cleanupEngine() {
+      if (activeRec) {
+        try {
+          activeRec.abort(); // Force immediate release of iOS audio pipe
+        } catch (e) {}
+        activeRec.onresult = null;
+        activeRec.onerror = null;
+        activeRec.onend = null;
+        activeRec = null;
+      }
+      activeVoiceTarget = null;
+      isPttActive = false;
+    }
+
+    function createEngine(targetName, inputEl) {
       if (!SpeechRecognition) return null;
+      cleanupEngine();
 
       const rec = new SpeechRecognition();
       rec.continuous = false;
@@ -1236,116 +1248,115 @@
         }
 
         const transcript = final || interim;
-        if (!transcript) return;
-
-        if (activeVoiceTarget === 'hopper' && hopperInput) {
-          hopperInput.value = transcript;
-        } else if (activeVoiceTarget === 'sequencer' && promptInput) {
-          promptInput.value = transcript;
+        if (transcript && inputEl) {
+          inputEl.value = transcript;
         }
       };
 
       rec.onerror = (e) => {
         console.warn('Speech engine error:', e.error);
+        if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+          cleanupEngine();
+        }
       };
 
       rec.onend = () => {
-        // Clean teardown so the iOS audio pipeline releases hardware
+        // When speech ends naturally or is cut, release
         activeRec = null;
       };
 
       return rec;
     }
 
-    /**
-     * Attach Walkie-Talkie Push-to-Talk + Tap handling to a button
-     */
     function attachPushToTalk(buttonEl, targetName, inputEl, onCommit) {
       if (!buttonEl) return;
 
-      let pressTimer = null;
-      let isRecordingPTT = false;
+      let holdTimeout = null;
       let originalBtnText = buttonEl.innerText;
 
-      function startRecording() {
-        if (!SpeechRecognition) return;
+      function startPTT(e) {
+        if (e) e.preventDefault();
+        if (isPttActive) return;
 
-        // Force terminate any lingering instance
-        if (activeRec) {
-          try { activeRec.abort(); } catch (e) {}
-          activeRec = null;
-        }
+        holdTimeout = setTimeout(() => {
+          isPttActive = true;
+          activeVoiceTarget = targetName;
+          buttonEl.classList.add('ptt-active');
+          buttonEl.innerText = 'Listening...';
+          if (inputEl) inputEl.value = '';
 
-        activeRec = spawnFreshRecognizer();
-        if (!activeRec) return;
-
-        isRecordingPTT = true;
-        activeVoiceTarget = targetName;
-        buttonEl.classList.add('ptt-active');
-        buttonEl.innerText = 'Listening...';
-        if (inputEl) inputEl.value = '';
-
-        try {
-          activeRec.start();
-        } catch (e) {
-          console.warn('Start failed, resetting engine:', e);
-          isRecordingPTT = false;
-          buttonEl.classList.remove('ptt-active');
-          buttonEl.innerText = originalBtnText;
-          activeRec = null;
-        }
+          // Re-arm after yielding the event loop so iOS can release prior locks
+          setTimeout(() => {
+            activeRec = createEngine(targetName, inputEl);
+            if (!activeRec) return;
+            try {
+              activeRec.start();
+            } catch (err) {
+              console.warn('Speech start error, forcing abort:', err);
+              cleanupEngine();
+              buttonEl.classList.remove('ptt-active');
+              buttonEl.innerText = originalBtnText;
+            }
+          }, 60);
+        }, 250);
       }
 
-      function stopRecordingAndCommit() {
-        if (!isRecordingPTT) return;
-        isRecordingPTT = false;
+      function stopPTT(e) {
+        if (e) e.preventDefault();
+
+        if (holdTimeout) {
+          clearTimeout(holdTimeout);
+          holdTimeout = null;
+        }
+
+        if (!isPttActive) {
+          // Normal tap execution
+          onCommit();
+          return;
+        }
+
+        // Active PTT release
+        isPttActive = false;
         buttonEl.classList.remove('ptt-active');
         buttonEl.innerText = originalBtnText;
 
         if (activeRec) {
           try {
             activeRec.stop();
-          } catch (e) {}
+          } catch (e) {
+            cleanupEngine();
+          }
         }
 
-        // Allow final transcription buffer to flush before dispatching
+        // Wait briefly for the audio buffer to flush, then commit and purge
         setTimeout(() => {
-          activeVoiceTarget = null;
           if (inputEl && inputEl.value.trim()) {
             onCommit();
           }
-        }, 350);
+          cleanupEngine();
+        }, 300);
       }
 
-      // Pointer / Touch Handlers
-      buttonEl.addEventListener('pointerdown', (e) => {
-        pressTimer = setTimeout(() => {
-          startRecording();
-        }, 280);
+      // Universal Pointer/Touch bindings
+      buttonEl.addEventListener('touchstart', startPTT, { passive: false });
+      buttonEl.addEventListener('touchend', stopPTT, { passive: false });
+      buttonEl.addEventListener('touchcancel', () => {
+        if (holdTimeout) clearTimeout(holdTimeout);
+        cleanupEngine();
+        buttonEl.classList.remove('ptt-active');
+        buttonEl.innerText = originalBtnText;
+      }, { passive: false });
+
+      // Fallback for desktop mouse
+      buttonEl.addEventListener('mousedown', (e) => {
+        if ('ontouchstart' in window) return; // Ignore on touch screens
+        startPTT(e);
+      });
+      buttonEl.addEventListener('mouseup', (e) => {
+        if ('ontouchend' in window) return;
+        stopPTT(e);
       });
 
-      const cancelPress = () => {
-        if (pressTimer) {
-          clearTimeout(pressTimer);
-          pressTimer = null;
-        }
-        if (isRecordingPTT) {
-          stopRecordingAndCommit();
-        }
-      };
-
-      buttonEl.addEventListener('pointerup', (e) => {
-        if (pressTimer && !isRecordingPTT) {
-          clearTimeout(pressTimer);
-          pressTimer = null;
-          onCommit();
-        } else if (isRecordingPTT) {
-          stopRecordingAndCommit();
-        }
-      });
-
-      buttonEl.addEventListener('pointercancel', cancelPress);
-      buttonEl.addEventListener('pointerleave', cancelPress);
       buttonEl.addEventListener('contextmenu', (e) => e.preventDefault());
     }
 
