@@ -1208,16 +1208,22 @@
     const hopperInput = document.getElementById('hopperInput');
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
+    let activeRec = null;
     let activeVoiceTarget = null; // 'sequencer' | 'hopper' | null
-    let sharedRec = null;
 
-    if (SpeechRecognition) {
-      sharedRec = new SpeechRecognition();
-      sharedRec.continuous = false;
-      sharedRec.interimResults = true;
-      sharedRec.lang = 'en-US';
+    /**
+     * Spawns a fresh recognition engine per press to sidestep iOS WebKit's
+     * single-instance zombie state bug.
+     */
+    function spawnFreshRecognizer() {
+      if (!SpeechRecognition) return null;
 
-      sharedRec.onresult = (e) => {
+      const rec = new SpeechRecognition();
+      rec.continuous = false;
+      rec.interimResults = true;
+      rec.lang = 'en-US';
+
+      rec.onresult = (e) => {
         let interim = '';
         let final = '';
 
@@ -1239,9 +1245,16 @@
         }
       };
 
-      sharedRec.onerror = (e) => {
+      rec.onerror = (e) => {
         console.warn('Speech engine error:', e.error);
       };
+
+      rec.onend = () => {
+        // Clean teardown so the iOS audio pipeline releases hardware
+        activeRec = null;
+      };
+
+      return rec;
     }
 
     /**
@@ -1255,7 +1268,17 @@
       let originalBtnText = buttonEl.innerText;
 
       function startRecording() {
-        if (!sharedRec) return;
+        if (!SpeechRecognition) return;
+
+        // Force terminate any lingering instance
+        if (activeRec) {
+          try { activeRec.abort(); } catch (e) {}
+          activeRec = null;
+        }
+
+        activeRec = spawnFreshRecognizer();
+        if (!activeRec) return;
+
         isRecordingPTT = true;
         activeVoiceTarget = targetName;
         buttonEl.classList.add('ptt-active');
@@ -1263,9 +1286,13 @@
         if (inputEl) inputEl.value = '';
 
         try {
-          sharedRec.start();
+          activeRec.start();
         } catch (e) {
-          // If already started, ignore
+          console.warn('Start failed, resetting engine:', e);
+          isRecordingPTT = false;
+          buttonEl.classList.remove('ptt-active');
+          buttonEl.innerText = originalBtnText;
+          activeRec = null;
         }
       }
 
@@ -1275,13 +1302,13 @@
         buttonEl.classList.remove('ptt-active');
         buttonEl.innerText = originalBtnText;
 
-        if (sharedRec) {
+        if (activeRec) {
           try {
-            sharedRec.stop();
+            activeRec.stop();
           } catch (e) {}
         }
 
-        // Small grace period for speech engine to deliver final transcript
+        // Allow final transcription buffer to flush before dispatching
         setTimeout(() => {
           activeVoiceTarget = null;
           if (inputEl && inputEl.value.trim()) {
@@ -1292,10 +1319,9 @@
 
       // Pointer / Touch Handlers
       buttonEl.addEventListener('pointerdown', (e) => {
-        // Prevent default text selection/callout on mobile
         pressTimer = setTimeout(() => {
           startRecording();
-        }, 280); // 280ms hold threshold triggers PTT
+        }, 280);
       });
 
       const cancelPress = () => {
@@ -1310,7 +1336,6 @@
 
       buttonEl.addEventListener('pointerup', (e) => {
         if (pressTimer && !isRecordingPTT) {
-          // It was a short tap!
           clearTimeout(pressTimer);
           pressTimer = null;
           onCommit();
