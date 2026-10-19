@@ -13,7 +13,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-<!-- ==========================================================================
+  <!-- ==========================================================================
        >>> ANCHOR: CSS_THEME_AND_LAYOUT_START <<<
        ========================================================================== -->
   <style>
@@ -72,6 +72,148 @@
       border: 1px solid rgba(56, 189, 248, 0.35);
       padding: 2px 8px;
       border-radius: 9999px;
+    }
+
+    /* THE HOPPER STYLES */
+    .hopper-section {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    }
+
+    .hopper-form {
+      display: flex;
+      gap: 8px;
+    }
+
+    .hopper-form input {
+      flex: 1;
+      background: #090e17;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-size: 0.9rem;
+      font-family: inherit;
+    }
+    .hopper-form input:focus { outline: 2px solid var(--primary); }
+
+    .hopper-form button {
+      background: #111c2e;
+      color: var(--primary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0 16px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .hopper-form button:hover {
+      background: #0c4a6e;
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    .hopper-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      padding: 2px 4px;
+    }
+
+    .hopper-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hopper-count-badge {
+      background: #090e17;
+      border: 1px solid var(--border);
+      color: var(--primary);
+      font-size: 0.7rem;
+      padding: 1px 6px;
+      border-radius: 9999px;
+    }
+
+    .hopper-chevron {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      transition: transform 0.2s ease;
+    }
+
+    .hopper-tray.collapsed { display: none; }
+
+    .hopper-items {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-top: 4px;
+    }
+
+    .hopper-card {
+      background: #090e17;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hopper-text {
+      font-size: 0.85rem;
+      color: #e2e8f0;
+      flex: 1;
+      word-break: break-word;
+    }
+
+    .hopper-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .hopper-promote-btn {
+      background: #0c4a6e;
+      border: 1px solid #0284c7;
+      color: #bae6fd;
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .hopper-promote-btn:hover { background: #0369a1; }
+
+    .hopper-delete-btn {
+      background: transparent;
+      color: var(--text-muted);
+      border: none;
+      padding: 4px 6px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .hopper-delete-btn:hover { color: var(--danger); }
+
+    .hopper-empty {
+      padding: 8px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.8rem;
     }
 
     .input-panel {
@@ -418,6 +560,34 @@
       <span class="badge">Standalone</span>
     </header>
 
+    <!-- THE HOPPER: Rapid Zero-Friction Capture -->
+    <section class="hopper-section">
+      <form id="hopperForm" class="hopper-form" onsubmit="event.preventDefault(); addHopperItemFromForm();">
+        <input 
+          type="text" 
+          id="hopperInput" 
+          placeholder="Dump a thought, task, or obligation..." 
+          autocomplete="off" 
+        />
+        <button type="submit" id="hopperAddBtn" title="Capture to Hopper">+</button>
+      </form>
+
+      <div class="hopper-header" id="toggleHopperTray">
+        <span class="hopper-title">
+          <span>📥 The Hopper</span>
+          <span class="hopper-count-badge" id="hopperCount">0</span>
+        </span>
+        <span class="hopper-chevron" id="hopperChevron">▼</span>
+      </div>
+
+      <div class="hopper-tray collapsed" id="hopperTray">
+        <div id="hopperList" class="hopper-items">
+          <!-- Dynamic Hopper Items Render Here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN SEQUENCER INPUT PANEL -->
     <div class="input-panel">
       <textarea id="promptInput" placeholder="Morning list: 'Grade 10 essays, mail package, 30m gym session, call Dalton at 2'"></textarea>
       <div class="button-row">
@@ -462,6 +632,102 @@
     /* ==========================================================================
        >>> ANCHOR: TASK_CARD_RENDER_START <<<
        ========================================================================== */
+    // Persistent Hopper Storage
+    let hopperItems = JSON.parse(localStorage.getItem('hopper_items') || '[]');
+
+    function saveHopper() {
+      localStorage.setItem('hopper_items', JSON.stringify(hopperItems));
+      renderHopper();
+    }
+
+    function renderHopper() {
+      const listEl = document.getElementById('hopperList');
+      const countEl = document.getElementById('hopperCount');
+      if (!listEl || !countEl) return;
+
+      countEl.textContent = hopperItems.length;
+
+      if (hopperItems.length === 0) {
+        listEl.innerHTML = '<div class="hopper-empty">Hopper is clear. Mind is free.</div>';
+        return;
+      }
+
+      listEl.innerHTML = hopperItems.map((item, index) => `
+        <div class="hopper-card">
+          <span class="hopper-text">${item.rawText}</span>
+          <div class="hopper-actions">
+            <button class="hopper-promote-btn" onclick="promoteHopperItem(${index})">Sequence ➔</button>
+            <button class="hopper-delete-btn" onclick="deleteHopperItem(${index})">✕</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    window.addHopperItemFromForm = function() {
+      const input = document.getElementById('hopperInput');
+      const text = input ? input.value.trim() : '';
+      if (!text) return;
+
+      hopperItems.unshift({
+        id: 'hop_' + Date.now(),
+        rawText: text,
+        createdAt: new Date().toISOString()
+      });
+
+      input.value = '';
+      saveHopper();
+
+      const tray = document.getElementById('hopperTray');
+      const chevron = document.getElementById('hopperChevron');
+      if (tray && tray.classList.contains('collapsed')) {
+        tray.classList.remove('collapsed');
+        if (chevron) chevron.textContent = '▲';
+      }
+    };
+
+    window.deleteHopperItem = function(index) {
+      hopperItems.splice(index, 1);
+      saveHopper();
+    };
+
+    window.promoteHopperItem = function(index) {
+      const item = hopperItems[index];
+      if (!item) return;
+
+      let startH = 8, startM = 0;
+      if (currentEvents.length > 0) {
+        const lastEv = currentEvents[currentEvents.length - 1];
+        if (lastEv.end_time) {
+          const [h, m] = lastEv.end_time.split(':').map(Number);
+          startH = h;
+          startM = m + 5;
+        }
+      } else {
+        const now = new Date();
+        startH = now.getHours();
+        startM = Math.ceil(now.getMinutes() / 5) * 5;
+      }
+
+      const dur = 15;
+      const endTotalMin = startH * 60 + startM + dur;
+      const endH = Math.floor(endTotalMin / 60) % 24;
+      const endM = endTotalMin % 60;
+
+      const newEvent = {
+        title: item.rawText,
+        start_time: `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`,
+        end_time: `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`,
+        duration_minutes: dur,
+        color_id: '11',
+        steps: []
+      };
+
+      currentEvents.push(newEvent);
+      hopperItems.splice(index, 1);
+      saveHopper();
+      renderTaskList();
+    };
+
     function formatTime12(timeStr) {
       if (!timeStr) return '';
       const parts = timeStr.split(':');
@@ -868,6 +1134,21 @@
     document.getElementById('forgeInput').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') sendForgeMessage();
     });
+
+    // Hopper Tray Toggle & Initial State Render
+    const toggleHopperBtn = document.getElementById('toggleHopperTray');
+    if (toggleHopperBtn) {
+      toggleHopperBtn.addEventListener('click', () => {
+        const tray = document.getElementById('hopperTray');
+        const chevron = document.getElementById('hopperChevron');
+        if (tray) {
+          const isCollapsed = tray.classList.toggle('collapsed');
+          if (chevron) chevron.textContent = isCollapsed ? '▼' : '▲';
+        }
+      });
+    }
+
+    renderHopper();
     /* ==========================================================================
        >>> ANCHOR: VOICE_RECOGNITION_SETUP_END <<<
        ========================================================================== */
