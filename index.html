@@ -654,7 +654,7 @@
        ========================================================================== */
     let hopperItems = JSON.parse(localStorage.getItem('hopper_items') || '[]');
     let selectedHopperIds = new Set();
-    let stagedHopperItemIds = []; // Tracks items currently staged into promptInput
+    let stagedHopperItemIds = [];
 
     function saveHopper() {
       localStorage.setItem('hopper_items', JSON.stringify(hopperItems));
@@ -743,20 +743,32 @@
         promptInput.setSelectionRange(promptInput.value.length, promptInput.value.length);
       }
 
-      // Record which IDs are currently waiting to be sequenced
       stagedHopperItemIds = Array.from(selectedHopperIds);
       selectedHopperIds.clear();
       renderHopper();
     };
 
-    window.parseHopperInput = async function() {
+    /**
+     * Unified Hopper Parser: Accepts text string OR { audioBase64, mimeType }
+     */
+    window.parseHopperInput = async function(audioPayload = null) {
       const input = document.getElementById('hopperInput');
       const btn = document.getElementById('hopperAddBtn');
       const text = input ? input.value.trim() : '';
-      if (!text) return;
+
+      if (!text && !audioPayload) return;
 
       btn.disabled = true;
-      btn.innerText = 'Extracting...';
+      btn.innerText = audioPayload ? 'Transcribing...' : 'Extracting...';
+
+      const requestBody = { action: 'HOPPER_PARSE' };
+      if (audioPayload) {
+        requestBody.audioData = audioPayload.data;
+        requestBody.mimeType = audioPayload.mimeType;
+      }
+      if (text) {
+        requestBody.text = text;
+      }
 
       try {
         const res = await fetch(WORKER_URL, {
@@ -765,7 +777,7 @@
             'Content-Type': 'application/json',
             'X-App-Key': APP_KEY
           },
-          body: JSON.stringify({ action: 'HOPPER_PARSE', text })
+          body: JSON.stringify(requestBody)
         });
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -780,7 +792,7 @@
               createdAt: new Date().toISOString()
             });
           });
-        } else {
+        } else if (text) {
           hopperItems.unshift({
             id: 'hop_' + Date.now(),
             rawText: text,
@@ -788,7 +800,7 @@
           });
         }
 
-        input.value = '';
+        if (input) input.value = '';
         saveHopper();
 
         const tray = document.getElementById('hopperTray');
@@ -798,14 +810,18 @@
           if (chevron) chevron.textContent = '▲';
         }
       } catch (err) {
-        console.error('Hopper LLM fallback triggered:', err);
-        hopperItems.unshift({
-          id: 'hop_' + Date.now(),
-          rawText: text,
-          createdAt: new Date().toISOString()
-        });
-        input.value = '';
-        saveHopper();
+        console.error('Hopper Ingestion Error:', err);
+        if (text) {
+          hopperItems.unshift({
+            id: 'hop_' + Date.now(),
+            rawText: text,
+            createdAt: new Date().toISOString()
+          });
+          if (input) input.value = '';
+          saveHopper();
+        } else {
+          alert('Voice intake failed: ' + err.message);
+        }
       } finally {
         btn.disabled = false;
         btn.innerText = 'Capture';
@@ -1206,165 +1222,160 @@
     const promptInput = document.getElementById('promptInput');
     const hopperAddBtn = document.getElementById('hopperAddBtn');
     const hopperInput = document.getElementById('hopperInput');
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    let activeRec = null;
-    let activeVoiceTarget = null;
-    let isPttActive = false;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecordingPTT = false;
+    let recordingTimer = null;
+    let currentStream = null;
 
-    function cleanupEngine() {
-      if (activeRec) {
-        try {
-          activeRec.abort(); // Force immediate release of iOS audio pipe
-        } catch (e) {}
-        activeRec.onresult = null;
-        activeRec.onerror = null;
-        activeRec.onend = null;
-        activeRec = null;
+    /**
+     * Determines optimal audio mimeType supported across iOS Safari and macOS Chrome/Safari
+     */
+    function getSupportedMimeType() {
+      const types = [
+        'audio/mp4',
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/aac'
+      ];
+      for (const t of types) {
+        if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) {
+          return t;
+        }
       }
-      activeVoiceTarget = null;
-      isPttActive = false;
+      return '';
     }
 
-    function createEngine(targetName, inputEl) {
-      if (!SpeechRecognition) return null;
-      cleanupEngine();
-
-      const rec = new SpeechRecognition();
-      rec.continuous = false;
-      rec.interimResults = true;
-      rec.lang = 'en-US';
-
-      rec.onresult = (e) => {
-        let interim = '';
-        let final = '';
-
-        for (let i = e.resultIndex; i < e.results.length; ++i) {
-          if (e.results[i].isFinal) {
-            final += e.results[i][0].transcript;
-          } else {
-            interim += e.results[i][0].transcript;
-          }
-        }
-
-        const transcript = final || interim;
-        if (transcript && inputEl) {
-          inputEl.value = transcript;
-        }
-      };
-
-      rec.onerror = (e) => {
-        console.warn('Speech engine error:', e.error);
-        if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-          cleanupEngine();
-        }
-      };
-
-      rec.onend = () => {
-        // When speech ends naturally or is cut, release
-        activeRec = null;
-      };
-
-      return rec;
+    /**
+     * Converts a recorded Audio Blob into a base64 string
+     */
+    function blobToBase64(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result;
+          const base64Data = result.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
     }
 
-    function attachPushToTalk(buttonEl, targetName, inputEl, onCommit) {
+    /**
+     * Hardware-direct Push-to-Talk via MediaRecorder
+     */
+    function attachHardwarePTT(buttonEl, onAudioCaptured, onShortTap) {
       if (!buttonEl) return;
+      const originalText = buttonEl.innerText;
 
-      let holdTimeout = null;
-      let originalBtnText = buttonEl.innerText;
-
-      function startPTT(e) {
-        if (e) e.preventDefault();
-        if (isPttActive) return;
-
-        holdTimeout = setTimeout(() => {
-          isPttActive = true;
-          activeVoiceTarget = targetName;
-          buttonEl.classList.add('ptt-active');
-          buttonEl.innerText = 'Listening...';
-          if (inputEl) inputEl.value = '';
-
-          // Re-arm after yielding the event loop so iOS can release prior locks
-          setTimeout(() => {
-            activeRec = createEngine(targetName, inputEl);
-            if (!activeRec) return;
-            try {
-              activeRec.start();
-            } catch (err) {
-              console.warn('Speech start error, forcing abort:', err);
-              cleanupEngine();
-              buttonEl.classList.remove('ptt-active');
-              buttonEl.innerText = originalBtnText;
-            }
-          }, 60);
-        }, 250);
-      }
-
-      function stopPTT(e) {
-        if (e) e.preventDefault();
-
-        if (holdTimeout) {
-          clearTimeout(holdTimeout);
-          holdTimeout = null;
-        }
-
-        if (!isPttActive) {
-          // Normal tap execution
-          onCommit();
+      async function startRecordSession() {
+        try {
+          currentStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (err) {
+          alert('Microphone access rejected or unavailable: ' + err.message);
+          buttonEl.classList.remove('ptt-active');
+          buttonEl.innerText = originalText;
+          isRecordingPTT = false;
           return;
         }
 
-        // Active PTT release
-        isPttActive = false;
-        buttonEl.classList.remove('ptt-active');
-        buttonEl.innerText = originalBtnText;
-
-        if (activeRec) {
-          try {
-            activeRec.stop();
-          } catch (e) {
-            cleanupEngine();
-          }
+        const mimeType = getSupportedMimeType();
+        audioChunks = [];
+        
+        try {
+          mediaRecorder = mimeType ? new MediaRecorder(currentStream, { mimeType }) : new MediaRecorder(currentStream);
+        } catch (e) {
+          mediaRecorder = new MediaRecorder(currentStream);
         }
 
-        // Wait briefly for the audio buffer to flush, then commit and purge
-        setTimeout(() => {
-          if (inputEl && inputEl.value.trim()) {
-            onCommit();
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) audioChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+          // Immediately stop hardware mic tracks so orange dot vanishes
+          if (currentStream) {
+            currentStream.getTracks().forEach(t => t.stop());
+            currentStream = null;
           }
-          cleanupEngine();
-        }, 300);
+
+          if (audioChunks.length === 0) return;
+
+          const finalMime = mediaRecorder.mimeType || 'audio/mp4';
+          const audioBlob = new Blob(audioChunks, { type: finalMime });
+          
+          if (audioBlob.size > 2000) { // Discard accidental micro-clicks (<2KB)
+            const base64Data = await blobToBase64(audioBlob);
+            onAudioCaptured({ data: base64Data, mimeType: finalMime });
+          }
+        };
+
+        mediaRecorder.start();
+        isRecordingPTT = true;
+        buttonEl.classList.add('ptt-active');
+        buttonEl.innerText = 'Listening...';
       }
 
-      // Universal Pointer/Touch bindings
-      buttonEl.addEventListener('touchstart', startPTT, { passive: false });
-      buttonEl.addEventListener('touchend', stopPTT, { passive: false });
-      buttonEl.addEventListener('touchcancel', () => {
-        if (holdTimeout) clearTimeout(holdTimeout);
-        cleanupEngine();
+      function stopRecordSession() {
+        if (!isRecordingPTT) return;
+        isRecordingPTT = false;
         buttonEl.classList.remove('ptt-active');
-        buttonEl.innerText = originalBtnText;
-      }, { passive: false });
+        buttonEl.innerText = originalText;
 
-      // Fallback for desktop mouse
-      buttonEl.addEventListener('mousedown', (e) => {
-        if ('ontouchstart' in window) return; // Ignore on touch screens
-        startPTT(e);
-      });
-      buttonEl.addEventListener('mouseup', (e) => {
-        if ('ontouchend' in window) return;
-        stopPTT(e);
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        }
+      }
+
+      // Universal Pointer handling (iOS touch + macOS mouse)
+      buttonEl.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        recordingTimer = setTimeout(() => {
+          startRecordSession();
+        }, 260); // 260ms threshold separates tap from hold
       });
 
+      const cancelSession = () => {
+        if (recordingTimer) {
+          clearTimeout(recordingTimer);
+          recordingTimer = null;
+        }
+        if (isRecordingPTT) {
+          stopRecordSession();
+        }
+      };
+
+      buttonEl.addEventListener('pointerup', (e) => {
+        e.preventDefault();
+        if (recordingTimer && !isRecordingPTT) {
+          // Short tap (<260ms) executes standard typed action
+          clearTimeout(recordingTimer);
+          recordingTimer = null;
+          onShortTap();
+        } else if (isRecordingPTT) {
+          // Thumb lifted: finish recording and send
+          stopRecordSession();
+        }
+      });
+
+      buttonEl.addEventListener('pointerleave', cancelSession);
+      buttonEl.addEventListener('pointercancel', cancelSession);
       buttonEl.addEventListener('contextmenu', (e) => e.preventDefault());
     }
 
-    // Bind Walkie-Talkie to Hopper "Capture"
-    attachPushToTalk(hopperAddBtn, 'hopper', hopperInput, parseHopperInput);
+    // Bind Hopper PTT: Tap = Parse Text; Hold = Record Audio -> Gemini Stream
+    attachHardwarePTT(
+      hopperAddBtn,
+      (audioPayload) => parseHopperInput(audioPayload),
+      () => parseHopperInput()
+    );
 
-    // Bind Walkie-Talkie to Sequencer "Parse & Sequence"
-    attachPushToTalk(submitBtn, 'sequencer', promptInput, parseTasks);
+    // Bind Sequencer: Clean tap for text-based morning sequencing
+    if (submitBtn) {
+      submitBtn.onclick = () => parseTasks();
+    }
 
     // Hopper Enter Key Trigger
     if (hopperInput) {
@@ -1376,9 +1387,13 @@
       });
     }
 
-    document.getElementById('forgeInput').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') sendForgeMessage();
-    });
+    // Forge Drawer Key Trigger
+    const forgeInput = document.getElementById('forgeInput');
+    if (forgeInput) {
+      forgeInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') sendForgeMessage();
+      });
+    }
 
     // Tray Toggle
     const toggleHopperBtn = document.getElementById('toggleHopperTray');
