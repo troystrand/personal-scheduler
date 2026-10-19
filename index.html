@@ -783,6 +783,7 @@
 
   <script>
     const WORKER_URL = 'https://personal-scheduler-proxy.strand-troy.workers.dev';
+    const APP_KEY = 'sequencer-lock-52984'; // Replace with your actual Cloudflare CLIENT_ACCESS_KEY
     let currentEvents = [];
 
  /* ==========================================================================
@@ -1222,22 +1223,6 @@
     /* ==========================================================================
        >>> ANCHOR: FORGE_CHAT_CLIENT_START <<<
        ========================================================================== */
-    // 1. Silent Key Reader & Container Auth Fallback
-    const urlParams = new URLSearchParams(window.location.search);
-    const keyFromUrl = urlParams.get('key');
-    if (keyFromUrl) {
-      localStorage.setItem('app_key', keyFromUrl);
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-    
-    let APP_KEY = localStorage.getItem('app_key') || '';
-    if (!APP_KEY) {
-      const promptedKey = prompt('Enter your App Key to unlock this device:');
-      if (promptedKey) {
-        localStorage.setItem('app_key', promptedKey.trim());
-        APP_KEY = promptedKey.trim();
-      }
-    }
 
     let forgeHistory = JSON.parse(localStorage.getItem('forge_history') || '[]');
 
