@@ -1193,7 +1193,7 @@
 █████████████████████████████████████████████████████████████████████████████*/
 
     let forgeHistory = JSON.parse(localStorage.getItem('forge_history') || '[]');
-    let activeVariants = {}; // Tracks { [index]: 'A' | 'B' }
+    let activeVariants = {}; // Tracks { [index]: 'orig' | 'a' | 'b' }
 
     function toggleForge() {
       const drawer = document.getElementById('forgeDrawer');
@@ -1212,7 +1212,7 @@
       container.innerHTML = '';
 
       if (forgeHistory.length === 0) {
-        container.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;padding:12px;">Ask Gemini for design variants, ergonomic tweaks, or styling tests. Live A/B toggles will appear below proposals.</div>';
+        container.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;padding:12px;">Ask Gemini for design variants or ergonomic tweaks. Compact A/B toggle bars will appear below each proposal.</div>';
         return;
       }
 
@@ -1232,36 +1232,57 @@
       msgEl.className = `chat-msg ${role}`;
 
       if (role === 'model') {
-        msgEl.innerHTML = typeof marked !== 'undefined' ? marked.parse(text) : text;
+        // Automatically tuck code blocks inside collapsed <details> if not already tucked
+        let formattedText = text;
+        if (!formattedText.includes('<details>') && (formattedText.includes('```css') || formattedText.includes('```javascript'))) {
+          formattedText = formattedText.replace(/(```[\s\S]*?```)/g, '<details style="margin-top:8px;background:#090e17;padding:6px 10px;border-radius:6px;border:1px solid var(--border);"><summary style="cursor:pointer;font-size:0.75rem;color:var(--text-muted);font-weight:600;">View Raw Code</summary>$1</details>');
+        }
 
-        const hasCss = text.includes('```css') || text.includes('<style>');
-        const hasJs = text.includes('```javascript') || text.includes('<script>');
-        const hasAnchor = text.includes('ANCHOR:');
+        msgEl.innerHTML = typeof marked !== 'undefined' ? marked.parse(formattedText) : formattedText;
 
-        if (hasCss || hasJs || hasAnchor) {
+        const hasVariantA = text.includes('variant-a') || text.includes('Variant A');
+        const hasVariantB = text.includes('variant-b') || text.includes('Variant B');
+        const hasGeneralCode = text.includes('```css') || text.includes('```javascript') || text.includes('<style>');
+
+        if (hasVariantA || hasVariantB || hasGeneralCode) {
           const actionRow = document.createElement('div');
           actionRow.className = 'patch-btn-row';
           actionRow.style.display = 'flex';
-          actionRow.style.flexWrap = 'wrap';
+          actionRow.style.alignItems = 'center';
           actionRow.style.gap = '6px';
-          actionRow.style.marginTop = '8px';
+          actionRow.style.marginTop = '10px';
+          actionRow.style.paddingTop = '8px';
+          actionRow.style.borderTop = '1px solid var(--border)';
 
-          // A/B Toggle Button
-          const abBtn = document.createElement('button');
-          abBtn.className = 'btn-live-patch';
-          const currentVariant = activeVariants[index] || 'A';
-          abBtn.innerText = currentVariant === 'B' ? 'Active: Variant [B] (Tap for A)' : '⚡ Test Variant [B]';
-          abBtn.style.background = currentVariant === 'B' ? '#047857' : '#0c4a6e';
-          abBtn.onclick = () => toggleVariantAB(index, abBtn);
-          actionRow.appendChild(abBtn);
+          const currentChoice = activeVariants[index] || 'orig';
 
-          // Copy Block Button
+          // Group container for A/B/Orig
+          const group = document.createElement('div');
+          group.style.display = 'inline-flex';
+          group.style.background = '#090e17';
+          group.style.border = '1px solid var(--border)';
+          group.style.borderRadius = '6px';
+          group.style.padding = '2px';
+          group.style.gap = '2px';
+
+          const btnOrig = createVariantPill('Original', currentChoice === 'orig', () => setVariant(index, 'orig'));
+          const btnA = createVariantPill('Option A', currentChoice === 'a', () => setVariant(index, 'a'));
+          const btnB = createVariantPill('Option B', currentChoice === 'b', () => setVariant(index, 'b'));
+
+          group.appendChild(btnOrig);
+          group.appendChild(btnA);
+          group.appendChild(btnB);
+          actionRow.appendChild(group);
+
+          // Quick Copy Active Button
           const copyBtn = document.createElement('button');
           copyBtn.className = 'btn-live-patch';
-          copyBtn.style.background = '#090e17';
-          copyBtn.style.borderColor = 'var(--border)';
-          copyBtn.innerText = '📋 Copy Block';
-          copyBtn.onclick = () => copyCodeBlock(index, copyBtn);
+          copyBtn.style.background = 'transparent';
+          copyBtn.style.border = 'none';
+          copyBtn.style.color = 'var(--text-muted)';
+          copyBtn.style.fontSize = '0.72rem';
+          copyBtn.innerText = '📋 Copy Active';
+          copyBtn.onclick = () => copyActivePayload(index, copyBtn);
           actionRow.appendChild(copyBtn);
 
           msgEl.appendChild(actionRow);
@@ -1273,6 +1294,103 @@
       container.appendChild(msgEl);
       container.scrollTop = container.scrollHeight;
     }
+
+    function createVariantPill(label, isActive, onClick) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.innerText = label;
+      btn.style.border = 'none';
+      btn.style.borderRadius = '4px';
+      btn.style.padding = '4px 10px';
+      btn.style.fontSize = '0.75rem';
+      btn.style.fontWeight = '700';
+      btn.style.cursor = 'pointer';
+      btn.style.transition = 'all 0.15s ease';
+
+      if (isActive) {
+        btn.style.background = '#0284c7';
+        btn.style.color = '#ffffff';
+      } else {
+        btn.style.background = 'transparent';
+        btn.style.color = 'var(--text-sub)';
+      }
+
+      btn.onclick = onClick;
+      return btn;
+    }
+
+    window.setVariant = function(index, choice) {
+      const msg = forgeHistory[index];
+      if (!msg) return;
+      const text = msg.parts?.[0]?.text || '';
+      activeVariants[index] = choice;
+
+      const styleId = `forge-active-variant-style`;
+      let styleTag = document.getElementById(styleId);
+
+      if (choice === 'orig') {
+        if (styleTag) styleTag.remove();
+        if (typeof switchView === 'function') switchView(currentView);
+        renderForgeLog();
+        return;
+      }
+
+      // Extract specific variant payload
+      let codeToApply = '';
+      if (choice === 'a') {
+        const matchA = text.match(/```(?:css-variant-a|css)?([\s\S]*?)```/);
+        codeToApply = matchA ? matchA[1] : '';
+      } else if (choice === 'b') {
+        const matchB = text.match(/```css-variant-b([\s\S]*?)```/);
+        if (matchB) {
+          codeToApply = matchB[1];
+        } else {
+          // Fallback if model output two css fences
+          const allMatches = [...text.matchAll(/```(?:css)?([\s\S]*?)```/g)];
+          if (allMatches.length >= 2) codeToApply = allMatches[1][1];
+        }
+      }
+
+      if (codeToApply) {
+        if (!styleTag) {
+          styleTag = document.createElement('style');
+          styleTag.id = styleId;
+          document.head.appendChild(styleTag);
+        }
+        styleTag.innerHTML = codeToApply;
+      }
+
+      renderForgeLog();
+    };
+
+    window.copyActivePayload = async function(index, btnEl) {
+      const choice = activeVariants[index] || 'a';
+      const msg = forgeHistory[index];
+      if (!msg) return;
+      const text = msg.parts?.[0]?.text || '';
+
+      let payload = text;
+      if (choice === 'a') {
+        const mA = text.match(/```(?:css-variant-a|css)?([\s\S]*?)```/);
+        if (mA) payload = mA[1].trim();
+      } else if (choice === 'b') {
+        const mB = text.match(/```css-variant-b([\s\S]*?)```/);
+        if (mB) payload = mB[1].trim();
+      }
+
+      try {
+        await navigator.clipboard.writeText(payload);
+        const originalText = btnEl.innerText;
+        btnEl.innerText = `✓ Copied ${choice.toUpperCase()}!`;
+        btnEl.style.color = 'var(--primary)';
+        setTimeout(() => {
+          btnEl.innerText = originalText;
+          btnEl.style.color = 'var(--text-muted)';
+        }, 1500);
+      } catch (e) {
+        alert('Copy failed: ' + e.message);
+      }
+    };
 
     async function sendForgeMessage() {
       const input = document.getElementById('forgeInput');
@@ -1324,82 +1442,12 @@
       }
     }
 
-    window.toggleVariantAB = function(index, btnEl) {
-      const msg = forgeHistory[index];
-      if (!msg) return;
-      const text = msg.parts?.[0]?.text || '';
-      const state = activeVariants[index] || 'A';
-      const targetState = state === 'A' ? 'B' : 'A';
-
-      const styleId = `forge-variant-style-${index}`;
-      let styleTag = document.getElementById(styleId);
-
-      if (targetState === 'B') {
-        // Apply Variant B
-        const cssMatch = text.match(/```css([\s\S]*?)```/) || text.match(/<style>([\s\S]*?)<\/style>/);
-        if (cssMatch) {
-          if (!styleTag) {
-            styleTag = document.createElement('style');
-            styleTag.id = styleId;
-            document.head.appendChild(styleTag);
-          }
-          styleTag.innerHTML = cssMatch[1];
-        }
-
-        const jsMatch = text.match(/```javascript([\s\S]*?)```/) || text.match(/<script>([\s\S]*?)<\/script>/);
-        if (jsMatch) {
-          try {
-            eval(jsMatch[1]);
-          } catch (e) {
-            console.error('JS Variant B execution error:', e);
-          }
-        }
-
-        activeVariants[index] = 'B';
-        if (btnEl) {
-          btnEl.innerText = 'Active: Variant [B] (Tap for A)';
-          btnEl.style.background = '#047857';
-        }
-      } else {
-        // Revert to Variant A (Original baseline)
-        if (styleTag) styleTag.remove();
-        activeVariants[index] = 'A';
-        if (btnEl) {
-          btnEl.innerText = '⚡ Test Variant [B]';
-          btnEl.style.background = '#0c4a6e';
-        }
-        // Force clean UI redraw
-        if (typeof switchView === 'function') switchView(currentView);
-      }
-    };
-
-    window.copyCodeBlock = async function(index, btnEl) {
-      const msg = forgeHistory[index];
-      if (!msg) return;
-      const text = msg.parts?.[0]?.text || '';
-
-      const fenceMatch = text.match(/```(?:css|javascript|html)?([\s\S]*?)```/);
-      let payload = fenceMatch ? fenceMatch[1].trim() : text.trim();
-
-      try {
-        await navigator.clipboard.writeText(payload);
-        const originalText = btnEl.innerText;
-        btnEl.innerText = '✓ Copied!';
-        btnEl.style.color = '#38bdf8';
-        setTimeout(() => {
-          btnEl.innerText = originalText;
-          btnEl.style.color = 'var(--text)';
-        }, 1500);
-      } catch (e) {
-        alert('Clipboard copy failed: ' + e.message);
-      }
-    };
-
     function clearForgeChat() {
       if (!confirm('Clear Forge conversation history?')) return;
       forgeHistory = [];
       activeVariants = {};
-      document.querySelectorAll('[id^="forge-variant-style-"]').forEach(el => el.remove());
+      const activeStyle = document.getElementById('forge-active-variant-style');
+      if (activeStyle) activeStyle.remove();
       localStorage.removeItem('forge_history');
       renderForgeLog();
     }
