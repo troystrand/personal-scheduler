@@ -49,6 +49,8 @@
       padding: 24px 16px 80px 16px;
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      width: 100%;
     }
 
     .container {
@@ -67,7 +69,6 @@
     }
     h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
 
-    /* VIEW SWITCHER TABS */
     .view-tabs {
       display: flex;
       background: #090e17;
@@ -289,7 +290,7 @@
       cursor: pointer;
     }
 
-    /* BUNDLED BLOCKS LIST (STAGING) */
+    /* BUNDLED BLOCKS LIST */
     .blocks-container { display: flex; flex-direction: column; gap: 12px; }
 
     .block-card {
@@ -319,7 +320,6 @@
     }
     .block-time { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; }
 
-    /* ATOMS LIST (INSIDE A BLOCK) */
     .block-atoms-list {
       display: flex;
       flex-direction: column;
@@ -371,7 +371,6 @@
     }
     .btn-atom-split:hover { color: var(--primary); border-color: var(--primary); }
 
-    /* SAVE BUTTON */
     .btn-save {
       background: #0284c7;
       color: white;
@@ -385,7 +384,6 @@
     }
     .btn-save:hover { background: #0369a1; }
 
-    /* TRACK VIEW */
     .track-active-banner {
       background: #0c4a6e;
       border: 1px solid var(--primary);
@@ -395,14 +393,57 @@
       flex-direction: column;
       gap: 4px;
     }
-    .track-active-label { font-size: 0.68rem; text-transform: uppercase; font-weight: 800; color: #bae6fd; }
-    .track-active-title { font-size: 1rem; font-weight: 700; color: #fff; }
 
-    /* FORGE */
-    .forge-pill {
+    /* FLOATING BOTTOM DOCK: FORGE + A/B TEST CONTROLS */
+    .floating-control-dock {
       position: fixed;
-      bottom: calc(16px + env(safe-area-inset-bottom));
-      right: 16px;
+      bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+      left: 12px;
+      right: 12px;
+      max-width: 580px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 8px;
+      z-index: 999;
+      pointer-events: none;
+    }
+    .floating-control-dock > * { pointer-events: auto; }
+
+    .floating-ab-bar {
+      display: inline-flex;
+      align-items: center;
+      background: #090e17;
+      border: 1px solid var(--primary);
+      border-radius: 9999px;
+      padding: 3px 6px;
+      gap: 4px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+    }
+    .floating-ab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-sub);
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 5px 8px;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .floating-ab-btn.active {
+      background: #0284c7;
+      color: #fff;
+    }
+    .floating-ab-btn.btn-copy {
+      color: var(--text-muted);
+      border-left: 1px solid var(--border);
+      border-radius: 0;
+      padding-left: 8px;
+    }
+
+    .forge-pill {
       background: var(--primary);
       color: #0f172a;
       border: none;
@@ -412,22 +453,30 @@
       font-weight: 700;
       cursor: pointer;
       box-shadow: 0 4px 18px rgba(0,0,0,0.5);
-      z-index: 999;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
+
+    /* FORGE DRAWER (CONSTRAINED TO FIT IPHONE 16 PRO) */
     .forge-drawer {
       position: fixed;
-      bottom: 0; left: 0; right: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      max-width: min(600px, 100vw);
+      margin: 0 auto;
       background: #090e17;
       border-top: 2px solid var(--primary);
       box-shadow: 0 -12px 30px rgba(0,0,0,0.7);
       z-index: 1000;
-      height: 80vh;
+      height: 75vh;
       display: flex;
       flex-direction: column;
-      max-width: 680px;
-      margin: 0 auto;
       border-radius: 14px 14px 0 0;
-      padding-bottom: env(safe-area-inset-bottom);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      box-sizing: border-box;
+      overflow-x: hidden;
     }
     .forge-header {
       display: flex;
@@ -446,18 +495,29 @@
     .forge-chat-log {
       flex: 1;
       overflow-y: auto;
-      padding: 16px;
+      overflow-x: hidden;
+      padding: 14px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
+      width: 100%;
+      box-sizing: border-box;
     }
     .chat-msg {
       display: flex;
       flex-direction: column;
       gap: 4px;
-      max-width: 88%;
+      max-width: 92%;
       line-height: 1.45;
-      font-size: 0.85rem;
+      font-size: 0.84rem;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+    .chat-msg pre, .chat-msg code {
+      max-width: 100%;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
     }
     .chat-msg.user {
       align-self: flex-end;
@@ -471,23 +531,13 @@
       align-self: flex-start;
       background: #131c2e;
       color: #e2e8f0;
-      padding: 12px 16px;
+      padding: 12px 14px;
       border-radius: 12px 12px 12px 2px;
       border: 1px solid #1e293b;
     }
-    .patch-btn-row { display: flex; gap: 8px; margin-top: 6px; }
-    .btn-live-patch {
-      background: #0c4a6e;
-      border: 1px solid var(--primary);
-      color: #bae6fd;
-      padding: 5px 12px;
-      border-radius: 5px;
-      font-size: 0.72rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
+
     .forge-input-bar {
-      padding: 12px 16px;
+      padding: 10px 14px;
       border-top: 1px solid var(--border);
       background: #0f172a;
       display: flex;
@@ -499,15 +549,16 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       color: #fff;
-      padding: 10px 14px;
+      padding: 10px 12px;
       font-size: 0.88rem;
+      min-width: 0;
     }
     .forge-input-bar button {
       background: var(--primary);
       color: #0f172a;
       border: none;
       border-radius: 8px;
-      padding: 10px 16px;
+      padding: 10px 14px;
       font-weight: 700;
       font-size: 0.88rem;
       cursor: pointer;
@@ -566,9 +617,7 @@
         </div>
 
         <div class="hopper-tray collapsed" id="hopperTray">
-          <div id="hopperList" class="hopper-items">
-            <!-- Dynamic Hopper Cards -->
-          </div>
+          <div id="hopperList" class="hopper-items"></div>
         </div>
       </section>
 
@@ -607,8 +656,16 @@
     </div>
   </div>
 
-  <!-- FLOATING FORGE BUTTON -->
-  <button id="forgeToggle" class="forge-pill" onclick="toggleForge()">✦ Forge</button>
+  <!-- FLOATING BOTTOM DOCK (ALWAYS ACCESSIBLE, EVEN WITH DRAWER CLOSED) -->
+  <div class="floating-control-dock">
+    <div id="floatingAbBar" class="floating-ab-bar hidden">
+      <button type="button" class="floating-ab-btn active" id="btnDockOrig" onclick="applyVariantFromDock('orig')">Orig</button>
+      <button type="button" class="floating-ab-btn" id="btnDockA" onclick="applyVariantFromDock('a')">A</button>
+      <button type="button" class="floating-ab-btn" id="btnDockB" onclick="applyVariantFromDock('b')">B</button>
+      <button type="button" class="floating-ab-btn btn-copy" id="btnDockCopy" onclick="copyCurrentActiveDock()">📋 Copy</button>
+    </div>
+    <button id="forgeToggle" class="forge-pill" onclick="toggleForge()">✦ Forge</button>
+  </div>
 
   <!-- GEMINI FORGE DRAWER -->
   <div id="forgeDrawer" class="forge-drawer hidden">
@@ -1193,7 +1250,8 @@
 █████████████████████████████████████████████████████████████████████████████*/
 
     let forgeHistory = JSON.parse(localStorage.getItem('forge_history') || '[]');
-    let activeVariants = {}; // Tracks { [index]: 'orig' | 'a' | 'b' }
+    let latestVariantProposal = null; // Stores { codeA, codeB } from the most recent proposal
+    let currentDockChoice = 'orig';    // 'orig' | 'a' | 'b'
 
     function toggleForge() {
       const drawer = document.getElementById('forgeDrawer');
@@ -1212,7 +1270,7 @@
       container.innerHTML = '';
 
       if (forgeHistory.length === 0) {
-        container.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;padding:12px;">Ask Gemini for design variants or ergonomic tweaks. Compact A/B toggle bars will appear below each proposal.</div>';
+        container.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;padding:12px;">Ask Gemini for design variants. A persistent [Orig | A | B] switcher will dock next to ✦ Forge so you can test them with the drawer closed.</div>';
         return;
       }
 
@@ -1232,60 +1290,22 @@
       msgEl.className = `chat-msg ${role}`;
 
       if (role === 'model') {
-        // Automatically tuck code blocks inside collapsed <details> if not already tucked
         let formattedText = text;
+
+        // Auto-wrap bare code fences into <details> dropdowns
         if (!formattedText.includes('<details>') && (formattedText.includes('```css') || formattedText.includes('```javascript'))) {
-          formattedText = formattedText.replace(/(```[\s\S]*?```)/g, '<details style="margin-top:8px;background:#090e17;padding:6px 10px;border-radius:6px;border:1px solid var(--border);"><summary style="cursor:pointer;font-size:0.75rem;color:var(--text-muted);font-weight:600;">View Raw Code</summary>$1</details>');
+          formattedText = formattedText.replace(/(```[\s\S]*?```)/g, '<details style="margin-top:6px;background:#090e17;padding:6px 10px;border-radius:6px;border:1px solid var(--border);"><summary style="cursor:pointer;font-size:0.75rem;color:var(--text-muted);font-weight:600;">View Raw Code</summary>$1</details>');
         }
 
         msgEl.innerHTML = typeof marked !== 'undefined' ? marked.parse(formattedText) : formattedText;
 
-        const hasVariantA = text.includes('variant-a') || text.includes('Variant A');
-        const hasVariantB = text.includes('variant-b') || text.includes('Variant B');
-        const hasGeneralCode = text.includes('```css') || text.includes('```javascript') || text.includes('<style>');
+        // Extract Option A and Option B
+        const codeA = extractVariantCode(text, 'a');
+        const codeB = extractVariantCode(text, 'b');
 
-        if (hasVariantA || hasVariantB || hasGeneralCode) {
-          const actionRow = document.createElement('div');
-          actionRow.className = 'patch-btn-row';
-          actionRow.style.display = 'flex';
-          actionRow.style.alignItems = 'center';
-          actionRow.style.gap = '6px';
-          actionRow.style.marginTop = '10px';
-          actionRow.style.paddingTop = '8px';
-          actionRow.style.borderTop = '1px solid var(--border)';
-
-          const currentChoice = activeVariants[index] || 'orig';
-
-          // Group container for A/B/Orig
-          const group = document.createElement('div');
-          group.style.display = 'inline-flex';
-          group.style.background = '#090e17';
-          group.style.border = '1px solid var(--border)';
-          group.style.borderRadius = '6px';
-          group.style.padding = '2px';
-          group.style.gap = '2px';
-
-          const btnOrig = createVariantPill('Original', currentChoice === 'orig', () => setVariant(index, 'orig'));
-          const btnA = createVariantPill('Option A', currentChoice === 'a', () => setVariant(index, 'a'));
-          const btnB = createVariantPill('Option B', currentChoice === 'b', () => setVariant(index, 'b'));
-
-          group.appendChild(btnOrig);
-          group.appendChild(btnA);
-          group.appendChild(btnB);
-          actionRow.appendChild(group);
-
-          // Quick Copy Active Button
-          const copyBtn = document.createElement('button');
-          copyBtn.className = 'btn-live-patch';
-          copyBtn.style.background = 'transparent';
-          copyBtn.style.border = 'none';
-          copyBtn.style.color = 'var(--text-muted)';
-          copyBtn.style.fontSize = '0.72rem';
-          copyBtn.innerText = '📋 Copy Active';
-          copyBtn.onclick = () => copyActivePayload(index, copyBtn);
-          actionRow.appendChild(copyBtn);
-
-          msgEl.appendChild(actionRow);
+        if (codeA || codeB) {
+          latestVariantProposal = { codeA, codeB };
+          updateFloatingDockVisibility(true);
         }
       } else {
         msgEl.innerText = text;
@@ -1295,100 +1315,72 @@
       container.scrollTop = container.scrollHeight;
     }
 
-    function createVariantPill(label, isActive, onClick) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.innerText = label;
-      btn.style.border = 'none';
-      btn.style.borderRadius = '4px';
-      btn.style.padding = '4px 10px';
-      btn.style.fontSize = '0.75rem';
-      btn.style.fontWeight = '700';
-      btn.style.cursor = 'pointer';
-      btn.style.transition = 'all 0.15s ease';
-
-      if (isActive) {
-        btn.style.background = '#0284c7';
-        btn.style.color = '#ffffff';
-      } else {
-        btn.style.background = 'transparent';
-        btn.style.color = 'var(--text-sub)';
+    function extractVariantCode(rawText, variantKey) {
+      if (variantKey === 'a') {
+        const matchA = rawText.match(/```css-variant-a([\s\S]*?)```/);
+        if (matchA) return matchA[1].trim();
+        const firstMatch = rawText.match(/```(?:css)?([\s\S]*?)```/);
+        return firstMatch ? firstMatch[1].trim() : '';
       }
-
-      btn.onclick = onClick;
-      return btn;
+      if (variantKey === 'b') {
+        const matchB = rawText.match(/```css-variant-b([\s\S]*?)```/);
+        if (matchB) return matchB[1].trim();
+        const allMatches = [...rawText.matchAll(/```(?:css)?([\s\S]*?)```/g)];
+        if (allMatches.length >= 2) return allMatches[1][1].trim();
+      }
+      return '';
     }
 
-    window.setVariant = function(index, choice) {
-      const msg = forgeHistory[index];
-      if (!msg) return;
-      const text = msg.parts?.[0]?.text || '';
-      activeVariants[index] = choice;
+    function updateFloatingDockVisibility(visible) {
+      const dockBar = document.getElementById('floatingAbBar');
+      if (!dockBar) return;
+      dockBar.classList.toggle('hidden', !visible);
+    }
 
-      const styleId = `forge-active-variant-style`;
+    window.applyVariantFromDock = function(choice) {
+      currentDockChoice = choice;
+
+      document.getElementById('btnDockOrig')?.classList.toggle('active', choice === 'orig');
+      document.getElementById('btnDockA')?.classList.toggle('active', choice === 'a');
+      document.getElementById('btnDockB')?.classList.toggle('active', choice === 'b');
+
+      const styleId = 'forge-active-variant-style';
       let styleTag = document.getElementById(styleId);
 
-      if (choice === 'orig') {
+      if (choice === 'orig' || !latestVariantProposal) {
         if (styleTag) styleTag.remove();
         if (typeof switchView === 'function') switchView(currentView);
-        renderForgeLog();
         return;
       }
 
-      // Extract specific variant payload
-      let codeToApply = '';
-      if (choice === 'a') {
-        const matchA = text.match(/```(?:css-variant-a|css)?([\s\S]*?)```/);
-        codeToApply = matchA ? matchA[1] : '';
-      } else if (choice === 'b') {
-        const matchB = text.match(/```css-variant-b([\s\S]*?)```/);
-        if (matchB) {
-          codeToApply = matchB[1];
-        } else {
-          // Fallback if model output two css fences
-          const allMatches = [...text.matchAll(/```(?:css)?([\s\S]*?)```/g)];
-          if (allMatches.length >= 2) codeToApply = allMatches[1][1];
-        }
-      }
-
-      if (codeToApply) {
+      const code = choice === 'a' ? latestVariantProposal.codeA : latestVariantProposal.codeB;
+      if (code) {
         if (!styleTag) {
           styleTag = document.createElement('style');
           styleTag.id = styleId;
           document.head.appendChild(styleTag);
         }
-        styleTag.innerHTML = codeToApply;
+        styleTag.innerHTML = code;
       }
-
-      renderForgeLog();
     };
 
-    window.copyActivePayload = async function(index, btnEl) {
-      const choice = activeVariants[index] || 'a';
-      const msg = forgeHistory[index];
-      if (!msg) return;
-      const text = msg.parts?.[0]?.text || '';
-
-      let payload = text;
-      if (choice === 'a') {
-        const mA = text.match(/```(?:css-variant-a|css)?([\s\S]*?)```/);
-        if (mA) payload = mA[1].trim();
-      } else if (choice === 'b') {
-        const mB = text.match(/```css-variant-b([\s\S]*?)```/);
-        if (mB) payload = mB[1].trim();
+    window.copyCurrentActiveDock = async function() {
+      if (!latestVariantProposal) return;
+      const code = currentDockChoice === 'b' ? latestVariantProposal.codeB : latestVariantProposal.codeA;
+      if (!code) {
+        alert('No active variant code to copy.');
+        return;
       }
 
+      const btn = document.getElementById('btnDockCopy');
       try {
-        await navigator.clipboard.writeText(payload);
-        const originalText = btnEl.innerText;
-        btnEl.innerText = `✓ Copied ${choice.toUpperCase()}!`;
-        btnEl.style.color = 'var(--primary)';
-        setTimeout(() => {
-          btnEl.innerText = originalText;
-          btnEl.style.color = 'var(--text-muted)';
-        }, 1500);
-      } catch (e) {
-        alert('Copy failed: ' + e.message);
+        await navigator.clipboard.writeText(code);
+        if (btn) {
+          btn.innerText = `✓ ${currentDockChoice.toUpperCase()}`;
+          setTimeout(() => { btn.innerText = '📋 Copy'; }, 1500);
+        }
+      } catch (err) {
+        alert('Copy failed: ' + err.message);
       }
     };
 
@@ -1445,9 +1437,11 @@
     function clearForgeChat() {
       if (!confirm('Clear Forge conversation history?')) return;
       forgeHistory = [];
-      activeVariants = {};
+      latestVariantProposal = null;
+      currentDockChoice = 'orig';
       const activeStyle = document.getElementById('forge-active-variant-style');
       if (activeStyle) activeStyle.remove();
+      updateFloatingDockVisibility(false);
       localStorage.removeItem('forge_history');
       renderForgeLog();
     }
