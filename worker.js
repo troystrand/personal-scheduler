@@ -96,6 +96,15 @@ async function appendToSheet(accessToken, sheetId, rows) {
   ▲▲▲ ANCHOR: SHEETS_LOGGING_HELPER_END ▲▲▲
 █████████████████████████████████████████████████████████████████████████████*/
 
+
+
+
+
+
+
+
+
+
 /*█████████████████████████████████████████████████████████████████████████████
   ▼▼▼ ANCHOR: SECURITY_GATE_ROUTER_START ▼▼▼
 █████████████████████████████████████████████████████████████████████████████*/
@@ -143,6 +152,15 @@ export default {
   ▲▲▲ ANCHOR: SECURITY_GATE_ROUTER_END ▲▲▲
 █████████████████████████████████████████████████████████████████████████████*/
 
+
+
+
+
+
+
+
+
+      
 /*█████████████████████████████████████████████████████████████████████████████
   ▼▼▼ ANCHOR: ROUTE_INSERT_CALENDAR_SHEETS_START ▼▼▼
 █████████████████████████████████████████████████████████████████████████████*/
@@ -221,6 +239,15 @@ export default {
   ▲▲▲ ANCHOR: ROUTE_INSERT_CALENDAR_SHEETS_END ▲▲▲
 █████████████████████████████████████████████████████████████████████████████*/
 
+
+
+
+
+
+
+
+
+      
 /*█████████████████████████████████████████████████████████████████████████████
   ▼▼▼ ANCHOR: ROUTE_CODE_SNAPSHOT_START ▼▼▼
 █████████████████████████████████████████████████████████████████████████████*/
@@ -259,6 +286,15 @@ export default {
   ▲▲▲ ANCHOR: ROUTE_CODE_SNAPSHOT_END ▲▲▲
 █████████████████████████████████████████████████████████████████████████████*/
 
+
+
+
+
+
+
+
+
+      
 /*█████████████████████████████████████████████████████████████████████████████
   ▼▼▼ ANCHOR: ROUTE_HOPPER_PARSE_START ▼▼▼
 █████████████████████████████████████████████████████████████████████████████*/
@@ -339,7 +375,16 @@ Output strictly valid JSON matching this schema:
 /*█████████████████████████████████████████████████████████████████████████████
   ▲▲▲ ANCHOR: ROUTE_HOPPER_PARSE_END ▲▲▲
 █████████████████████████████████████████████████████████████████████████████*/
-         
+
+
+
+
+
+
+
+
+
+      
 /*█████████████████████████████████████████████████████████████████████████████
   ▼▼▼ ANCHOR: ROUTE_FORGE_CHAT_BACKEND_START ▼▼▼
 █████████████████████████████████████████████████████████████████████████████*/
@@ -364,60 +409,41 @@ Whenever you provide code changes, you MUST follow these non-negotiable rules:
 
 1. Variable & Selector Integrity:
    - When updating CSS, NEVER rename, delete, or invent new CSS variable names or class selectors.
-   - You MUST retain existing variable names (--bg, --card-bg, --border, --text, --text-muted, --primary, --primary-hover, --tag-11, --tag-8, --tag-2, --tag-9, etc.).
-   - You MUST retain all functional selectors (.container, .task-card, .task-header, .sort-controls, .btn-arrow, .forge-pill, .forge-drawer, etc.) so layout and drawer controls never break.
+   - Retain existing variable names (--bg, --card-bg, --border, --text, --text-muted, --primary, --primary-hover, --tag-11, --tag-8, --tag-2, --tag-9, etc.).
+   - Retain all functional selectors (.container, .block-card, .block-header, .atom-item, .forge-pill, .forge-drawer, etc.).
 
-2. Locate which anchor section in 'index.html' owns the change:
-   - CSS & Layout:
-     /* ==========================================================================
-        >>> ANCHOR: CSS_THEME_AND_LAYOUT_START <<<
-        ========================================================================== */
-     ...
-     /* ==========================================================================
-        >>> ANCHOR: CSS_THEME_AND_LAYOUT_END <<<
-        ========================================================================== */
+2. Anchor Format (Solid Unicode Block Banners):
+   For HTML sections (like CSS_THEME_AND_LAYOUT and DOM_STRUCTURE), use HTML comment format:
+   <!--███████████████████████████████████████████████████████████████████████████
+       ▼▼▼ ANCHOR: [NAME]_START ▼▼▼
+   ████████████████████████████████████████████████████████████████████████████-->
+   ... content ...
+   <!--███████████████████████████████████████████████████████████████████████████
+       ▲▲▲ ANCHOR: [NAME]_END ▲▲▲
+   ████████████████████████████████████████████████████████████████████████████-->
 
-   - Task Card Rendering:
-     /* ==========================================================================
-        >>> ANCHOR: TASK_CARD_RENDER_START <<<
-        ========================================================================== */
-     ...
-     /* ==========================================================================
-        >>> ANCHOR: TASK_CARD_RENDER_END <<<
-        ========================================================================== */
+   For JavaScript sections (inside <script>), use JS comment format:
+   /*█████████████████████████████████████████████████████████████████████████████
+     ▼▼▼ ANCHOR: [NAME]_START ▼▼▼
+   █████████████████████████████████████████████████████████████████████████████*/
+   ... content ...
+   /*█████████████████████████████████████████████████████████████████████████████
+     ▲▲▲ ANCHOR: [NAME]_END ▲▲▲
+   █████████████████████████████████████████████████████████████████████████████*/
 
-   - Task Sorting Logic:
-     /* ==========================================================================
-        >>> ANCHOR: TASK_SORTING_LOGIC_START <<<
-        ========================================================================== */
-     ...
-     /* ==========================================================================
-        >>> ANCHOR: TASK_SORTING_LOGIC_END <<<
-        ========================================================================== */
+3. Valid Anchor Names in 'index.html':
+   - CSS_THEME_AND_LAYOUT (wrapped in <style>)
+   - DOM_STRUCTURE
+   - TASK_CARD_RENDER
+   - TASK_SORTING_LOGIC
+   - TASK_API_PARSING_AND_SAVE
+   - FORGE_CHAT_CLIENT
+   - VOICE_RECOGNITION_SETUP
 
-   - API Parsing & Calendar/Sheets Save:
-     /* ==========================================================================
-        >>> ANCHOR: TASK_API_PARSING_AND_SAVE_START <<<
-        ========================================================================== */
-     ...
-     /* ==========================================================================
-        >>> ANCHOR: TASK_API_PARSING_AND_SAVE_END <<<
-        ========================================================================== */
-
-   - Forge Chat Client:
-     /* ==========================================================================
-        >>> ANCHOR: FORGE_CHAT_CLIENT_START <<<
-        ========================================================================== */
-     ...
-     /* ==========================================================================
-        >>> ANCHOR: FORGE_CHAT_CLIENT_END <<<
-        ========================================================================== */
-
-3. In your response:
-   - Provide a concise 1-2 sentence explanation of the ergonomic/visual change.
-   - Instruct the user: "Search for >>> ANCHOR: [NAME]_START <<< and replace through >>> ANCHOR: [NAME]_END <<< with:"
-   - Render the complete replacement block wrapped in the exact start and end anchor banners.
-   - For quick CSS/JS experiments, wrap valid code in \`\`\`css or \`\`\`javascript blocks so the client's '⚡ Apply Patch Live' and '📋 Copy Code Block' buttons function immediately.`
+4. Output Delivery:
+   - Provide a concise 1-2 sentence explanation of the change.
+   - Instruct: "Search for the [NAME]_START anchor and replace through [NAME]_END with:"
+   - Render the complete replacement block wrapped in the exact block banners.`
             }]
           }
         };
@@ -518,6 +544,15 @@ Output strictly valid JSON matching the requested schema.`
   ▲▲▲ ANCHOR: ROUTE_ORTHO_MAP_END ▲▲▲
 █████████████████████████████████████████████████████████████████████████████*/
 
+
+
+
+
+
+
+
+
+      
 /*█████████████████████████████████████████████████████████████████████████████
   ▼▼▼ ANCHOR: ROUTE_TASK_SEQUENCING_START ▼▼▼
 █████████████████████████████████████████████████████████████████████████████*/
