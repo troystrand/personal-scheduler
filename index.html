@@ -701,9 +701,18 @@
     </div>
     <div id="forgeChatLog" class="forge-chat-log"></div>
     <div class="forge-input-bar">
-      <input id="forgeInput" placeholder="Chat with Gemini or request code tweaks..." autocomplete="off" />
-      <button id="forgeSendBtn" onclick="sendForgeMessage()">Send</button>
-    </div>
+  <input 
+    type="text" 
+    id="forgeInput" 
+    placeholder="Chat with Gemini or request code tweaks..." 
+    autocomplete="off" 
+    autocorrect="off" 
+    autocapitalize="sentences" 
+    spellcheck="false" 
+    enterkeyhint="send"
+  />
+  <button id="forgeSendBtn" onclick="sendForgeMessage()">Send</button>
+</div>
   </div>
 <!--███████████████████████████████████████████████████████████████████████████
     ▲▲▲ ANCHOR: DOM_STRUCTURE_END ▲▲▲
