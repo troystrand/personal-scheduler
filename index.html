@@ -13,20 +13,22 @@
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-  <!-- ==========================================================================
+<!-- ==========================================================================
        >>> ANCHOR: CSS_THEME_AND_LAYOUT_START <<<
        ========================================================================== -->
   <style>
     :root {
-      --bg: #0f172a;
-      --card-bg: #1e293b;
-      --border: #334155;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
+      --bg: #0b0f19;
+      --card-bg: #141c2e;
+      --card-border: #232f48;
+      --border: #1e293b;
+      --text: #f1f5f9;
+      --text-muted: #64748b;
+      --text-sub: #94a3b8;
       --primary: #38bdf8;
       --primary-hover: #0284c7;
-      --success: #10b981;
-      --danger: #ef4444;
+      --record-red: #ef4444;
+      --record-glow: rgba(239, 68, 68, 0.35);
 
       --tag-11: #38bdf8;
       --tag-8: #a855f7;
@@ -41,7 +43,7 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
       background-color: var(--bg);
       color: var(--text);
       display: flex;
@@ -63,62 +65,106 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding-bottom: 4px;
     }
-    h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; color: var(--text); }
+    h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
     .badge {
-      font-size: 0.75rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-weight: 600;
       color: var(--primary);
-      background: rgba(56, 189, 248, 0.15);
-      border: 1px solid rgba(56, 189, 248, 0.35);
-      padding: 2px 8px;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 3px 8px;
       border-radius: 9999px;
     }
 
-    /* THE HOPPER STYLES */
+    /* THE MINIMAL HOPPER */
     .hopper-section {
       background: var(--card-bg);
-      border: 1px solid var(--border);
+      border: 1px solid var(--card-border);
       border-radius: 12px;
-      padding: 12px 14px;
+      padding: 12px;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
     }
 
-    .hopper-form {
+    .hopper-bar {
       display: flex;
       gap: 8px;
+      align-items: center;
     }
 
-    .hopper-form input {
+    .hopper-input-wrap {
       flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .hopper-input-wrap input {
+      width: 100%;
       background: #090e17;
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 10px 12px;
+      padding: 11px 42px 11px 12px;
       color: var(--text);
       font-size: 0.9rem;
       font-family: inherit;
     }
-    .hopper-form input:focus { outline: 2px solid var(--primary); }
+    .hopper-input-wrap input:focus { outline: 1px solid var(--primary); border-color: var(--primary); }
 
-    .hopper-form button {
+    /* Minimal Inset Mic Button */
+    .btn-hopper-mic {
+      position: absolute;
+      right: 6px;
+      background: transparent;
+      border: none;
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      transition: color 0.15s ease, background 0.15s ease;
+    }
+    .btn-hopper-mic:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .btn-hopper-mic svg { width: 16px; height: 16px; fill: currentColor; }
+
+    /* Active Recording State: Geometric Crimson Dot */
+    .btn-hopper-mic.recording {
+      color: var(--record-red);
+      background: rgba(239, 68, 68, 0.15);
+      animation: recordPulse 1.4s infinite ease-in-out;
+    }
+
+    @keyframes recordPulse {
+      0% { box-shadow: 0 0 0 0 var(--record-glow); }
+      70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    .btn-hopper-submit {
       background: #111c2e;
       color: var(--primary);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 0 16px;
-      font-size: 1.2rem;
-      font-weight: 700;
+      padding: 0 14px;
+      height: 42px;
+      font-size: 0.85rem;
+      font-weight: 600;
       cursor: pointer;
-      transition: background 0.15s ease, border-color 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
     }
-    .hopper-form button:hover {
-      background: #0c4a6e;
-      border-color: var(--primary);
-      color: #fff;
-    }
+    .btn-hopper-submit:hover { background: #0c4a6e; border-color: var(--primary); color: #fff; }
+    .btn-hopper-submit:disabled { opacity: 0.4; cursor: not-allowed; }
 
     .hopper-header {
       display: flex;
@@ -126,14 +172,14 @@
       align-items: center;
       cursor: pointer;
       user-select: none;
-      padding: 2px 4px;
+      padding: 2px 2px;
     }
 
     .hopper-title {
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       font-weight: 700;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
       color: var(--text-muted);
       display: flex;
       align-items: center;
@@ -145,13 +191,14 @@
       border: 1px solid var(--border);
       color: var(--primary);
       font-size: 0.7rem;
+      font-weight: 600;
       padding: 1px 6px;
       border-radius: 9999px;
     }
 
     .hopper-chevron {
       color: var(--text-muted);
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       transition: transform 0.2s ease;
     }
 
@@ -168,7 +215,7 @@
       background: #090e17;
       border: 1px dashed var(--border);
       border-radius: 8px;
-      padding: 8px 10px;
+      padding: 8px 12px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -177,15 +224,12 @@
 
     .hopper-text {
       font-size: 0.85rem;
-      color: #e2e8f0;
+      color: var(--text-sub);
       flex: 1;
       word-break: break-word;
     }
 
-    .hopper-actions {
-      display: flex;
-      gap: 4px;
-    }
+    .hopper-actions { display: flex; gap: 4px; }
 
     .hopper-promote-btn {
       background: #0c4a6e;
@@ -207,7 +251,7 @@
       font-size: 0.75rem;
       cursor: pointer;
     }
-    .hopper-delete-btn:hover { color: var(--danger); }
+    .hopper-delete-btn:hover { color: var(--record-red); }
 
     .hopper-empty {
       padding: 8px;
@@ -216,9 +260,10 @@
       font-size: 0.8rem;
     }
 
+    /* Primary Sequencer Area */
     .input-panel {
       background: var(--card-bg);
-      border: 1px solid var(--border);
+      border: 1px solid var(--card-border);
       border-radius: 12px;
       padding: 16px;
       display: flex;
@@ -235,11 +280,11 @@
       border-radius: 8px;
       padding: 12px;
       color: var(--text);
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       font-family: inherit;
       resize: vertical;
     }
-    textarea:focus { outline: 2px solid var(--primary); }
+    textarea:focus { outline: 1px solid var(--primary); border-color: var(--primary); }
 
     .button-row { display: flex; gap: 8px; }
     button.btn-main {
@@ -251,7 +296,7 @@
       padding: 12px;
       font-weight: 600;
       cursor: pointer;
-      box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
       transition: background 0.15s ease;
     }
     button.btn-main:hover { background: var(--primary-hover); color: #fff; }
@@ -260,32 +305,34 @@
     button.btn-mic {
       background: #111c2e;
       border: 1px solid var(--border);
-      color: var(--text);
+      color: var(--text-sub);
       border-radius: 8px;
       padding: 12px 16px;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    button.btn-mic.listening { background: var(--danger); }
+    button.btn-mic.listening {
+      border-color: var(--record-red);
+      color: var(--record-red);
+      background: rgba(239, 68, 68, 0.12);
+    }
+    button.btn-mic svg { width: 18px; height: 18px; fill: currentColor; }
 
     /* Task Sorting List */
-    .task-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+    .task-list { display: flex; flex-direction: column; gap: 10px; }
 
     .task-card {
       background: var(--card-bg);
-      border: 1px solid var(--border);
+      border: 1px solid var(--card-border);
       border-radius: 10px;
       padding: 12px 14px;
       display: flex;
       flex-direction: column;
       gap: 8px;
-      border-left: 5px solid var(--primary);
-      transition: border-color 0.2s ease, transform 0.15s ease;
+      border-left: 4px solid var(--primary);
     }
-    .task-card:hover { border-color: var(--primary); }
 
     .task-card[data-color="11"] { border-left-color: var(--tag-11); }
     .task-card[data-color="8"]  { border-left-color: var(--tag-8); }
@@ -298,18 +345,8 @@
       align-items: flex-start;
       gap: 8px;
     }
-
-    .task-title {
-      font-size: 1rem;
-      font-weight: 600;
-      line-height: 1.3;
-    }
-
-    .sort-controls {
-      display: flex;
-      gap: 4px;
-    }
-
+    .task-title { font-size: 0.95rem; font-weight: 600; line-height: 1.35; }
+    .sort-controls { display: flex; gap: 4px; }
     .btn-arrow {
       background: #090e17;
       border: 1px solid var(--border);
@@ -321,12 +358,12 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
     }
     .btn-arrow:hover { color: var(--text); border-color: var(--primary); }
 
     .task-meta {
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       color: var(--text-muted);
       display: flex;
       justify-content: space-between;
@@ -352,10 +389,9 @@
       padding-top: 8px;
       border-top: 1px solid var(--border);
     }
-
     .step-item {
       font-size: 0.8rem;
-      color: #e2e8f0;
+      color: #cbd5e1;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -368,15 +404,14 @@
       padding: 14px;
       border-radius: 8px;
       font-weight: 600;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       cursor: pointer;
       margin-top: 8px;
-      box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
     }
     .btn-save:hover { background: #0369a1; }
     .btn-save:disabled { opacity: 0.5; }
 
-    /* The Forge Chat Drawer Styles */
+    /* Forge */
     .forge-pill {
       position: fixed;
       bottom: calc(16px + env(safe-area-inset-bottom));
@@ -386,23 +421,15 @@
       border: none;
       padding: 9px 16px;
       border-radius: 9999px;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 4px 18px rgba(0,0,0,0.5), 0 0 12px rgba(56, 189, 248, 0.35);
+      box-shadow: 0 4px 18px rgba(0,0,0,0.5);
       z-index: 999;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: transform 0.15s ease, background 0.15s ease;
     }
-    .forge-pill:hover { background: var(--primary-hover); color: #fff; transform: translateY(-1px); }
-
     .forge-drawer {
       position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      bottom: 0; left: 0; right: 0;
       background: #090e17;
       border-top: 2px solid var(--primary);
       box-shadow: 0 -12px 30px rgba(0,0,0,0.7);
@@ -415,7 +442,6 @@
       border-radius: 14px 14px 0 0;
       padding-bottom: env(safe-area-inset-bottom);
     }
-
     .forge-header {
       display: flex;
       justify-content: space-between;
@@ -425,10 +451,9 @@
       background: #0f172a;
       border-radius: 14px 14px 0 0;
     }
-    .forge-title { font-size: 0.85rem; font-weight: 700; color: var(--primary); letter-spacing: 0.05em; display: flex; align-items: center; gap: 8px; }
+    .forge-title { font-size: 0.82rem; font-weight: 700; color: var(--primary); }
     .forge-header-actions { display: flex; gap: 10px; align-items: center; }
     .btn-icon { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem; font-weight: 600; }
-    .btn-icon:hover { color: var(--text); }
     .btn-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.1rem; }
 
     .forge-chat-log {
@@ -438,16 +463,14 @@
       display: flex;
       flex-direction: column;
       gap: 14px;
-      scroll-behavior: smooth;
     }
-
     .chat-msg {
       display: flex;
       flex-direction: column;
       gap: 4px;
       max-width: 88%;
       line-height: 1.45;
-      font-size: 0.88rem;
+      font-size: 0.85rem;
     }
     .chat-msg.user {
       align-self: flex-end;
@@ -465,48 +488,17 @@
       border-radius: 12px 12px 12px 2px;
       border: 1px solid #1e293b;
     }
-    .chat-msg.model p { margin-bottom: 8px; }
-    .chat-msg.model p:last-child { margin-bottom: 0; }
-    .chat-msg.model code {
-      background: #090e17;
-      padding: 2px 5px;
-      border-radius: 4px;
-      font-family: monospace;
-      font-size: 0.8rem;
-      color: var(--primary);
-    }
-    .chat-msg.model pre {
-      background: #090e17;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px;
-      overflow-x: auto;
-      margin: 8px 0;
-    }
-    .chat-msg.model pre code {
-      background: none;
-      padding: 0;
-      color: #f1f5f9;
-    }
-
-    .patch-btn-row {
-      display: flex;
-      gap: 8px;
-      margin-top: 6px;
-      flex-wrap: wrap;
-    }
+    .patch-btn-row { display: flex; gap: 8px; margin-top: 6px; }
     .btn-live-patch {
       background: #0c4a6e;
       border: 1px solid var(--primary);
       color: #bae6fd;
       padding: 5px 12px;
       border-radius: 5px;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: 600;
       cursor: pointer;
     }
-    .btn-live-patch:hover { background: #0369a1; }
-
     .forge-input-bar {
       padding: 12px 16px;
       border-top: 1px solid var(--border);
@@ -521,10 +513,8 @@
       border-radius: 8px;
       color: #fff;
       padding: 10px 14px;
-      font-size: 0.9rem;
-      font-family: inherit;
+      font-size: 0.88rem;
     }
-    .forge-input-bar input:focus { outline: 2px solid var(--primary); }
     .forge-input-bar button {
       background: var(--primary);
       color: #0f172a;
@@ -532,11 +522,9 @@
       border-radius: 8px;
       padding: 10px 16px;
       font-weight: 700;
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       cursor: pointer;
     }
-    .forge-input-bar button:disabled { opacity: 0.5; }
-
     .typing-dots { display: inline-flex; gap: 4px; padding: 4px 8px; }
     .typing-dots span { width: 6px; height: 6px; background: var(--primary); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out; }
     .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
@@ -560,21 +548,26 @@
       <span class="badge">Standalone</span>
     </header>
 
-    <!-- THE HOPPER: Rapid Zero-Friction Capture -->
+    <!-- THE MINIMAL HOPPER -->
     <section class="hopper-section">
-      <form id="hopperForm" class="hopper-form" onsubmit="event.preventDefault(); addHopperItemFromForm();">
-        <input 
-          type="text" 
-          id="hopperInput" 
-          placeholder="Dump a thought, task, or obligation..." 
-          autocomplete="off" 
-        />
-        <button type="submit" id="hopperAddBtn" title="Capture to Hopper">+</button>
+      <form id="hopperForm" class="hopper-bar" onsubmit="event.preventDefault(); parseHopperInput();">
+        <div class="hopper-input-wrap">
+          <input 
+            type="text" 
+            id="hopperInput" 
+            placeholder="Quick capture or voice dump..." 
+            autocomplete="off" 
+          />
+          <button type="button" id="hopperMicBtn" class="btn-hopper-mic" title="Voice Dictation">
+            <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+          </button>
+        </div>
+        <button type="submit" id="hopperAddBtn" class="btn-hopper-submit">Capture</button>
       </form>
 
       <div class="hopper-header" id="toggleHopperTray">
         <span class="hopper-title">
-          <span>📥 The Hopper</span>
+          <span>The Hopper</span>
           <span class="hopper-count-badge" id="hopperCount">0</span>
         </span>
         <span class="hopper-chevron" id="hopperChevron">▼</span>
@@ -582,7 +575,7 @@
 
       <div class="hopper-tray collapsed" id="hopperTray">
         <div id="hopperList" class="hopper-items">
-          <!-- Dynamic Hopper Items Render Here -->
+          <!-- Dynamic Hopper Cards -->
         </div>
       </div>
     </section>
@@ -591,7 +584,9 @@
     <div class="input-panel">
       <textarea id="promptInput" placeholder="Morning list: 'Grade 10 essays, mail package, 30m gym session, call Dalton at 2'"></textarea>
       <div class="button-row">
-        <button id="micBtn" class="btn-mic" type="button">🎙</button>
+        <button id="micBtn" class="btn-mic" type="button" title="Voice Dictate Morning Plan">
+          <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+        </button>
         <button id="submitBtn" class="btn-main">Parse & Sequence</button>
       </div>
     </div>
@@ -602,12 +597,12 @@
   </div>
 
   <!-- FLOATING FORGE BUTTON -->
-  <button id="forgeToggle" class="forge-pill" onclick="toggleForge()">✦ Gemini Forge</button>
+  <button id="forgeToggle" class="forge-pill" onclick="toggleForge()">✦ Forge</button>
 
-  <!-- GEMINI FORGE MULTI-TURN DRAWER -->
+  <!-- GEMINI FORGE DRAWER -->
   <div id="forgeDrawer" class="forge-drawer hidden">
     <div class="forge-header">
-      <div class="forge-title">✦ GEMINI 3.8 COMPANION</div>
+      <div class="forge-title">✦ GEMINI COMPANION</div>
       <div class="forge-header-actions">
         <button class="btn-icon" onclick="clearForgeChat()">Clear History</button>
         <button class="btn-close" onclick="toggleForge()">✕</button>
@@ -632,7 +627,6 @@
     /* ==========================================================================
        >>> ANCHOR: TASK_CARD_RENDER_START <<<
        ========================================================================== */
-    // Persistent Hopper Storage
     let hopperItems = JSON.parse(localStorage.getItem('hopper_items') || '[]');
 
     function saveHopper() {
@@ -663,25 +657,68 @@
       `).join('');
     }
 
-    window.addHopperItemFromForm = function() {
+    // LLM-Powered Hopper Parsing
+    window.parseHopperInput = async function() {
       const input = document.getElementById('hopperInput');
+      const btn = document.getElementById('hopperAddBtn');
       const text = input ? input.value.trim() : '';
       if (!text) return;
 
-      hopperItems.unshift({
-        id: 'hop_' + Date.now(),
-        rawText: text,
-        createdAt: new Date().toISOString()
-      });
+      btn.disabled = true;
+      btn.innerText = 'Extracting...';
 
-      input.value = '';
-      saveHopper();
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-App-Key': APP_KEY
+          },
+          body: JSON.stringify({ action: 'HOPPER_PARSE', text })
+        });
 
-      const tray = document.getElementById('hopperTray');
-      const chevron = document.getElementById('hopperChevron');
-      if (tray && tray.classList.contains('collapsed')) {
-        tray.classList.remove('collapsed');
-        if (chevron) chevron.textContent = '▲';
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const extracted = data.items || [];
+
+        if (extracted.length > 0) {
+          extracted.forEach(str => {
+            hopperItems.unshift({
+              id: 'hop_' + Date.now() + Math.random(),
+              rawText: str,
+              createdAt: new Date().toISOString()
+            });
+          });
+        } else {
+          hopperItems.unshift({
+            id: 'hop_' + Date.now(),
+            rawText: text,
+            createdAt: new Date().toISOString()
+          });
+        }
+
+        input.value = '';
+        saveHopper();
+
+        const tray = document.getElementById('hopperTray');
+        const chevron = document.getElementById('hopperChevron');
+        if (tray && tray.classList.contains('collapsed')) {
+          tray.classList.remove('collapsed');
+          if (chevron) chevron.textContent = '▲';
+        }
+      } catch (err) {
+        console.error('Hopper LLM fallback triggered:', err);
+        // Resilient fallback: save raw thought directly if Worker fails
+        hopperItems.unshift({
+          id: 'hop_' + Date.now(),
+          rawText: text,
+          createdAt: new Date().toISOString()
+        });
+        input.value = '';
+        saveHopper();
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Capture';
       }
     };
 
@@ -1111,22 +1148,37 @@
        ========================================================================== */
     const micBtn = document.getElementById('micBtn');
     const promptInput = document.getElementById('promptInput');
+    const hopperMicBtn = document.getElementById('hopperMicBtn');
+    const hopperInput = document.getElementById('hopperInput');
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (SpeechRecognition) {
+      // 1. Sequencer Mic
       const rec = new SpeechRecognition();
       rec.continuous = false;
       rec.lang = 'en-US';
-
       rec.onstart = () => micBtn.classList.add('listening');
       rec.onend = () => micBtn.classList.remove('listening');
       rec.onresult = (e) => {
         promptInput.value = e.results[0][0].transcript;
         parseTasks();
       };
-
       micBtn.onclick = () => {
         try { rec.start(); } catch(e) { rec.stop(); }
+      };
+
+      // 2. Hopper Mic (Feeds directly to LLM Ingestion)
+      const hopperRec = new SpeechRecognition();
+      hopperRec.continuous = false;
+      hopperRec.lang = 'en-US';
+      hopperRec.onstart = () => hopperMicBtn.classList.add('recording');
+      hopperRec.onend = () => hopperMicBtn.classList.remove('recording');
+      hopperRec.onresult = (e) => {
+        hopperInput.value = e.results[0][0].transcript;
+        parseHopperInput();
+      };
+      hopperMicBtn.onclick = () => {
+        try { hopperRec.start(); } catch(e) { hopperRec.stop(); }
       };
     }
 
@@ -1135,7 +1187,7 @@
       if (e.key === 'Enter') sendForgeMessage();
     });
 
-    // Hopper Tray Toggle & Initial State Render
+    // Tray Toggle
     const toggleHopperBtn = document.getElementById('toggleHopperTray');
     if (toggleHopperBtn) {
       toggleHopperBtn.addEventListener('click', () => {
