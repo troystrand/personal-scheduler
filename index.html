@@ -1154,99 +1154,99 @@
     const hopperInput = document.getElementById('hopperInput');
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    function createRecognizer(buttonEl, onTranscript) {
-      if (!SpeechRecognition) {
-        buttonEl.onclick = () => {
-          alert('Web Speech API is unavailable in this container. Use the iOS keyboard microphone for seamless dictation.');
-        };
-        return null;
-      }
+    let activeVoiceTarget = null; // 'sequencer' | 'hopper' | null
 
+    if (SpeechRecognition) {
+      // SINGLE singleton instance to prevent iOS WebKit speech daemon collision
       const rec = new SpeechRecognition();
       rec.continuous = false;
       rec.interimResults = false;
       rec.lang = 'en-US';
 
-      let isRecording = false;
-      let activeStream = null;
-
       rec.onstart = () => {
-        isRecording = true;
-        buttonEl.classList.add(buttonEl.id === 'hopperVoiceBtn' ? 'recording' : 'listening');
+        if (activeVoiceTarget === 'hopper' && hopperVoiceBtn) {
+          hopperVoiceBtn.classList.add('recording');
+        } else if (activeVoiceTarget === 'sequencer' && micBtn) {
+          micBtn.classList.add('listening');
+        }
       };
 
       rec.onend = () => {
-        isRecording = false;
-        buttonEl.classList.remove('recording', 'listening');
-        if (activeStream) {
-          activeStream.getTracks().forEach(track => track.stop());
-          activeStream = null;
-        }
+        if (hopperVoiceBtn) hopperVoiceBtn.classList.remove('recording');
+        if (micBtn) micBtn.classList.remove('listening');
+        activeVoiceTarget = null;
       };
 
       rec.onerror = (e) => {
-        isRecording = false;
-        buttonEl.classList.remove('recording', 'listening');
-        if (activeStream) {
-          activeStream.getTracks().forEach(track => track.stop());
-          activeStream = null;
-        }
-        if (e.error !== 'no-speech' && e.error !== 'aborted') {
-          alert(`Speech Engine Error: ${e.error}`);
-        }
+        if (hopperVoiceBtn) hopperVoiceBtn.classList.remove('recording');
+        if (micBtn) micBtn.classList.remove('listening');
+        activeVoiceTarget = null;
+        console.warn('Speech recognition error:', e.error);
       };
 
       rec.onresult = (e) => {
-        const text = e.results?.[0]?.[0]?.transcript || '';
-        if (text) onTranscript(text);
-      };
+        const transcript = e.results?.[0]?.[0]?.transcript || '';
+        if (!transcript) return;
 
-      buttonEl.onclick = async () => {
-        try {
-          if (isRecording) {
-            rec.stop();
-            return;
-          }
-
-          // Prime iOS audio hardware explicitly before invoking speech recognition
-          if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            try {
-              activeStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            } catch (permErr) {
-              console.warn('Microphone stream priming skipped or rejected:', permErr);
-            }
-          }
-
-          rec.start();
-        } catch (err) {
-          console.error('Recognition start failure:', err);
-          isRecording = false;
-          buttonEl.classList.remove('recording', 'listening');
+        if (activeVoiceTarget === 'hopper') {
+          hopperInput.value = transcript;
+          parseHopperInput();
+        } else if (activeVoiceTarget === 'sequencer') {
+          promptInput.value = transcript;
+          parseTasks();
         }
       };
 
-      return rec;
+      // Handler for Hopper Mic
+      if (hopperVoiceBtn) {
+        hopperVoiceBtn.onclick = () => {
+          try {
+            if (activeVoiceTarget === 'hopper') {
+              rec.stop();
+            } else {
+              if (activeVoiceTarget) rec.stop();
+              activeVoiceTarget = 'hopper';
+              rec.start();
+            }
+          } catch (err) {
+            rec.stop();
+            activeVoiceTarget = null;
+          }
+        };
+      }
+
+      // Handler for Sequencer Mic
+      if (micBtn) {
+        micBtn.onclick = () => {
+          try {
+            if (activeVoiceTarget === 'sequencer') {
+              rec.stop();
+            } else {
+              if (activeVoiceTarget) rec.stop();
+              activeVoiceTarget = 'sequencer';
+              rec.start();
+            }
+          } catch (err) {
+            rec.stop();
+            activeVoiceTarget = null;
+          }
+        };
+      }
+    } else {
+      const fallbackMsg = () => alert('Speech recognition not available on this browser.');
+      if (hopperVoiceBtn) hopperVoiceBtn.onclick = fallbackMsg;
+      if (micBtn) micBtn.onclick = fallbackMsg;
     }
 
-    // 1. Sequencer Mic
-    createRecognizer(micBtn, (transcript) => {
-      promptInput.value = transcript;
-      parseTasks();
-    });
-
-    // 2. Dedicated Hopper Voice Button (Dictate -> Auto LLM Ingestion)
-    createRecognizer(hopperVoiceBtn, (transcript) => {
-      hopperInput.value = transcript;
-      parseHopperInput();
-    });
-
     // Hopper Enter Key Trigger
-    hopperInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        parseHopperInput();
-      }
-    });
+    if (hopperInput) {
+      hopperInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          parseHopperInput();
+        }
+      });
+    }
 
     document.getElementById('submitBtn').onclick = parseTasks;
     document.getElementById('forgeInput').addEventListener('keydown', (e) => {
