@@ -1,6 +1,4 @@
-name = "gemini-proxy"
+name = "personal-scheduler-proxy"
 main = "worker.js"
 compatibility_date = "2024-01-01"
-
-[vars]
-# Non-sensitive variables can go here
+workers_dev = true
