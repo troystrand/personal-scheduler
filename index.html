@@ -1157,10 +1157,10 @@
     let activeVoiceTarget = null; // 'sequencer' | 'hopper' | null
 
     if (SpeechRecognition) {
-      // SINGLE singleton instance to prevent iOS WebKit speech daemon collision
       const rec = new SpeechRecognition();
       rec.continuous = false;
-      rec.interimResults = false;
+      // Stream live speech tokens so you see your words immediately on screen
+      rec.interimResults = true;
       rec.lang = 'en-US';
 
       rec.onstart = () => {
@@ -1172,9 +1172,17 @@
       };
 
       rec.onend = () => {
+        const target = activeVoiceTarget;
         if (hopperVoiceBtn) hopperVoiceBtn.classList.remove('recording');
         if (micBtn) micBtn.classList.remove('listening');
         activeVoiceTarget = null;
+
+        // Auto-trigger ingestion when speaking naturally stops
+        if (target === 'hopper' && hopperInput && hopperInput.value.trim()) {
+          parseHopperInput();
+        } else if (target === 'sequencer' && promptInput && promptInput.value.trim()) {
+          parseTasks();
+        }
       };
 
       rec.onerror = (e) => {
@@ -1185,19 +1193,29 @@
       };
 
       rec.onresult = (e) => {
-        const transcript = e.results?.[0]?.[0]?.transcript || '';
-        if (!transcript) return;
+        let interimTranscript = '';
+        let finalTranscript = '';
 
-        if (activeVoiceTarget === 'hopper') {
-          hopperInput.value = transcript;
-          parseHopperInput();
-        } else if (activeVoiceTarget === 'sequencer') {
-          promptInput.value = transcript;
-          parseTasks();
+        for (let i = e.resultIndex; i < e.results.length; ++i) {
+          if (e.results[i].isFinal) {
+            finalTranscript += e.results[i][0].transcript;
+          } else {
+            interimTranscript += e.results[i][0].transcript;
+          }
+        }
+
+        const currentText = finalTranscript || interimTranscript;
+        if (!currentText) return;
+
+        // Live visual feedback directly in the field
+        if (activeVoiceTarget === 'hopper' && hopperInput) {
+          hopperInput.value = currentText;
+        } else if (activeVoiceTarget === 'sequencer' && promptInput) {
+          promptInput.value = currentText;
         }
       };
 
-      // Handler for Hopper Mic
+      // Hopper Mic Toggle
       if (hopperVoiceBtn) {
         hopperVoiceBtn.onclick = () => {
           try {
@@ -1206,6 +1224,7 @@
             } else {
               if (activeVoiceTarget) rec.stop();
               activeVoiceTarget = 'hopper';
+              if (hopperInput) hopperInput.value = '';
               rec.start();
             }
           } catch (err) {
@@ -1215,7 +1234,7 @@
         };
       }
 
-      // Handler for Sequencer Mic
+      // Sequencer Mic Toggle
       if (micBtn) {
         micBtn.onclick = () => {
           try {
@@ -1224,6 +1243,7 @@
             } else {
               if (activeVoiceTarget) rec.stop();
               activeVoiceTarget = 'sequencer';
+              if (promptInput) promptInput.value = '';
               rec.start();
             }
           } catch (err) {
