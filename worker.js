@@ -148,9 +148,9 @@ export default {
    >>> ANCHOR: ROUTE_INSERT_CALENDAR_SHEETS_START <<<
    ========================================================================== */
       if (body.action === 'INSERT') {
-        const events = Array.isArray(body.events) ? body.events : [];
-        if (!events.length) {
-          return new Response(JSON.stringify({ error: 'No events provided' }), { status: 400, headers: corsHeaders });
+        const blocks = Array.isArray(body.blocks) ? body.blocks : (Array.isArray(body.events) ? body.events : []);
+        if (!blocks.length) {
+          return new Response(JSON.stringify({ error: 'No blocks provided' }), { status: 400, headers: corsHeaders });
         }
 
         const accessToken = await getGoogleAccessToken(env.GOOGLE_CLIENT_EMAIL, env.GOOGLE_PRIVATE_KEY);
@@ -159,18 +159,28 @@ export default {
         const sheetRows = [];
         const timestamp = new Date().toISOString();
 
-        for (const ev of events) {
+        for (const blk of blocks) {
+          // Format atoms as markdown checkboxes in the description
+          let description = '';
+          if (Array.isArray(blk.atoms) && blk.atoms.length > 0) {
+            description = blk.atoms.map(a => `- [ ] ${a.text} (${a.est_minutes || 15}m)`).join('\n');
+          } else if (Array.isArray(blk.steps) && blk.steps.length > 0) {
+            description = blk.steps.join('\n');
+          } else {
+            description = blk.description || '';
+          }
+
           const gcalEvent = {
-            summary: ev.title || 'Untitled Task',
-            description: ev.steps ? ev.steps.join('\n') : (ev.description || ''),
-            location: ev.location || '',
-            colorId: ev.color_id || '9',
+            summary: blk.title || 'Untitled Block',
+            description: description,
+            location: blk.location || '',
+            colorId: blk.color_id || '9',
             start: {
-              dateTime: `${ev.date}T${ev.start_time}:00`,
+              dateTime: `${blk.date}T${blk.start_time}:00`,
               timeZone: 'America/Chicago',
             },
             end: {
-              dateTime: `${ev.date}T${ev.end_time || ev.start_time}:00`,
+              dateTime: `${blk.date}T${blk.end_time || blk.start_time}:00`,
               timeZone: 'America/Chicago',
             },
           };
@@ -191,10 +201,10 @@ export default {
 
           sheetRows.push([
             timestamp,
-            ev.date,
-            `${ev.start_time} - ${ev.end_time || ev.start_time}`,
-            ev.title || 'Untitled Task',
-            ev.color_id || '9'
+            blk.date,
+            `${blk.start_time} - ${blk.end_time || blk.start_time}`,
+            blk.title || 'Untitled Block',
+            blk.color_id || '9'
           ]);
         }
 
@@ -206,11 +216,11 @@ export default {
           }
         }
 
-        return new Response(JSON.stringify({ success: true, count: events.length }), { status: 200, headers: corsHeaders });
+        return new Response(JSON.stringify({ success: true, count: blocks.length }), { status: 200, headers: corsHeaders });
       }
-      /* ==========================================================================
-         >>> ANCHOR: ROUTE_INSERT_CALENDAR_SHEETS_END <<<
-         ========================================================================== */
+/* ==========================================================================
+   >>> ANCHOR: ROUTE_INSERT_CALENDAR_SHEETS_END <<<
+   ========================================================================== */
 
 /* ==========================================================================
          >>> ANCHOR: ROUTE_CODE_SNAPSHOT_START <<<
@@ -510,8 +520,8 @@ Output strictly valid JSON matching the requested schema.`
          ========================================================================== */
 
       /* ==========================================================================
-         >>> ANCHOR: ROUTE_TASK_SEQUENCING_START <<<
-         ========================================================================== */
+   >>> ANCHOR: ROUTE_TASK_SEQUENCING_START <<<
+   ========================================================================== */
       const prompt = body.prompt;
       if (!prompt) {
         return new Response(JSON.stringify({ error: 'Missing prompt' }), { status: 400, headers: corsHeaders });
@@ -524,15 +534,30 @@ Output strictly valid JSON matching the requested schema.`
         contents: [{ parts: [{ text: prompt }] }],
         systemInstruction: {
           parts: [{
-            text: `You are an executive function scheduling engine. Reference today's date: ${currentDate}. Timezone: America/Chicago.
-Parse natural language task brain dumps into a clear, sorted list of sequential events with realistic time allocations:
-1. Assign start_time and end_time (HH:MM 24-hour format). Keep default durations realistic (15m, 30m, 45m).
-2. Assign color_id:
-   - "11" (Tomato): High-friction, dreaded administrative tasks
-   - "8" (Graphite): Quick errands, maintenance, chores
+            text: `You are an ADHD executive-function bundling and scheduling engine.
+Reference Date: ${currentDate}. Timezone: America/Chicago.
+
+TAXONOMY DOMAINS:
+- Assessment (Testing, rosters, accommodations)
+- LMS & Gradebook (Entering scores, grading, LMS posts)
+- Reading Intervention (LETRS, reflection packets, student phonics)
+- Data & Reporting (Spreadsheets, Apps Script, attendance archives)
+- Finances (Bills, budget, woodworking shop tracking)
+- Health & Fitness (Gym, cardio, meal prep)
+- Social & Life Admin (Errands, messages, household maintenance)
+
+BUNDLING & DURATION LAWS:
+1. Every distinct task from the prompt must become an atom inside an 'atoms' list.
+2. The 30-Minute Rule:
+   - Micro-tasks (<= 30 min) MUST NOT stand alone. Bundle them by domain into a cohesive block (e.g. "Assessment Batch", "Reading Intervention Admin"). The block duration equals the sum of atom durations (capped between 30m and 60m).
+   - Major tasks (> 30 min) become their own standalone block with is_standalone: true.
+3. Chronological Sequencing:
+   - Assign realistic start_time and end_time (HH:MM 24h) starting after the current morning time or honoring user anchor times.
+4. Colors:
+   - "11" (Tomato): High-friction, administrative or grading tasks
+   - "8" (Graphite): Quick errands, maintenance, life admin
    - "2" (Sage): Restorative activities, workouts, breaks
-   - "9" (Blueberry): Fixed appointments or commitments
-3. If an item carries noticeable initiation friction, provide 3 short, concrete starter steps in the 'steps' array to lower activation resistance.`
+   - "9" (Blueberry): Fixed appointments or core intervention sessions.`
           }]
         },
         generationConfig: {
@@ -540,28 +565,42 @@ Parse natural language task brain dumps into a clear, sorted list of sequential 
           response_schema: {
             type: 'OBJECT',
             properties: {
-              events: {
+              blocks: {
                 type: 'ARRAY',
                 items: {
                   type: 'OBJECT',
                   properties: {
+                    id: { type: 'STRING' },
                     title: { type: 'STRING' },
+                    domain: { 
+                      type: 'STRING',
+                      enum: ['Assessment', 'LMS & Gradebook', 'Reading Intervention', 'Data & Reporting', 'Finances', 'Health & Fitness', 'Social & Life Admin']
+                    },
                     date: { type: 'STRING', description: 'YYYY-MM-DD' },
                     start_time: { type: 'STRING', description: 'HH:MM' },
                     end_time: { type: 'STRING', description: 'HH:MM' },
                     duration_minutes: { type: 'INTEGER' },
                     color_id: { type: 'STRING', enum: ['11', '8', '2', '9'] },
-                    friction_level: { type: 'STRING', enum: ['low', 'medium', 'high'] },
-                    steps: {
+                    is_standalone: { type: 'BOOLEAN' },
+                    atoms: {
                       type: 'ARRAY',
-                      items: { type: 'STRING' }
+                      items: {
+                        type: 'OBJECT',
+                        properties: {
+                          id: { type: 'STRING' },
+                          text: { type: 'STRING' },
+                          est_minutes: { type: 'INTEGER' },
+                          done: { type: 'BOOLEAN' }
+                        },
+                        required: ['id', 'text', 'est_minutes', 'done']
+                      }
                     }
                   },
-                  required: ['title', 'date', 'start_time', 'end_time', 'duration_minutes', 'color_id', 'friction_level']
+                  required: ['id', 'title', 'domain', 'date', 'start_time', 'end_time', 'duration_minutes', 'color_id', 'is_standalone', 'atoms']
                 }
               }
             },
-            required: ['events']
+            required: ['blocks']
           }
         }
       };
@@ -578,12 +617,11 @@ Parse natural language task brain dumps into a clear, sorted list of sequential 
       }
 
       const parsed = JSON.parse(resText);
-      const outputText = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '{"events":[]}';
+      const outputText = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '{"blocks":[]}';
       return new Response(outputText, { status: 200, headers: corsHeaders });
-      /* ==========================================================================
-         >>> ANCHOR: ROUTE_TASK_SEQUENCING_END <<<
-         ========================================================================== */
-
+/* ==========================================================================
+   >>> ANCHOR: ROUTE_TASK_SEQUENCING_END <<<
+   ========================================================================== */
     } catch (err) {
       return new Response(JSON.stringify({ error: err.message || 'Worker failure' }), { status: 500, headers: corsHeaders });
     }
