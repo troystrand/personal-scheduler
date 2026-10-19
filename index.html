@@ -54,7 +54,6 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Applied dynamically to freeze background scroll when recording */
     body.recording-locked {
       overflow: hidden !important;
       touch-action: none !important;
@@ -124,7 +123,6 @@
     }
     .hopper-input-wrap input:focus { outline: 1px solid var(--primary); border-color: var(--primary); }
 
-    /* Push-to-Talk Capture Button */
     .btn-hopper-submit {
       background: #111c2e;
       color: var(--primary);
@@ -143,12 +141,11 @@
       user-select: none;
       -webkit-user-select: none;
       -webkit-touch-callout: none;
-      touch-action: none; /* Prevents iOS scroll gesture stealing */
+      touch-action: none;
     }
     .btn-hopper-submit:hover { background: #0c4a6e; border-color: var(--primary); color: #fff; }
     .btn-hopper-submit:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* Walkie-Talkie Active State */
     .btn-hopper-submit.ptt-active {
       background: var(--ptt-orange) !important;
       border-color: var(--ptt-orange) !important;
@@ -305,7 +302,7 @@
       font-size: 0.8rem;
     }
 
-    /* Primary Sequencer Area */
+    /* TODAY'S WORKBENCH (REFINED SEQUENCER PANEL) */
     .input-panel {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -317,40 +314,153 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.35);
     }
 
+    .workbench-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .workbench-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--primary);
+    }
+    .workbench-counter {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    /* Staged Chips Flow */
+    .staged-chips-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 2px 0;
+    }
+    .staged-chips-container.hidden { display: none; }
+
+    .staged-chip {
+      background: #090e17;
+      border: 1px solid #0284c7;
+      color: #e0f2fe;
+      border-radius: 6px;
+      padding: 4px 8px 4px 10px;
+      font-size: 0.78rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      max-width: 100%;
+    }
+    .staged-chip-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 220px;
+    }
+    .staged-chip-remove {
+      background: transparent;
+      border: none;
+      color: #7dd3fc;
+      cursor: pointer;
+      font-size: 0.75rem;
+      padding: 0 2px;
+      line-height: 1;
+    }
+    .staged-chip-remove:hover { color: #f87171; }
+
     textarea {
       width: 100%;
-      min-height: 80px;
+      min-height: 70px;
       background: #090e17;
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 12px;
       color: var(--text);
-      font-size: 0.92rem;
+      font-size: 0.9rem;
       font-family: inherit;
       resize: vertical;
+      line-height: 1.4;
     }
     textarea:focus { outline: 1px solid var(--primary); border-color: var(--primary); }
 
-    .button-row { display: flex; gap: 8px; }
-    
+    /* Energy & Rhythm Modifiers */
+    .pacing-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .pacing-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      margin-right: 2px;
+    }
+    .pacing-pill {
+      background: #090e17;
+      border: 1px solid var(--border);
+      color: var(--text-sub);
+      border-radius: 9999px;
+      padding: 3px 10px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .pacing-pill:hover { border-color: var(--primary); color: var(--text); }
+    .pacing-pill.active {
+      background: #0c4a6e;
+      border-color: var(--primary);
+      color: #38bdf8;
+    }
+
+    /* Workbench Controls Footer */
+    .workbench-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 2px;
+    }
+
     button.btn-main {
       flex: 1;
       background: var(--primary);
       color: #0f172a;
       border: none;
       border-radius: 8px;
-      padding: 12px;
-      font-weight: 600;
+      padding: 12px 16px;
+      font-weight: 700;
+      font-size: 0.88rem;
       cursor: pointer;
       box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
-      transition: background 0.15s ease, transform 0.1s ease;
-      user-select: none;
-      -webkit-user-select: none;
-      -webkit-touch-callout: none;
-      touch-action: none;
+      transition: background 0.15s ease;
     }
     button.btn-main:hover { background: var(--primary-hover); color: #fff; }
     button.btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-workbench-reset {
+      background: #090e17;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 8px;
+      padding: 0 12px;
+      height: 44px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+    .btn-workbench-reset:hover { color: var(--record-red); border-color: var(--record-red); }
 
     /* Task Sorting List */
     .task-list { display: flex; flex-direction: column; gap: 10px; }
@@ -588,7 +698,7 @@
           <input 
             type="text" 
             id="hopperInput" 
-            placeholder="Quick capture or hold Capture to dictate..." 
+            placeholder="Quick dump (or hold Capture to speak)..." 
             autocomplete="off" 
           />
         </div>
@@ -610,14 +720,38 @@
       </div>
     </section>
 
-    <!-- MAIN SEQUENCER INPUT PANEL -->
-    <div class="input-panel">
-      <textarea id="promptInput" placeholder="Morning list or hold Parse & Sequence to dictate..."></textarea>
-      <div class="button-row">
-        <button id="submitBtn" class="btn-main" type="button">Parse & Sequence</button>
+    <!-- TODAY'S WORKBENCH (SEQUENCER PANEL) -->
+    <section class="input-panel">
+      <div class="workbench-header">
+        <span class="workbench-label">Today's Workbench</span>
+        <span class="workbench-counter" id="workbenchCount">0 items staged</span>
       </div>
-    </div>
 
+      <!-- Hopper Chips Tray -->
+      <div id="stagedChips" class="staged-chips-container hidden"></div>
+
+      <!-- Anchor / Context Notes -->
+      <textarea 
+        id="promptInput" 
+        placeholder="Morning context & fixed anchors (e.g. 'Meeting at 10, workout at 4, feeling low energy')..."
+      ></textarea>
+
+      <!-- Energy & Pacing Pills -->
+      <div class="pacing-row">
+        <span class="pacing-label">Rhythm:</span>
+        <span class="pacing-pill" data-mode="balanced" onclick="selectPacing(this)">⚡ Balanced</span>
+        <span class="pacing-pill" data-mode="low-friction" onclick="selectPacing(this)">🛡️ Low Friction</span>
+        <span class="pacing-pill" data-mode="sprint" onclick="selectPacing(this)">🔥 Focus Sprint</span>
+      </div>
+
+      <!-- Action Row -->
+      <div class="workbench-actions">
+        <button id="submitBtn" class="btn-main" type="button">Sequence Today</button>
+        <button type="button" class="btn-workbench-reset" title="Clear Workbench" onclick="resetWorkbench()">✕</button>
+      </div>
+    </section>
+
+    <!-- RESULTING TIMELINE -->
     <div id="taskList" class="task-list"></div>
 
     <button id="saveBtn" class="btn-save hidden" onclick="saveToCalendar()">Write Order to Calendar</button>
@@ -656,7 +790,8 @@
        ========================================================================== */
     let hopperItems = JSON.parse(localStorage.getItem('hopper_items') || '[]');
     let selectedHopperIds = new Set();
-    let stagedHopperItemIds = [];
+    let stagedWorkbenchTasks = []; // Array of { id, text } staged as chips
+    let activePacingMode = null;   // 'balanced' | 'low-friction' | 'sprint' | null
 
     function saveHopper() {
       localStorage.setItem('hopper_items', JSON.stringify(hopperItems));
@@ -726,33 +861,86 @@
       renderHopper();
     };
 
+    /**
+     * Pulls checked Hopper items directly into Workbench chips
+     */
     window.stageSelectedHopperItems = function() {
       if (selectedHopperIds.size === 0) return;
 
       const itemsToStage = hopperItems.filter(item => selectedHopperIds.has(item.id));
-      const formattedTasks = itemsToStage.map(item => `- ${item.rawText}`).join('\n');
+      itemsToStage.forEach(item => {
+        if (!stagedWorkbenchTasks.some(t => t.id === item.id)) {
+          stagedWorkbenchTasks.push({ id: item.id, text: item.rawText });
+        }
+      });
 
-      const promptInput = document.getElementById('promptInput');
-      if (promptInput) {
-        const existingText = promptInput.value.trim();
-        const leadText = `Tasks from Hopper:\n${formattedTasks}`;
-        
-        promptInput.value = existingText 
-          ? `${leadText}\n\n${existingText}` 
-          : `${leadText}\n\nToday's context: `;
-        
-        promptInput.focus();
-        promptInput.setSelectionRange(promptInput.value.length, promptInput.value.length);
-      }
-
-      stagedHopperItemIds = Array.from(selectedHopperIds);
       selectedHopperIds.clear();
       renderHopper();
+      renderWorkbench();
+
+      // Collapse the hopper tray gracefully after pull
+      const tray = document.getElementById('hopperTray');
+      const chevron = document.getElementById('hopperChevron');
+      if (tray && !tray.classList.contains('collapsed')) {
+        tray.classList.add('collapsed');
+        if (chevron) chevron.textContent = '▼';
+      }
     };
 
     /**
-     * Unified Hopper Parser: Accepts text string OR { audioBase64, mimeType }
+     * Renders Staged Chips & updates the Sequence button label
      */
+    function renderWorkbench() {
+      const container = document.getElementById('stagedChips');
+      const countLabel = document.getElementById('workbenchCount');
+      const submitBtn = document.getElementById('submitBtn');
+      if (!container || !countLabel || !submitBtn) return;
+
+      const count = stagedWorkbenchTasks.length;
+      countLabel.textContent = `${count} staged obligation${count === 1 ? '' : 's'}`;
+
+      if (count === 0) {
+        container.classList.add('hidden');
+        container.innerHTML = '';
+        submitBtn.innerText = 'Sequence Today';
+      } else {
+        container.classList.remove('hidden');
+        container.innerHTML = stagedWorkbenchTasks.map((t, idx) => `
+          <div class="staged-chip">
+            <span class="staged-chip-text" title="${t.text}">${t.text}</span>
+            <button type="button" class="staged-chip-remove" onclick="removeStagedTask(${idx})">✕</button>
+          </div>
+        `).join('');
+        submitBtn.innerText = `⚡ Sequence ${count} Item${count === 1 ? '' : 's'} into Day`;
+      }
+    }
+
+    window.removeStagedTask = function(index) {
+      stagedWorkbenchTasks.splice(index, 1);
+      renderWorkbench();
+    };
+
+    window.resetWorkbench = function() {
+      stagedWorkbenchTasks = [];
+      const promptInput = document.getElementById('promptInput');
+      if (promptInput) promptInput.value = '';
+      activePacingMode = null;
+      document.querySelectorAll('.pacing-pill').forEach(p => p.classList.remove('active'));
+      renderWorkbench();
+    };
+
+    window.selectPacing = function(pillEl) {
+      const mode = pillEl.getAttribute('data-mode');
+      if (activePacingMode === mode) {
+        activePacingMode = null;
+        pillEl.classList.remove('active');
+      } else {
+        document.querySelectorAll('.pacing-pill').forEach(p => p.classList.remove('active'));
+        pillEl.classList.add('active');
+        activePacingMode = mode;
+      }
+    };
+
     window.parseHopperInput = async function(audioPayload = null) {
       const input = document.getElementById('hopperInput');
       const btn = document.getElementById('hopperAddBtn');
@@ -927,17 +1115,38 @@
       const el = document.getElementById(`steps_${index}`);
       if (el) el.classList.toggle('hidden');
     };
-  /* ==========================================================================
+ /* ==========================================================================
        >>> ANCHOR: TASK_API_PARSING_AND_SAVE_START <<<
        ========================================================================== */
     async function parseTasks() {
       const input = document.getElementById('promptInput');
       const btn = document.getElementById('submitBtn');
-      const text = input.value.trim();
-      if (!text) return;
+      const contextText = input ? input.value.trim() : '';
 
+      if (stagedWorkbenchTasks.length === 0 && !contextText) {
+        alert('Stage some items from The Hopper or type your morning plan first.');
+        return;
+      }
+
+      const originalBtnText = btn.innerText;
       btn.disabled = true;
-      btn.innerText = 'Sorting...';
+      btn.innerText = 'Sequencing...';
+
+      // Assemble unified prompt payload
+      let promptParts = [];
+      if (stagedWorkbenchTasks.length > 0) {
+        promptParts.push('Specific obligations to sequence into today:\n' + stagedWorkbenchTasks.map(t => `- ${t.text}`).join('\n'));
+      }
+      if (contextText) {
+        promptParts.push(`Daily anchors and context:\n${contextText}`);
+      }
+      if (activePacingMode === 'low-friction') {
+        promptParts.push('PACING DIRECTIVE: Low-friction / spoon-saver mode. Generous 15m transition buffers between tasks, sequence high-friction administrative items earlier or break them down heavily, protect rest periods.');
+      } else if (activePacingMode === 'sprint') {
+        promptParts.push('PACING DIRECTIVE: Focus sprint mode. Tight sequencing, consolidate similar administrative items together, minimize downtime.');
+      }
+
+      const finalPrompt = promptParts.join('\n\n');
 
       try {
         const res = await fetch(WORKER_URL, {
@@ -946,7 +1155,7 @@
             'Content-Type': 'application/json',
             'X-App-Key': APP_KEY
           },
-          body: JSON.stringify({ prompt: text })
+          body: JSON.stringify({ prompt: finalPrompt })
         });
 
         const raw = await res.text();
@@ -956,19 +1165,18 @@
         currentEvents = data.events || [];
         renderTaskList();
 
-        // If items were staged from The Hopper, prune them out now that they are sequenced
-        if (stagedHopperItemIds.length > 0) {
-          hopperItems = hopperItems.filter(item => !stagedHopperItemIds.includes(item.id));
-          stagedHopperItemIds = [];
-          saveHopper();
-        }
+        // Remove sequenced tasks from Hopper permanently
+        const sequencedIds = stagedWorkbenchTasks.map(t => t.id);
+        hopperItems = hopperItems.filter(item => !sequencedIds.includes(item.id));
+        saveHopper();
 
-        input.value = '';
+        // Clear workbench
+        resetWorkbench();
       } catch (err) {
-        alert(err.message);
+        alert('Sequencing failed: ' + err.message);
+        btn.innerText = originalBtnText;
       } finally {
         btn.disabled = false;
-        btn.innerText = 'Parse & Sequence';
       }
     }
 
@@ -1232,14 +1440,15 @@
     let currentStream = null;
 
     function getSupportedMimeType() {
-      const types = [
+      const candidates = [
         'audio/mp4',
         'audio/webm;codecs=opus',
         'audio/webm',
+        'audio/ogg;codecs=opus',
         'audio/aac'
       ];
-      for (const t of types) {
-        if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) {
+      for (const t of candidates) {
+        if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) {
           return t;
         }
       }
@@ -1250,9 +1459,8 @@
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => {
-          const result = reader.result;
-          const base64Data = result.split(',')[1];
-          resolve(base64Data);
+          const res = reader.result;
+          resolve(res.split(',')[1]);
         };
         reader.onerror = reject;
         reader.readAsDataURL(blob);
@@ -1267,7 +1475,7 @@
         try {
           currentStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         } catch (err) {
-          alert('Microphone access rejected or unavailable: ' + err.message);
+          alert('Microphone access unavailable or denied: ' + err.message);
           buttonEl.classList.remove('ptt-active');
           buttonEl.innerText = originalText;
           document.body.classList.remove('recording-locked');
@@ -1275,7 +1483,6 @@
           return;
         }
 
-        // If user lifted before mic hardware opened
         if (!isRecordingPTT) {
           if (currentStream) {
             currentStream.getTracks().forEach(t => t.stop());
@@ -1294,11 +1501,12 @@
         }
 
         mediaRecorder.ondataavailable = (e) => {
-          if (e.data && e.data.size > 0) audioChunks.push(e.data);
+          if (e.data && e.data.size > 0) {
+            audioChunks.push(e.data);
+          }
         };
 
         mediaRecorder.onstop = async () => {
-          // Shut down hardware tracks AFTER buffer flush
           if (currentStream) {
             currentStream.getTracks().forEach(t => t.stop());
             currentStream = null;
@@ -1306,18 +1514,24 @@
 
           document.body.classList.remove('recording-locked');
 
-          if (audioChunks.length === 0) return;
+          if (audioChunks.length === 0) {
+            alert('No audio recorded. Check microphone input.');
+            return;
+          }
 
-          const finalMime = mediaRecorder.mimeType || 'audio/mp4';
+          const finalMime = mediaRecorder.mimeType || mimeType || 'audio/mp4';
           const audioBlob = new Blob(audioChunks, { type: finalMime });
 
-          if (audioBlob.size > 500) {
+          try {
             const base64Data = await blobToBase64(audioBlob);
             onAudioCaptured({ data: base64Data, mimeType: finalMime });
+          } catch (encodeErr) {
+            alert('Failed to process audio: ' + encodeErr.message);
           }
         };
 
-        mediaRecorder.start();
+        // Request data slice every 250ms to guarantee data chunks are populated
+        mediaRecorder.start(250);
         buttonEl.innerText = 'Listening...';
       }
 
@@ -1328,6 +1542,8 @@
         buttonEl.innerText = originalText;
 
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          // Request any remaining data before stop
+          try { mediaRecorder.requestData(); } catch (e) {}
           mediaRecorder.stop();
         } else {
           document.body.classList.remove('recording-locked');
@@ -1338,9 +1554,8 @@
         }
       }
 
-      // Pointer event handlers without setPointerCapture interference
+      // Pointer event handlers without premature preventDefault
       buttonEl.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
         recordingTimer = setTimeout(() => {
           isRecordingPTT = true;
           buttonEl.classList.add('ptt-active');
@@ -1350,7 +1565,6 @@
       });
 
       buttonEl.addEventListener('pointerup', (e) => {
-        e.preventDefault();
         if (recordingTimer) {
           clearTimeout(recordingTimer);
           recordingTimer = null;
@@ -1365,7 +1579,7 @@
         }
       });
 
-      buttonEl.addEventListener('pointercancel', (e) => {
+      buttonEl.addEventListener('pointercancel', () => {
         if (recordingTimer) {
           clearTimeout(recordingTimer);
           recordingTimer = null;
@@ -1378,14 +1592,14 @@
       buttonEl.addEventListener('contextmenu', (e) => e.preventDefault());
     }
 
-    // Bind Hopper PTT
+    // Attach PTT to Hopper Capture
     attachHardwarePTT(
       hopperAddBtn,
       (audioPayload) => parseHopperInput(audioPayload),
       () => parseHopperInput()
     );
 
-    // Bind Sequencer: Clean tap for text sequencing
+    // Sequence tap
     if (submitBtn) {
       submitBtn.onclick = () => parseTasks();
     }
@@ -1408,7 +1622,7 @@
       });
     }
 
-    // Tray Toggle
+    // Hopper Tray Toggle
     const toggleHopperBtn = document.getElementById('toggleHopperTray');
     if (toggleHopperBtn) {
       toggleHopperBtn.addEventListener('click', () => {
@@ -1422,6 +1636,7 @@
     }
 
     renderHopper();
+    renderWorkbench();
     /* ==========================================================================
        >>> ANCHOR: VOICE_RECOGNITION_SETUP_END <<<
        ========================================================================== */
