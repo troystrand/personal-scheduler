@@ -40,12 +40,9 @@
       padding: 0;
     }
 
-    html, body {
+    html {
       width: 100%;
-      max-width: 100%;
       overflow-x: hidden;
-      position: relative;
-      touch-action: pan-y;
       -webkit-text-size-adjust: 100%;
     }
 
@@ -59,6 +56,8 @@
       min-height: 100vh;
       min-height: -webkit-fill-available;
       -webkit-font-smoothing: antialiased;
+      width: 100%;
+      overflow-x: hidden;
     }
 
     .container {
@@ -122,7 +121,7 @@
       border-radius: 8px;
       padding: 11px 12px;
       color: var(--text);
-      font-size: 16px; /* Prevents auto-zoom in iOS */
+      font-size: 16px;
       font-family: inherit;
     }
     .hopper-input-wrap input:focus { outline: 1px solid var(--primary); border-color: var(--primary); }
@@ -271,7 +270,7 @@
       border-radius: 8px;
       padding: 12px;
       color: var(--text);
-      font-size: 16px; /* Prevents auto-zoom in iOS */
+      font-size: 16px;
       font-family: inherit;
     }
     textarea:focus { outline: 1px solid var(--primary); }
@@ -465,14 +464,14 @@
       flex-shrink: 0;
     }
 
-    /* FORGE DRAWER: BULLETPROOF SAFARI / KEYBOARD INSET */
+    /* FORGE DRAWER: BULLETPROOF TRANSLATE-CENTERED INSET */
     .forge-drawer {
       position: fixed;
-      inset: auto 0 0 0;
-      width: 100%;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 16px);
       max-width: 580px;
-      margin-left: auto;
-      margin-right: auto;
       background: #090e17;
       border-top: 2px solid var(--primary);
       border-left: 1px solid var(--border);
@@ -484,9 +483,8 @@
       display: flex;
       flex-direction: column;
       border-radius: 14px 14px 0 0;
-      box-sizing: border-box;
+      padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
       overflow: hidden;
-      padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
     }
 
     .forge-header {
@@ -499,7 +497,6 @@
       border-radius: 14px 14px 0 0;
       width: 100%;
       flex-shrink: 0;
-      box-sizing: border-box;
     }
     .forge-title { font-size: 0.82rem; font-weight: 700; color: var(--primary); }
     .forge-header-actions { display: flex; gap: 8px; align-items: center; }
@@ -516,7 +513,6 @@
       flex-direction: column;
       gap: 12px;
       width: 100%;
-      box-sizing: border-box;
       -webkit-overflow-scrolling: touch;
     }
     .chat-msg {
@@ -528,7 +524,6 @@
       font-size: 0.84rem;
       word-break: break-word;
       overflow-wrap: anywhere;
-      box-sizing: border-box;
     }
     .chat-msg pre, .chat-msg code {
       max-width: 100%;
@@ -555,41 +550,41 @@
       width: 100%;
     }
 
-    /* THE INPUT BAR: LOCKED INSET GRID */
+    /* THE INPUT BAR: DEDICATED MARGIN BOUNDARY FOR SEND BUTTON */
     .forge-input-bar {
-      display: grid;
-      grid-template-columns: 1fr auto;
+      display: flex;
       align-items: center;
       gap: 8px;
       width: 100%;
-      padding: 8px 12px;
+      padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px)) 12px;
       border-top: 1px solid var(--border);
       background: #0f172a;
-      box-sizing: border-box;
       flex-shrink: 0;
     }
     .forge-input-bar input {
-      width: 100%;
+      flex: 1 1 auto;
+      width: 50%;
       min-width: 0;
       background: #090e17;
       border: 1px solid var(--border);
       border-radius: 8px;
       color: #fff;
       padding: 10px 12px;
-      font-size: 16px; /* Strict 16px to prevent iOS auto-zoom */
-      box-sizing: border-box;
+      font-size: 16px;
     }
     .forge-input-bar button {
+      flex: 0 0 68px;
+      width: 68px;
       background: var(--primary);
       color: #0f172a;
       border: none;
       border-radius: 8px;
-      padding: 10px 16px;
+      padding: 10px 0;
       font-weight: 700;
       font-size: 0.88rem;
       cursor: pointer;
+      text-align: center;
       white-space: nowrap;
-      box-sizing: border-box;
     }
     .hidden { display: none !important; }
   </style>
