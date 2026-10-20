@@ -2151,5 +2151,32 @@
   ▲▲▲ ANCHOR: VOICE_RECOGNITION_SETUP_END ▲▲▲
 █████████████████████████████████████████████████████████████████████████████*/
   </script>
+  <script>
+  // Mobile Debug & Force Pull Interceptor
+  (function() {
+    const originalCapture = window.parseHopperInput;
+    window.parseHopperInput = async function(audioPayload = null) {
+      const input = document.getElementById('hopperInput');
+      const val = input ? input.value.trim() : '';
+
+      if (val === 'FORCE_PULL') {
+        localStorage.setItem('last_state_timestamp', '0');
+        if (typeof lastStateTimestamp !== 'undefined') {
+          lastStateTimestamp = 0;
+        }
+        if (input) input.value = '';
+        if (typeof window.pullLatestState === 'function') {
+          await window.pullLatestState();
+        }
+        alert('Local timestamp reset. State pulled from edge.');
+        return;
+      }
+
+      if (typeof originalCapture === 'function') {
+        return originalCapture(audioPayload);
+      }
+    };
+  })();
+</script>
 </body>
 </html>
