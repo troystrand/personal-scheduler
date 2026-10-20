@@ -913,22 +913,34 @@
       }
     };
 
-    // Robust Multi-Platform Wake Triggers
+    // --- ROBUST CROSS-PLATFORM STATE WATCHERS ---
+    
+    // 1. Instant re-sync on tab switch or window focus
     window.addEventListener('focus', () => window.pullLatestState());
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') window.pullLatestState();
     });
     window.addEventListener('pageshow', () => window.pullLatestState());
 
-    // Throttled touch trigger to catch resumption in standalone WebKit
-    let lastTouchPull = 0;
-    document.addEventListener('touchstart', () => {
+    // 2. Throttled activity pulse (touch on iOS + mouse/keyboard on desktop)
+    let lastActivityPull = 0;
+    function pulseOnActivity() {
       const now = Date.now();
-      if (now - lastTouchPull > 4000) {
-        lastTouchPull = now;
+      if (now - lastActivityPull > 4000) {
+        lastActivityPull = now;
         window.pullLatestState();
       }
-    }, { passive: true });
+    }
+    document.addEventListener('touchstart', pulseOnActivity, { passive: true });
+    document.addEventListener('mousemove', pulseOnActivity, { passive: true });
+    document.addEventListener('keydown', pulseOnActivity, { passive: true });
+
+    // 3. Ambient Heartbeat (checks edge every 15s when browser tab is actively visible)
+    setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        window.pullLatestState();
+      }
+    }, 15000);
 
     // Toggle Preview Drawer on Plan screen
     window.toggleScheduleDrawer = function() {
@@ -1527,7 +1539,7 @@
       try {
         const res = await fetch(WORKER_URL, {
           method: 'POST',
-          headers: {
+          headers: { 
             'Content-Type': 'application/json',
             'X-App-Key': APP_KEY
           },
