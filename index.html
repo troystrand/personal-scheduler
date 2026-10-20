@@ -105,49 +105,56 @@
       color: var(--primary);
     }
 
-/* DECLUTTERED FOYER: HERO HOPPER */
+    /* THE HERO FOYER HOPPER */
     .hopper-section {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: 16px;
-      padding: 16px;
+      padding: 18px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      gap: 14px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+      margin-top: 4px;
     }
 
-    .hopper-bar { display: flex; gap: 10px; align-items: flex-start; }
-    .hopper-input-wrap { flex: 1; min-width: 0; }
+    .hopper-bar { 
+      display: flex; 
+      gap: 10px; 
+      align-items: stretch; 
+    }
+    .hopper-input-wrap { 
+      flex: 1; 
+      min-width: 0; 
+    }
     .hopper-input-wrap textarea {
       width: 100%;
       background: #090e17;
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px;
+      border-radius: 12px;
+      padding: 16px 16px;
       color: var(--text);
-      font-size: 16px;
+      font-size: 1.02rem;
       font-family: inherit;
-      line-height: 1.4;
+      line-height: 1.45;
       resize: none;
-      min-height: 52px;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
-      transition: border-color 0.15s ease;
+      min-height: 72px;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.4);
+      transition: all 0.18s ease;
     }
-    .hopper-input-wrap textarea:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 1px var(--primary);
+    .hopper-input-wrap textarea:focus { 
+      outline: none; 
+      border-color: var(--primary); 
+      box-shadow: 0 0 0 1px var(--primary), inset 0 2px 6px rgba(0,0,0,0.4); 
     }
 
     .btn-hopper-submit {
       background: #111c2e;
       color: var(--primary);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0 18px;
-      height: 52px;
-      font-size: 0.9rem;
+      border-radius: 12px;
+      padding: 0 20px;
+      font-size: 0.95rem;
       font-weight: 700;
       cursor: pointer;
       display: inline-flex;
@@ -170,48 +177,48 @@
       align-items: center;
       cursor: pointer;
       user-select: none;
-      padding: 2px 2px;
+      padding: 6px 4px 2px 4px;
     }
     .hopper-title {
-      font-size: 0.75rem;
+      font-size: 0.78rem;
       font-weight: 700;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--text-muted);
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
     .hopper-count-badge {
       background: #090e17;
       border: 1px solid var(--border);
       color: var(--primary);
-      font-size: 0.7rem;
-      font-weight: 600;
-      padding: 1px 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 2px 8px;
       border-radius: 9999px;
     }
-    .hopper-chevron { color: var(--text-muted); font-size: 0.7rem; }
+    .hopper-chevron { color: var(--text-muted); font-size: 0.75rem; }
     .hopper-tray.collapsed { display: none; }
-    .hopper-items { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
+    .hopper-items { display: flex; flex-direction: column; gap: 8px; padding-top: 6px; }
 
     .hopper-card {
       background: #090e17;
       border: 1px dashed var(--border);
-      border-radius: 8px;
-      padding: 8px 12px;
+      border-radius: 10px;
+      padding: 10px 14px;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
     }
     .hopper-card.selected { border-color: var(--primary); background: rgba(56, 189, 248, 0.05); }
 
     .hopper-check {
       appearance: none;
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
       border: 1px solid var(--border);
-      border-radius: 4px;
+      border-radius: 6px;
       background: #111c2e;
       cursor: pointer;
       display: flex;
@@ -220,33 +227,33 @@
       flex-shrink: 0;
     }
     .hopper-check:checked { background: var(--primary); border-color: var(--primary); }
-    .hopper-check:checked::after { content: '✓'; color: #090e17; font-size: 0.75rem; font-weight: 900; }
-    .hopper-text { font-size: 0.85rem; color: var(--text-sub); flex: 1; cursor: pointer; }
+    .hopper-check:checked::after { content: '✓'; color: #090e17; font-size: 0.8rem; font-weight: 900; }
+    .hopper-text { font-size: 0.88rem; color: var(--text-sub); flex: 1; cursor: pointer; }
     .hopper-actions { display: flex; gap: 4px; align-items: center; }
-    .hopper-delete-btn { background: transparent; color: var(--text-muted); border: none; padding: 4px 6px; font-size: 0.75rem; cursor: pointer; }
+    .hopper-delete-btn { background: transparent; color: var(--text-muted); border: none; padding: 4px 6px; font-size: 0.8rem; cursor: pointer; }
     .hopper-delete-btn:hover { color: var(--record-red); }
 
     .hopper-batch-bar {
-      margin-top: 6px;
-      padding-top: 8px;
+      margin-top: 8px;
+      padding-top: 10px;
       border-top: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
-      gap: 8px;
+      gap: 10px;
     }
     .btn-stage-hopper {
       flex: 1;
       background: #0c4a6e;
       border: 1px solid var(--primary);
       color: #bae6fd;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 0.78rem;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.84rem;
       font-weight: 700;
       cursor: pointer;
     }
-    .btn-clear-selection { background: transparent; border: none; color: var(--text-muted); font-size: 0.75rem; cursor: pointer; }
-    .hopper-empty { padding: 8px; text-align: center; color: var(--text-muted); font-size: 0.8rem; }
+    .btn-clear-selection { background: transparent; border: none; color: var(--text-muted); font-size: 0.78rem; cursor: pointer; }
+    .hopper-empty { padding: 12px; text-align: center; color: var(--text-muted); font-size: 0.85rem; }
 
     /* WORKBENCH PANEL (PROGRESSIVE DISCLOSURE) */
     .input-panel {
@@ -264,8 +271,8 @@
     }
 
     .workbench-header { display: flex; justify-content: space-between; align-items: center; }
-    .workbench-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--primary); }
-    .workbench-counter { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; }
+    .workbench-label { font-size: 0.74rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--primary); }
+    .workbench-counter { font-size: 0.74rem; color: var(--text-muted); font-weight: 600; }
 
     .staged-chips-container { display: flex; flex-wrap: wrap; gap: 6px; }
     .staged-chip {
@@ -273,13 +280,13 @@
       border: 1px solid #0284c7;
       color: #e0f2fe;
       border-radius: 6px;
-      padding: 4px 8px;
-      font-size: 0.78rem;
+      padding: 5px 10px;
+      font-size: 0.8rem;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
-    .staged-chip-remove { background: transparent; border: none; color: #7dd3fc; cursor: pointer; }
+    .staged-chip-remove { background: transparent; border: none; color: #7dd3fc; cursor: pointer; font-size: 0.85rem; }
 
     textarea {
       width: 100%;
@@ -322,8 +329,8 @@
     .block-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 10px;
-      padding: 12px 14px;
+      border-radius: 12px;
+      padding: 14px 16px;
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -336,7 +343,7 @@
 
     .block-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
     .block-title-row { display: flex; flex-direction: column; gap: 2px; }
-    .block-title { font-size: 0.96rem; font-weight: 700; }
+    .block-title { font-size: 0.98rem; font-weight: 700; }
     .block-badge-domain {
       font-size: 0.68rem;
       font-weight: 700;
@@ -361,9 +368,9 @@
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      font-size: 0.82rem;
+      font-size: 0.84rem;
       color: #e2e8f0;
-      padding: 4px 6px;
+      padding: 6px 8px;
       border-radius: 4px;
       background: #111c2e;
     }
@@ -371,8 +378,8 @@
     .atom-left { display: flex; align-items: center; gap: 8px; flex: 1; }
     .atom-check {
       appearance: none;
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
       border: 1px solid var(--border);
       border-radius: 4px;
       background: #090e17;
@@ -383,7 +390,7 @@
       flex-shrink: 0;
     }
     .atom-check:checked { background: var(--primary); border-color: var(--primary); }
-    .atom-check:checked::after { content: '✓'; color: #090e17; font-size: 0.65rem; font-weight: 900; }
+    .atom-check:checked::after { content: '✓'; color: #090e17; font-size: 0.7rem; font-weight: 900; }
 
     .atom-controls { display: flex; gap: 4px; align-items: center; }
     .btn-atom-split {
@@ -391,8 +398,8 @@
       border: 1px solid var(--border);
       color: var(--text-muted);
       border-radius: 4px;
-      padding: 2px 6px;
-      font-size: 0.68rem;
+      padding: 3px 8px;
+      font-size: 0.7rem;
       cursor: pointer;
     }
     .btn-atom-split:hover { color: var(--primary); border-color: var(--primary); }
@@ -402,7 +409,7 @@
       color: white;
       border: 1px solid var(--primary);
       padding: 14px;
-      border-radius: 8px;
+      border-radius: 10px;
       font-weight: 700;
       font-size: 0.92rem;
       cursor: pointer;
@@ -413,11 +420,12 @@
     .track-active-banner {
       background: #0c4a6e;
       border: 1px solid var(--primary);
-      border-radius: 8px;
-      padding: 12px;
+      border-radius: 10px;
+      padding: 14px;
       display: flex;
       flex-direction: column;
       gap: 4px;
+      box-shadow: 0 4px 18px rgba(56, 189, 248, 0.15);
     }
 
     /* FLOATING BOTTOM DOCK */
@@ -535,7 +543,6 @@
       -webkit-overflow-scrolling: touch;
     }
 
-    /* REFINED CHAT BUBBLES */
     .chat-msg {
       display: flex;
       flex-direction: column;
@@ -544,12 +551,6 @@
       font-size: 0.84rem;
       word-break: break-word;
       overflow-wrap: anywhere;
-    }
-    .chat-msg pre, .chat-msg code {
-      max-width: 100%;
-      overflow-x: auto;
-      white-space: pre-wrap;
-      word-break: break-all;
     }
     .chat-msg.user {
       align-self: flex-end;
@@ -572,45 +573,6 @@
       width: fit-content;
     }
 
-    /* TYPING INDICATOR BUBBLE & KEYFRAMES */
-    #typingIndicator {
-      align-self: flex-start;
-      background: #131c2e;
-      border: 1px solid #1e293b;
-      border-radius: 14px 14px 14px 2px;
-      padding: 10px 14px;
-      width: fit-content;
-    }
-    .typing-dots {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      height: 14px;
-    }
-    .typing-dots span {
-      width: 6px;
-      height: 6px;
-      background: var(--primary);
-      border-radius: 50%;
-      opacity: 0.4;
-      animation: typingBlink 1.4s infinite both;
-    }
-    .typing-dots span:nth-child(1) { animation-delay: 0s; }
-    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-    @keyframes typingBlink {
-      0%, 80%, 100% {
-        opacity: 0.3;
-        transform: scale(0.85);
-      }
-      40% {
-        opacity: 1;
-        transform: scale(1.15);
-      }
-    }
-
-    /* THE INPUT BAR */
     .forge-input-bar {
       display: flex;
       align-items: center;
@@ -621,7 +583,7 @@
       background: #0f172a;
       flex-shrink: 0;
     }
-    .forge-input-bar input {
+    .forge-input-bar textarea {
       flex: 1 1 auto;
       width: 50%;
       min-width: 0;
@@ -675,7 +637,7 @@
       </div>
     </header>
 
-    <!-- VIEW 1: PLANNING & BUNDLING -->
+    <!-- VIEW 1: PLANNING & BUNDLING (THE CALM FOYER) -->
     <div id="viewPlan">
       <!-- DYNAMIC ROLLING DATE STRIP -->
       <div class="date-strip-wrapper" style="display: flex; gap: 6px; align-items: center; margin-bottom: 12px; overflow-x: auto; padding-bottom: 2px;">
@@ -688,13 +650,13 @@
         />
       </div>
 
-      <!-- THE MINIMAL HERO HOPPER -->
+      <!-- THE EXPANDED HERO HOPPER -->
       <section class="hopper-section">
         <div class="hopper-bar">
           <div class="hopper-input-wrap">
             <textarea 
               id="hopperInput" 
-              placeholder="Quick dump (commas or Shift+Enter to split)..." 
+              placeholder="Dump thoughts, tasks, or lists here..." 
               rows="1"
               autocomplete="off"
             ></textarea>
@@ -715,7 +677,7 @@
         </div>
       </section>
 
-      <!-- TODAY'S WORKBENCH (COLLAPSED BY DEFAULT) -->
+      <!-- TODAY'S WORKBENCH (COLLAPSED BY DEFAULT, APPEARS ONLY WHEN STAGING) -->
       <section class="input-panel drawer-hidden" id="workbenchPanel" style="margin-top: 14px;">
         <div class="workbench-header">
           <span class="workbench-label" id="workbenchLabel">Today's Workbench</span>
@@ -735,12 +697,22 @@
         </div>
       </section>
 
-      <!-- RESULTING BUNDLED BLOCKS -->
-      <div id="blocksContainer" class="blocks-container" style="margin-top: 14px;"></div>
-
-      <button id="saveBtn" class="btn-save hidden" onclick="saveToCalendar()" style="width: 100%;">
-        Write Schedule to Calendar &amp; Start Tracking
-      </button>
+      <!-- COLLAPSIBLE SCHEDULE REVIEW DRAWER (CLEARS THE FOYER) -->
+      <section class="hopper-section" style="margin-top: 14px;">
+        <div class="hopper-header" id="toggleScheduleReview" onclick="toggleScheduleDrawer()" style="padding: 2px;">
+          <span class="hopper-title">
+            <span>Scheduled Blocks Preview</span>
+            <span class="hopper-count-badge" id="planBlockCountBadge">0</span>
+          </span>
+          <span class="hopper-chevron" id="scheduleChevron">▶</span>
+        </div>
+        <div id="scheduleReviewTray" class="collapsed" style="display: none; flex-direction: column; gap: 12px; padding-top: 10px;">
+          <div id="blocksContainer" class="blocks-container"></div>
+          <button id="saveBtn" class="btn-save hidden" onclick="saveToCalendar()" style="width: 100%;">
+            Write Schedule to Calendar &amp; Start Tracking
+          </button>
+        </div>
+      </section>
     </div>
 
     <!-- VIEW 2: EXECUTION / TRACK MODE -->
@@ -849,6 +821,16 @@
     if (stateDirty) {
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
     }
+
+    // Toggle Preview Drawer on Plan screen
+    window.toggleScheduleDrawer = function() {
+      const tray = document.getElementById('scheduleReviewTray');
+      const chevron = document.getElementById('scheduleChevron');
+      if (!tray) return;
+      const isHidden = tray.style.display === 'none';
+      tray.style.display = isHidden ? 'flex' : 'none';
+      if (chevron) chevron.textContent = isHidden ? '▼' : '▶';
+    };
 
     // Render Rolling Date Selector Strip
     function renderDateStrip() {
@@ -1174,9 +1156,12 @@
     function renderBlocks() {
       const container = document.getElementById('blocksContainer');
       const saveBtn = document.getElementById('saveBtn');
+      const badge = document.getElementById('planBlockCountBadge');
       if (!container) return;
 
       const visibleBlocks = currentBlocks.filter(b => (b.date || todayStr) === activePlanDate);
+
+      if (badge) badge.textContent = visibleBlocks.length;
 
       if (!visibleBlocks.length) {
         container.innerHTML = `<div class="hopper-empty">No blocks scheduled for ${activePlanDate === todayStr ? 'today' : activePlanDate}.</div>`;
@@ -1361,7 +1346,7 @@
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
       renderTrackView();
     };
-/*█████████████████████████████████████████████████████████████████████████████
+/*███████████████████████████████████████████████████████████████████████████
   ▲▲▲ ANCHOR: TASK_CARD_RENDER_END ▲▲▲
 █████████████████████████████████████████████████████████████████████████████*/
 
