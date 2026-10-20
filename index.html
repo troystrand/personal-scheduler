@@ -255,7 +255,7 @@
     .btn-clear-selection { background: transparent; border: none; color: var(--text-muted); font-size: 0.78rem; cursor: pointer; }
     .hopper-empty { padding: 12px; text-align: center; color: var(--text-muted); font-size: 0.85rem; }
 
-    /* WORKBENCH PANEL (PROGRESSIVE DISCLOSURE) */
+    /* WORKBENCH PANEL */
     .input-panel {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -335,6 +335,7 @@
       flex-direction: column;
       gap: 10px;
       border-left: 4px solid var(--primary);
+      position: relative;
     }
     .block-card[data-color="11"] { border-left-color: var(--tag-11); }
     .block-card[data-color="8"]  { border-left-color: var(--tag-8); }
@@ -392,7 +393,7 @@
     .atom-check:checked { background: var(--primary); border-color: var(--primary); }
     .atom-check:checked::after { content: '✓'; color: #090e17; font-size: 0.7rem; font-weight: 900; }
 
-    .atom-controls { display: flex; gap: 4px; align-items: center; }
+    .atom-controls { display: flex; gap: 6px; align-items: center; }
     .btn-atom-split {
       background: transparent;
       border: 1px solid var(--border);
@@ -403,6 +404,17 @@
       cursor: pointer;
     }
     .btn-atom-split:hover { color: var(--primary); border-color: var(--primary); }
+
+    .btn-item-delete {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      cursor: pointer;
+      padding: 2px 4px;
+      line-height: 1;
+    }
+    .btn-item-delete:hover { color: var(--record-red); }
 
     .btn-save {
       background: #0284c7;
@@ -1133,6 +1145,38 @@
       return `${h}:${m}${ampm}`;
     }
 
+    // --- DELETION / DISMISSAL METHODS ---
+    window.deleteBlock = function(blkId) {
+      if (!confirm('Discard this block and its tasks?')) return;
+      currentBlocks = currentBlocks.filter(b => b.id !== blkId);
+      localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
+      renderBlocks();
+      if (currentView === 'track') renderTrackView();
+    };
+
+    window.deleteAtomFromBlock = function(blkId, atomIdx) {
+      const blk = currentBlocks.find(b => b.id === blkId);
+      if (!blk || !blk.atoms) return;
+      blk.atoms.splice(atomIdx, 1);
+      if (blk.atoms.length === 0) {
+        currentBlocks = currentBlocks.filter(b => b.id !== blkId);
+      }
+      localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
+      renderBlocks();
+      if (currentView === 'track') renderTrackView();
+    };
+
+    window.clearCompletedToday = function() {
+      currentBlocks = currentBlocks.filter(b => {
+        if ((b.date || todayStr) !== todayStr) return true;
+        const allDone = (b.atoms || []).length > 0 && b.atoms.every(a => a.done);
+        return !allDone;
+      });
+      localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
+      renderTrackView();
+      renderBlocks();
+    };
+
     // Flexible Date Mover for Blocks
     window.moveBlockToDate = function(blkId, targetDate) {
       const blk = currentBlocks.find(b => b.id === blkId);
@@ -1188,6 +1232,7 @@
                   ${activePlanDate === todayStr ? '→ Tmrw' : '← Today'}
                 </button>
                 <button type="button" class="btn-atom-split" title="Move to specific date" onclick="promptMoveBlock('${blk.id}')">📅</button>
+                <button type="button" class="btn-item-delete" title="Discard block" onclick="deleteBlock('${blk.id}')">✕</button>
               </div>
             </div>
 
@@ -1200,6 +1245,7 @@
                   <div class="atom-controls">
                     <span style="font-size:0.7rem;color:var(--text-muted);">${atom.est_minutes || 15}m</span>
                     <button class="btn-atom-split" title="Split into Standalone Block" onclick="splitAtomToBlock('${blk.id}',${atomIdx})">⚡ Standalone</button>
+                    <button class="btn-item-delete" title="Delete task" onclick="deleteAtomFromBlock('${blk.id}',${atomIdx})">✕</button>
                   </div>
                 </div>
               `).join('')}
@@ -1268,7 +1314,15 @@
         });
       });
       const pct = totalAtoms > 0 ? Math.round((doneAtoms / totalAtoms) * 100) : 0;
-      if (progressText) progressText.textContent = `${doneAtoms} / ${totalAtoms} Done (${pct}%)`;
+
+      // Trajectory header with Clear Completed action when 100%
+      if (progressText) {
+        if (pct === 100 && totalAtoms > 0) {
+          progressText.innerHTML = `All Done! · <button type="button" style="background:none;border:none;color:var(--primary);cursor:pointer;font-weight:700;text-decoration:underline;" onclick="clearCompletedToday()">Clear Completed</button>`;
+        } else {
+          progressText.textContent = `${doneAtoms} / ${totalAtoms} Done (${pct}%)`;
+        }
+      }
       if (progressBar) progressBar.style.width = `${pct}%`;
 
       // Identify Current Active Block by Time
@@ -1302,7 +1356,7 @@
         }
       }
 
-      // Render Blocks with Distinct Done/Active Styling
+      // Render Blocks with Delete Actions
       container.innerHTML = todayBlocks.map((blk) => {
         const timeDisplay = `${formatTime12(blk.start_time)} – ${formatTime12(blk.end_time)}`;
         const atoms = blk.atoms || [];
@@ -1315,7 +1369,10 @@
                 <span class="block-badge-domain">${blk.domain}</span>
                 <div class="block-title" style="${isBlockDone ? 'text-decoration: line-through;' : ''}">${blk.title}</div>
               </div>
-              <span class="block-time">${timeDisplay}</span>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <span class="block-time">${timeDisplay}</span>
+                <button type="button" class="btn-item-delete" title="Discard block" onclick="deleteBlock('${blk.id}')">✕</button>
+              </div>
             </div>
 
             <div class="block-atoms-list">
@@ -1330,7 +1387,10 @@
                     />
                     <span>${atom.text}</span>
                   </div>
-                  <span style="font-size:0.7rem;color:var(--text-muted);">${atom.est_minutes || 15}m</span>
+                  <div class="atom-controls">
+                    <span style="font-size:0.7rem;color:var(--text-muted);">${atom.est_minutes || 15}m</span>
+                    <button type="button" class="btn-item-delete" title="Delete task" onclick="deleteAtomFromBlock('${blk.id}',${atomIdx})">✕</button>
+                  </div>
                 </div>
               `).join('')}
             </div>
