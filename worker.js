@@ -97,14 +97,6 @@ async function appendToSheet(accessToken, sheetId, rows) {
 █████████████████████████████████████████████████████████████████████████████*/
 
 
-
-
-
-
-
-
-
-
 /*█████████████████████████████████████████████████████████████████████████████
   ▼▼▼ ANCHOR: SECURITY_GATE_ROUTER_START ▼▼▼
 █████████████████████████████████████████████████████████████████████████████*/
@@ -153,14 +145,60 @@ export default {
 █████████████████████████████████████████████████████████████████████████████*/
 
 
+/*█████████████████████████████████████████████████████████████████████████████
+  ▼▼▼ ANCHOR: ROUTE_D1_STATE_SYNC_START ▼▼▼
+█████████████████████████████████████████████████████████████████████████████*/
+      if (body.action === 'GET_STATE') {
+        if (!env.DB) {
+          return new Response(JSON.stringify({ error: "D1 Database 'DB' binding not found" }), { status: 500, headers: corsHeaders });
+        }
+        let row = await env.DB.prepare(
+          "SELECT hopper_json, blocks_json, staged_json, updated_at FROM user_state WHERE user_key = ?"
+        ).bind("primary_user").first();
+
+        if (!row) {
+          row = await env.DB.prepare(
+            "SELECT hopper_json, blocks_json, staged_json, updated_at FROM user_state ORDER BY updated_at DESC LIMIT 1"
+          ).first();
+        }
+
+        return new Response(JSON.stringify(row || { updated_at: 0, hopper_json: "[]", blocks_json: "[]", staged_json: "[]" }), {
+          status: 200,
+          headers: corsHeaders
+        });
+      }
+
+      if (body.action === 'PUSH_STATE') {
+        if (!env.DB) {
+          return new Response(JSON.stringify({ error: "D1 Database 'DB' binding not found" }), { status: 500, headers: corsHeaders });
+        }
+        const { hopper, blocks, staged, timestamp } = body;
+        await env.DB.prepare(`
+          INSERT INTO user_state (user_key, hopper_json, blocks_json, staged_json, updated_at)
+          VALUES (?, ?, ?, ?, ?)
+          ON CONFLICT(user_key) DO UPDATE SET
+            hopper_json = excluded.hopper_json,
+            blocks_json = excluded.blocks_json,
+            staged_json = excluded.staged_json,
+            updated_at = excluded.updated_at
+        `).bind(
+          "primary_user",
+          JSON.stringify(hopper || []),
+          JSON.stringify(blocks || []),
+          JSON.stringify(staged || []),
+          timestamp || Date.now()
+        ).run();
+
+        return new Response(JSON.stringify({ success: true, updated_at: timestamp }), {
+          status: 200,
+          headers: corsHeaders
+        });
+      }
+/*█████████████████████████████████████████████████████████████████████████████
+  ▲▲▲ ANCHOR: ROUTE_D1_STATE_SYNC_END ▲▲▲
+█████████████████████████████████████████████████████████████████████████████*/
 
 
-
-
-
-
-
-      
 /*█████████████████████████████████████████████████████████████████████████████
   ▼▼▼ ANCHOR: ROUTE_INSERT_CALENDAR_SHEETS_START ▼▼▼
 █████████████████████████████████████████████████████████████████████████████*/
@@ -177,7 +215,6 @@ export default {
         const timestamp = new Date().toISOString();
 
         for (const blk of blocks) {
-          // Format atoms as markdown checkboxes in the description
           let description = '';
           if (Array.isArray(blk.atoms) && blk.atoms.length > 0) {
             description = blk.atoms.map(a => `- [ ] ${a.text} (${a.est_minutes || 15}m)`).join('\n');
@@ -240,14 +277,6 @@ export default {
 █████████████████████████████████████████████████████████████████████████████*/
 
 
-
-
-
-
-
-
-
-      
 /*█████████████████████████████████████████████████████████████████████████████
   ▼▼▼ ANCHOR: ROUTE_CODE_SNAPSHOT_START ▼▼▼
 █████████████████████████████████████████████████████████████████████████████*/
@@ -260,7 +289,6 @@ export default {
         const accessToken = await getGoogleAccessToken(env.GOOGLE_CLIENT_EMAIL, env.GOOGLE_PRIVATE_KEY);
         const timestamp = new Date().toISOString();
 
-        // Target the CodeSnapshots tab specifically
         const range = 'CodeSnapshots!A:E';
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${env.GOOGLE_SHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED`;
 
@@ -287,14 +315,6 @@ export default {
 █████████████████████████████████████████████████████████████████████████████*/
 
 
-
-
-
-
-
-
-
-      
 /*█████████████████████████████████████████████████████████████████████████████
   ▼▼▼ ANCHOR: ROUTE_HOPPER_PARSE_START ▼▼▼
 █████████████████████████████████████████████████████████████████████████████*/
@@ -307,12 +327,10 @@ export default {
           return new Response(JSON.stringify({ items: [] }), { status: 200, headers: corsHeaders });
         }
 
-        // Use the exact model name verified across your other working endpoints
         const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
 
         const contentParts = [];
         if (audioData) {
-          // Normalize iOS mimeType if needed (remove codec flags for Gemini inlineData)
           const cleanMime = mimeType.split(';')[0];
           contentParts.push({
             inlineData: {
@@ -377,14 +395,6 @@ Output strictly valid JSON matching this schema:
 █████████████████████████████████████████████████████████████████████████████*/
 
 
-
-
-
-
-
-
-
-      
 /*█████████████████████████████████████████████████████████████████████████████
   ▼▼▼ ANCHOR: ROUTE_FORGE_CHAT_BACKEND_START ▼▼▼
 █████████████████████████████████████████████████████████████████████████████*/
@@ -443,13 +453,6 @@ Whenever an ergonomic, layout, or visual tweak is requested:
 █████████████████████████████████████████████████████████████████████████████*/
 
 
-
-
-
-
-
-
-      
 /*█████████████████████████████████████████████████████████████████████████████
   ▼▼▼ ANCHOR: ROUTE_ORTHO_MAP_START ▼▼▼
 █████████████████████████████████████████████████████████████████████████████*/
@@ -529,14 +532,6 @@ Output strictly valid JSON matching the requested schema.`
 █████████████████████████████████████████████████████████████████████████████*/
 
 
-
-
-
-
-
-
-
-      
 /*█████████████████████████████████████████████████████████████████████████████
   ▼▼▼ ANCHOR: ROUTE_TASK_SEQUENCING_START ▼▼▼
 █████████████████████████████████████████████████████████████████████████████*/
