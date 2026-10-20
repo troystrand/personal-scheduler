@@ -819,6 +819,12 @@
     let stagedWorkbenchTasks = JSON.parse(localStorage.getItem('staged_workbench_tasks') || '[]');
     let lastStateTimestamp = parseInt(localStorage.getItem('last_state_timestamp') || '0', 10);
 
+    // Auto-heal future timestamps if local storage was corrupted by manual testing
+    if (lastStateTimestamp > Date.now() + 60000) {
+      lastStateTimestamp = 0;
+      localStorage.setItem('last_state_timestamp', '0');
+    }
+
     const todayStr = getLocalDateString(0);
 
     // Auto-rollover: push unfinished blocks from earlier dates into today
@@ -841,7 +847,7 @@
 
     // --- CLOUDFLARE D1 SYNC CONTROLLER ---
     let syncTimeout = null;
-    function triggerBackgroundSync() {
+    window.triggerBackgroundSync = function() {
       const now = Date.now();
       lastStateTimestamp = now;
       localStorage.setItem('last_state_timestamp', now.toString());
@@ -864,17 +870,18 @@
             })
           });
           if (res.ok) {
-            console.log('✓ Edge sync complete');
+            console.log('✓ Edge sync pushed');
           }
         } catch (err) {
           console.warn('Background sync postponed (offline):', err.message);
         }
       }, 300);
-    }
+    };
 
     window.pullLatestState = async function() {
       try {
-        const res = await fetch(WORKER_URL, {
+        // Cache-busting query param ensures iOS WebKit bypasses stale cache
+        const res = await fetch(`${WORKER_URL}?t=${Date.now()}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -884,7 +891,7 @@
         });
         if (!res.ok) return;
         const data = await res.json();
-        if (data.updated_at && data.updated_at > lastStateTimestamp) {
+        if (data && data.updated_at && data.updated_at > lastStateTimestamp) {
           hopperItems = JSON.parse(data.hopper_json || '[]');
           currentBlocks = JSON.parse(data.blocks_json || '[]');
           stagedWorkbenchTasks = JSON.parse(data.staged_json || '[]');
@@ -899,17 +906,29 @@
           renderWorkbench();
           renderBlocks();
           if (currentView === 'track') renderTrackView();
+          console.log('✓ Edge state pulled & hydrated');
         }
       } catch (err) {
         console.warn('Pull state failed:', err.message);
       }
     };
 
-    // Auto-pull fresh state when tab regains focus or unfreezes
+    // Robust Multi-Platform Wake Triggers
     window.addEventListener('focus', () => window.pullLatestState());
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') window.pullLatestState();
     });
+    window.addEventListener('pageshow', () => window.pullLatestState());
+
+    // Throttled touch trigger to catch resumption in standalone WebKit
+    let lastTouchPull = 0;
+    document.addEventListener('touchstart', () => {
+      const now = Date.now();
+      if (now - lastTouchPull > 4000) {
+        lastTouchPull = now;
+        window.pullLatestState();
+      }
+    }, { passive: true });
 
     // Toggle Preview Drawer on Plan screen
     window.toggleScheduleDrawer = function() {
@@ -989,7 +1008,7 @@
 
     function saveHopper() {
       localStorage.setItem('hopper_items', JSON.stringify(hopperItems));
-      triggerBackgroundSync();
+      window.triggerBackgroundSync();
       renderHopper();
     }
 
@@ -1071,7 +1090,7 @@
       });
 
       localStorage.setItem('staged_workbench_tasks', JSON.stringify(stagedWorkbenchTasks));
-      triggerBackgroundSync();
+      window.triggerBackgroundSync();
       selectedHopperIds.clear();
       renderHopper();
       renderWorkbench();
@@ -1113,7 +1132,7 @@
     window.removeStagedTask = function(index) {
       stagedWorkbenchTasks.splice(index, 1);
       localStorage.setItem('staged_workbench_tasks', JSON.stringify(stagedWorkbenchTasks));
-      triggerBackgroundSync();
+      window.triggerBackgroundSync();
       renderHopper();
       renderWorkbench();
     };
@@ -1123,7 +1142,7 @@
       localStorage.removeItem('staged_workbench_tasks');
       const promptInput = document.getElementById('promptInput');
       if (promptInput) promptInput.value = '';
-      triggerBackgroundSync();
+      window.triggerBackgroundSync();
       renderHopper();
       renderWorkbench();
     };
@@ -1227,7 +1246,7 @@
       if (!confirm('Discard this block and its tasks?')) return;
       currentBlocks = currentBlocks.filter(b => b.id !== blkId);
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
-      triggerBackgroundSync();
+      window.triggerBackgroundSync();
       renderBlocks();
       if (currentView === 'track') renderTrackView();
     };
@@ -1240,7 +1259,7 @@
         currentBlocks = currentBlocks.filter(b => b.id !== blkId);
       }
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
-      triggerBackgroundSync();
+      window.triggerBackgroundSync();
       renderBlocks();
       if (currentView === 'track') renderTrackView();
     };
@@ -1252,7 +1271,7 @@
         return !allDone;
       });
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
-      triggerBackgroundSync();
+      window.triggerBackgroundSync();
       renderTrackView();
       renderBlocks();
     };
@@ -1263,7 +1282,7 @@
       if (!blk) return;
       blk.date = targetDate;
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
-      triggerBackgroundSync();
+      window.triggerBackgroundSync();
       renderBlocks();
     };
 
@@ -1364,7 +1383,7 @@
       }
 
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
-      triggerBackgroundSync();
+      window.triggerBackgroundSync();
       renderBlocks();
     };
 
@@ -1481,13 +1500,83 @@
       if (!blk || !blk.atoms || !blk.atoms[atomIdx]) return;
       blk.atoms[atomIdx].done = isDone;
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
-      triggerBackgroundSync();
+      window.triggerBackgroundSync();
       renderTrackView();
+    };
+
+    // Sequence Generator Hook with Auto-Sync
+    window.parseTasks = async function() {
+      const promptInput = document.getElementById('promptInput');
+      const submitBtn = document.getElementById('submitBtn');
+      const prompt = promptInput ? promptInput.value.trim() : '';
+
+      if (!prompt && stagedWorkbenchTasks.length === 0) {
+        alert('Please provide instructions or stage tasks from the Hopper first.');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerText = '⚡ Sequencing...';
+
+      let combinedPrompt = prompt;
+      if (stagedWorkbenchTasks.length > 0) {
+        const taskList = stagedWorkbenchTasks.map(t => `- ${t.text}`).join('\n');
+        combinedPrompt = `OBLIGATIONS TO BUNDLE & SEQUENCE:\n${taskList}\n\nUSER CONTEXT:\n${prompt}`;
+      }
+
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-App-Key': APP_KEY
+          },
+          body: JSON.stringify({ prompt: combinedPrompt })
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const newBlocks = data.blocks || [];
+
+        if (newBlocks.length > 0) {
+          newBlocks.forEach(b => {
+            if (!b.date) b.date = activePlanDate;
+            currentBlocks.push(b);
+          });
+
+          // Remove staged items from Hopper
+          const stagedIds = new Set(stagedWorkbenchTasks.map(t => t.id));
+          hopperItems = hopperItems.filter(h => !stagedIds.has(h.id));
+          stagedWorkbenchTasks = [];
+          localStorage.removeItem('staged_workbench_tasks');
+          if (promptInput) promptInput.value = '';
+
+          localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
+          localStorage.setItem('hopper_items', JSON.stringify(hopperItems));
+
+          window.triggerBackgroundSync();
+          renderHopper();
+          renderWorkbench();
+          renderBlocks();
+
+          // Auto-open schedule preview drawer
+          const tray = document.getElementById('scheduleReviewTray');
+          const chevron = document.getElementById('scheduleChevron');
+          if (tray) {
+            tray.style.display = 'flex';
+            if (chevron) chevron.textContent = '▼';
+          }
+        }
+      } catch (err) {
+        alert('Sequencing failed: ' + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        renderWorkbench();
+      }
     };
 /*███████████████████████████████████████████████████████████████████████████
   ▲▲▲ ANCHOR: TASK_CARD_RENDER_END ▲▲▲
 █████████████████████████████████████████████████████████████████████████████*/
-
 
 
 
