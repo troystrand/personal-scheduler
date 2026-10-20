@@ -688,7 +688,7 @@
         />
       </div>
 
-      <!-- THE MINIMAL HOPPER -->
+      <!-- THE MINIMAL HERO HOPPER -->
       <section class="hopper-section">
         <div class="hopper-bar">
           <div class="hopper-input-wrap">
@@ -715,7 +715,7 @@
         </div>
       </section>
 
-      <!-- TODAY'S WORKBENCH (COLLAPSED UNTIL ITEMS STAGED) -->
+      <!-- TODAY'S WORKBENCH (COLLAPSED BY DEFAULT) -->
       <section class="input-panel drawer-hidden" id="workbenchPanel" style="margin-top: 14px;">
         <div class="workbench-header">
           <span class="workbench-label" id="workbenchLabel">Today's Workbench</span>
@@ -1790,17 +1790,15 @@
       });
     }
 
-function attachHardwarePTT(buttonEl, onAudioCaptured, onShortTap) {
+    function attachHardwarePTT(buttonEl, onAudioCaptured, onShortTap) {
       if (!buttonEl) return;
       const originalText = buttonEl.innerText;
 
       buttonEl.addEventListener('click', async (e) => {
         e.preventDefault();
 
-        // 1. If we are NOT recording yet, start recording on this tap
         if (!isRecordingPTT) {
           const input = document.getElementById('hopperInput');
-          // If the user already typed text, process the text instead of opening mic
           if (input && input.value.trim().length > 0) {
             onShortTap();
             return;
@@ -1855,7 +1853,6 @@ function attachHardwarePTT(buttonEl, onAudioCaptured, onShortTap) {
 
           mediaRecorder.start(250);
         } else {
-          // 2. If we ARE currently recording, this tap stops and sequences it
           isRecordingPTT = false;
           if (mediaRecorder && mediaRecorder.state !== 'inactive') {
             try { mediaRecorder.requestData(); } catch (err) {}
@@ -1877,21 +1874,47 @@ function attachHardwarePTT(buttonEl, onAudioCaptured, onShortTap) {
       submitBtn.onclick = () => parseTasks();
     }
 
-    // Hopper Enter Key Trigger
+    // Auto-resize helper
+    function autoResizeTextarea(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+      if (el.scrollHeight > 120) {
+        el.style.overflowY = 'auto';
+      } else {
+        el.style.overflowY = 'hidden';
+      }
+    }
+
+    // Hopper Shift+Enter listener
     if (hopperInput) {
+      hopperInput.addEventListener('input', () => autoResizeTextarea(hopperInput));
       hopperInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
-          e.preventDefault();
-          parseHopperInput();
+          if (e.shiftKey) {
+            setTimeout(() => autoResizeTextarea(hopperInput), 0);
+          } else {
+            e.preventDefault();
+            parseHopperInput();
+            hopperInput.style.height = '52px';
+          }
         }
       });
     }
 
-    // Forge Drawer Key Trigger
+    // Forge Drawer Shift+Enter listener
     const forgeInput = document.getElementById('forgeInput');
     if (forgeInput) {
+      forgeInput.addEventListener('input', () => autoResizeTextarea(forgeInput));
       forgeInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') sendForgeMessage();
+        if (e.key === 'Enter') {
+          if (e.shiftKey) {
+            setTimeout(() => autoResizeTextarea(forgeInput), 0);
+          } else {
+            e.preventDefault();
+            sendForgeMessage();
+            forgeInput.style.height = '40px';
+          }
+        }
       });
     }
 
@@ -1908,10 +1931,11 @@ function attachHardwarePTT(buttonEl, onAudioCaptured, onShortTap) {
       });
     }
 
+    // BOOT SEQUENCE: Explicitly enforces progressive disclosure on fresh load
     renderHopper();
     renderWorkbench();
-    switchView(currentView); // Restores active tab and renders blocks immediately on load
-/*█████████████████████████████████████████████████████████████████████████████
+    switchView(currentView);
+/*███████████████████████████████████████████████████████████████████████████
   ▲▲▲ ANCHOR: VOICE_RECOGNITION_SETUP_END ▲▲▲
 █████████████████████████████████████████████████████████████████████████████*/
   </script>
