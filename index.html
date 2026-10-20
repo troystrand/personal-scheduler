@@ -799,7 +799,7 @@
 
 
     
-/*█████████████████████████████████████████████████████████████████████████████
+/*███████████████████████████████████████████████████████████████████████████
   ▼▼▼ ANCHOR: TASK_CARD_RENDER_START ▼▼▼
 █████████████████████████████████████████████████████████████████████████████*/
     function getLocalDateString(offsetDays = 0, baseDate = new Date()) {
@@ -814,9 +814,14 @@
     let activePlanDate = getLocalDateString(0);
     let currentBlocks = JSON.parse(localStorage.getItem('current_blocks') || '[]');
     let currentView = localStorage.getItem('current_view') || 'plan';
+    let hopperItems = JSON.parse(localStorage.getItem('hopper_items') || '[]');
+    let selectedHopperIds = new Set();
+    let stagedWorkbenchTasks = JSON.parse(localStorage.getItem('staged_workbench_tasks') || '[]');
+    let lastStateTimestamp = parseInt(localStorage.getItem('last_state_timestamp') || '0', 10);
+
+    const todayStr = getLocalDateString(0);
 
     // Auto-rollover: push unfinished blocks from earlier dates into today
-    const todayStr = getLocalDateString(0);
     let stateDirty = false;
     currentBlocks = currentBlocks.map(blk => {
       if (!blk.date) {
@@ -833,6 +838,78 @@
     if (stateDirty) {
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
     }
+
+    // --- CLOUDFLARE D1 SYNC CONTROLLER ---
+    let syncTimeout = null;
+    function triggerBackgroundSync() {
+      const now = Date.now();
+      lastStateTimestamp = now;
+      localStorage.setItem('last_state_timestamp', now.toString());
+
+      clearTimeout(syncTimeout);
+      syncTimeout = setTimeout(async () => {
+        try {
+          const res = await fetch(WORKER_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-App-Key': APP_KEY
+            },
+            body: JSON.stringify({
+              action: 'PUSH_STATE',
+              hopper: hopperItems,
+              blocks: currentBlocks,
+              staged: stagedWorkbenchTasks,
+              timestamp: now
+            })
+          });
+          if (res.ok) {
+            console.log('✓ Edge sync complete');
+          }
+        } catch (err) {
+          console.warn('Background sync postponed (offline):', err.message);
+        }
+      }, 300);
+    }
+
+    window.pullLatestState = async function() {
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-App-Key': APP_KEY
+          },
+          body: JSON.stringify({ action: 'GET_STATE' })
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.updated_at && data.updated_at > lastStateTimestamp) {
+          hopperItems = JSON.parse(data.hopper_json || '[]');
+          currentBlocks = JSON.parse(data.blocks_json || '[]');
+          stagedWorkbenchTasks = JSON.parse(data.staged_json || '[]');
+          lastStateTimestamp = data.updated_at;
+
+          localStorage.setItem('hopper_items', JSON.stringify(hopperItems));
+          localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
+          localStorage.setItem('staged_workbench_tasks', JSON.stringify(stagedWorkbenchTasks));
+          localStorage.setItem('last_state_timestamp', lastStateTimestamp.toString());
+
+          renderHopper();
+          renderWorkbench();
+          renderBlocks();
+          if (currentView === 'track') renderTrackView();
+        }
+      } catch (err) {
+        console.warn('Pull state failed:', err.message);
+      }
+    };
+
+    // Auto-pull fresh state when tab regains focus or unfreezes
+    window.addEventListener('focus', () => window.pullLatestState());
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') window.pullLatestState();
+    });
 
     // Toggle Preview Drawer on Plan screen
     window.toggleScheduleDrawer = function() {
@@ -910,12 +987,9 @@
       }
     };
 
-    let hopperItems = JSON.parse(localStorage.getItem('hopper_items') || '[]');
-    let selectedHopperIds = new Set();
-    let stagedWorkbenchTasks = JSON.parse(localStorage.getItem('staged_workbench_tasks') || '[]');
-
     function saveHopper() {
       localStorage.setItem('hopper_items', JSON.stringify(hopperItems));
+      triggerBackgroundSync();
       renderHopper();
     }
 
@@ -997,6 +1071,7 @@
       });
 
       localStorage.setItem('staged_workbench_tasks', JSON.stringify(stagedWorkbenchTasks));
+      triggerBackgroundSync();
       selectedHopperIds.clear();
       renderHopper();
       renderWorkbench();
@@ -1038,6 +1113,7 @@
     window.removeStagedTask = function(index) {
       stagedWorkbenchTasks.splice(index, 1);
       localStorage.setItem('staged_workbench_tasks', JSON.stringify(stagedWorkbenchTasks));
+      triggerBackgroundSync();
       renderHopper();
       renderWorkbench();
     };
@@ -1047,6 +1123,7 @@
       localStorage.removeItem('staged_workbench_tasks');
       const promptInput = document.getElementById('promptInput');
       if (promptInput) promptInput.value = '';
+      triggerBackgroundSync();
       renderHopper();
       renderWorkbench();
     };
@@ -1150,6 +1227,7 @@
       if (!confirm('Discard this block and its tasks?')) return;
       currentBlocks = currentBlocks.filter(b => b.id !== blkId);
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
+      triggerBackgroundSync();
       renderBlocks();
       if (currentView === 'track') renderTrackView();
     };
@@ -1162,6 +1240,7 @@
         currentBlocks = currentBlocks.filter(b => b.id !== blkId);
       }
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
+      triggerBackgroundSync();
       renderBlocks();
       if (currentView === 'track') renderTrackView();
     };
@@ -1173,6 +1252,7 @@
         return !allDone;
       });
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
+      triggerBackgroundSync();
       renderTrackView();
       renderBlocks();
     };
@@ -1183,6 +1263,7 @@
       if (!blk) return;
       blk.date = targetDate;
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
+      triggerBackgroundSync();
       renderBlocks();
     };
 
@@ -1283,6 +1364,7 @@
       }
 
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
+      triggerBackgroundSync();
       renderBlocks();
     };
 
@@ -1304,7 +1386,6 @@
         return;
       }
 
-      // Calculate Day Progress
       let totalAtoms = 0;
       let doneAtoms = 0;
       todayBlocks.forEach(b => {
@@ -1315,7 +1396,6 @@
       });
       const pct = totalAtoms > 0 ? Math.round((doneAtoms / totalAtoms) * 100) : 0;
 
-      // Trajectory header with Clear Completed action when 100%
       if (progressText) {
         if (pct === 100 && totalAtoms > 0) {
           progressText.innerHTML = `All Done! · <button type="button" style="background:none;border:none;color:var(--primary);cursor:pointer;font-weight:700;text-decoration:underline;" onclick="clearCompletedToday()">Clear Completed</button>`;
@@ -1325,7 +1405,6 @@
       }
       if (progressBar) progressBar.style.width = `${pct}%`;
 
-      // Identify Current Active Block by Time
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
@@ -1342,7 +1421,6 @@
         }
       });
 
-      // Render Active Banner
       if (banner) {
         if (activeBlock) {
           banner.classList.remove('hidden');
@@ -1356,7 +1434,6 @@
         }
       }
 
-      // Render Blocks with Delete Actions
       container.innerHTML = todayBlocks.map((blk) => {
         const timeDisplay = `${formatTime12(blk.start_time)} – ${formatTime12(blk.end_time)}`;
         const atoms = blk.atoms || [];
@@ -1404,6 +1481,7 @@
       if (!blk || !blk.atoms || !blk.atoms[atomIdx]) return;
       blk.atoms[atomIdx].done = isDone;
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
+      triggerBackgroundSync();
       renderTrackView();
     };
 /*███████████████████████████████████████████████████████████████████████████
