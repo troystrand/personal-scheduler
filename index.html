@@ -662,6 +662,12 @@
 
     <!-- VIEW 1: PLANNING & BUNDLING -->
     <div id="viewPlan">
+      <!-- DAY FILTER BAR: TODAY / TOMORROW -->
+      <div class="view-tabs" style="margin-bottom: 12px;">
+        <button type="button" class="view-tab active" id="tabDayToday" onclick="switchDayView(0)">Today</button>
+        <button type="button" class="view-tab" id="tabDayTomorrow" onclick="switchDayView(1)">Tomorrow</button>
+      </div>
+
       <!-- THE MINIMAL HOPPER -->
       <section class="hopper-section">
         <div class="hopper-bar">
@@ -746,18 +752,18 @@
     </div>
     <div id="forgeChatLog" class="forge-chat-log"></div>
     <div class="forge-input-bar">
-  <input 
-    type="text" 
-    id="forgeInput" 
-    placeholder="Chat with Gemini or request code tweaks..." 
-    autocomplete="off" 
-    autocorrect="off" 
-    autocapitalize="sentences" 
-    spellcheck="false" 
-    enterkeyhint="send"
-  />
-  <button id="forgeSendBtn" onclick="sendForgeMessage()">Send</button>
-</div>
+      <input 
+        type="text" 
+        id="forgeInput" 
+        placeholder="Chat with Gemini or request code tweaks..." 
+        autocomplete="off" 
+        autocorrect="off" 
+        autocapitalize="sentences" 
+        spellcheck="false" 
+        enterkeyhint="send"
+      />
+      <button id="forgeSendBtn" onclick="sendForgeMessage()">Send</button>
+    </div>
   </div>
 <!--███████████████████████████████████████████████████████████████████████████
     ▲▲▲ ANCHOR: DOM_STRUCTURE_END ▲▲▲
@@ -779,8 +785,46 @@
 /*█████████████████████████████████████████████████████████████████████████████
   ▼▼▼ ANCHOR: TASK_CARD_RENDER_START ▼▼▼
 █████████████████████████████████████████████████████████████████████████████*/
+    function getLocalDateString(offsetDays = 0) {
+      const d = new Date();
+      d.setDate(d.getDate() + offsetDays);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    let activePlanDate = getLocalDateString(0);
     let currentBlocks = JSON.parse(localStorage.getItem('current_blocks') || '[]');
-    let currentView = localStorage.getItem('current_view') || 'plan'; // Persist active tab across refreshes
+    let currentView = localStorage.getItem('current_view') || 'plan';
+
+    // Auto-rollover: if an incomplete block's date is in the past, roll it into today
+    const todayStr = getLocalDateString(0);
+    let stateModified = false;
+    currentBlocks = currentBlocks.map(blk => {
+      if (!blk.date) {
+        blk.date = todayStr;
+        stateModified = true;
+      }
+      const hasPendingAtoms = (blk.atoms || []).some(a => !a.done);
+      if (blk.date < todayStr && hasPendingAtoms) {
+        blk.date = todayStr;
+        stateModified = true;
+      }
+      return blk;
+    });
+    if (stateModified) {
+      localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
+    }
+
+    window.switchDayView = function(offsetDays) {
+      activePlanDate = getLocalDateString(offsetDays);
+      const tabToday = document.getElementById('tabDayToday');
+      const tabTomorrow = document.getElementById('tabDayTomorrow');
+      if (tabToday) tabToday.classList.toggle('active', offsetDays === 0);
+      if (tabTomorrow) tabTomorrow.classList.toggle('active', offsetDays === 1);
+      renderBlocks();
+    };
 
     window.switchView = function(viewName) {
       currentView = viewName;
@@ -930,7 +974,7 @@
     window.removeStagedTask = function(index) {
       stagedWorkbenchTasks.splice(index, 1);
       localStorage.setItem('staged_workbench_tasks', JSON.stringify(stagedWorkbenchTasks));
-      renderHopper(); // Updates the staged status tag in the Hopper list
+      renderHopper();
       renderWorkbench();
     };
 
@@ -1037,20 +1081,33 @@
       return `${h}:${m}${ampm}`;
     }
 
+    window.deferBlock = function(blkId) {
+      const blk = currentBlocks.find(b => b.id === blkId);
+      if (!blk) return;
+      const today = getLocalDateString(0);
+      const tomorrow = getLocalDateString(1);
+      blk.date = (blk.date === today) ? tomorrow : today;
+      localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
+      renderBlocks();
+    };
+
     function renderBlocks() {
       const container = document.getElementById('blocksContainer');
       const saveBtn = document.getElementById('saveBtn');
       if (!container) return;
 
-      if (!currentBlocks.length) {
-        container.innerHTML = '';
+      const visibleBlocks = currentBlocks.filter(b => (b.date || getLocalDateString(0)) === activePlanDate);
+
+      if (!visibleBlocks.length) {
+        container.innerHTML = `<div class="hopper-empty">No blocks scheduled for ${activePlanDate === getLocalDateString(0) ? 'today' : 'tomorrow'}.</div>`;
         if (saveBtn) saveBtn.classList.add('hidden');
         return;
       }
 
-      container.innerHTML = currentBlocks.map((blk, blkIdx) => {
+      container.innerHTML = visibleBlocks.map((blk) => {
         const timeDisplay = `${formatTime12(blk.start_time)} – ${formatTime12(blk.end_time)}`;
         const atoms = blk.atoms || [];
+        const isToday = (blk.date || getLocalDateString(0)) === getLocalDateString(0);
 
         return `
           <div class="block-card" data-color="${blk.color_id || '9'}">
@@ -1059,7 +1116,12 @@
                 <span class="block-badge-domain">${blk.domain || 'Batch'}</span>
                 <div class="block-title">${blk.title}</div>
               </div>
-              <span class="block-time">${timeDisplay} (${blk.duration_minutes}m)</span>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <span class="block-time">${timeDisplay} (${blk.duration_minutes || 30}m)</span>
+                <button type="button" class="btn-atom-split" onclick="deferBlock('${blk.id}')">
+                  ${isToday ? '→ Tomorrow' : '← Today'}
+                </button>
+              </div>
             </div>
 
             <div class="block-atoms-list">
@@ -1070,7 +1132,7 @@
                   </div>
                   <div class="atom-controls">
                     <span style="font-size:0.7rem;color:var(--text-muted);">${atom.est_minutes || 15}m</span>
-                    <button class="btn-atom-split" title="Split into Standalone Block" onclick="splitAtomToBlock(${blkIdx},${atomIdx})">⚡ Standalone</button>
+                    <button class="btn-atom-split" title="Split into Standalone Block" onclick="splitAtomToBlock('${blk.id}',${atomIdx})">⚡ Standalone</button>
                   </div>
                 </div>
               `).join('')}
@@ -1082,15 +1144,17 @@
       if (saveBtn) saveBtn.classList.remove('hidden');
     }
 
-    window.splitAtomToBlock = function(blkIdx, atomIdx) {
-      const sourceBlock = currentBlocks[blkIdx];
+    window.splitAtomToBlock = function(blkId, atomIdx) {
+      const blkIndex = currentBlocks.findIndex(b => b.id === blkId);
+      if (blkIndex === -1) return;
+      const sourceBlock = currentBlocks[blkIndex];
       const [atom] = sourceBlock.atoms.splice(atomIdx, 1);
 
       const newBlock = {
-        id: 'blk_' + Date.now(),
+        id: 'blk_' + Date.now() + Math.random().toString(36).substr(2, 4),
         title: atom.text,
         domain: sourceBlock.domain,
-        date: sourceBlock.date,
+        date: sourceBlock.date || activePlanDate,
         start_time: sourceBlock.start_time,
         end_time: sourceBlock.end_time,
         duration_minutes: atom.est_minutes || 30,
@@ -1099,10 +1163,10 @@
         atoms: [atom]
       };
 
-      currentBlocks.splice(blkIdx + 1, 0, newBlock);
+      currentBlocks.splice(blkIndex + 1, 0, newBlock);
 
       if (sourceBlock.atoms.length === 0) {
-        currentBlocks.splice(blkIdx, 1);
+        currentBlocks.splice(blkIndex, 1);
       }
 
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
@@ -1114,13 +1178,15 @@
       const banner = document.getElementById('trackActiveBanner');
       if (!container) return;
 
-      if (!currentBlocks.length) {
-        container.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:30px;">No blocks sequenced today yet. Switch to Plan & Bundle to stage your morning.</div>';
+      const todayBlocks = currentBlocks.filter(b => (b.date || getLocalDateString(0)) === getLocalDateString(0));
+
+      if (!todayBlocks.length) {
+        container.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:30px;">No blocks sequenced for today yet. Switch to Plan & Bundle to stage your morning.</div>';
         if (banner) banner.classList.add('hidden');
         return;
       }
 
-      container.innerHTML = currentBlocks.map((blk, blkIdx) => {
+      container.innerHTML = todayBlocks.map((blk) => {
         const timeDisplay = `${formatTime12(blk.start_time)} – ${formatTime12(blk.end_time)}`;
         const atoms = blk.atoms || [];
 
@@ -1142,7 +1208,7 @@
                       type="checkbox" 
                       class="atom-check" 
                       ${atom.done ? 'checked' : ''} 
-                      onchange="toggleAtomDone(${blkIdx},${atomIdx}, this.checked)"
+                      onchange="toggleAtomDone('${blk.id}',${atomIdx}, this.checked)"
                     />
                     <span>${atom.text}</span>
                   </div>
@@ -1155,9 +1221,10 @@
       }).join('');
     }
 
-    window.toggleAtomDone = function(blkIdx, atomIdx, isDone) {
-      if (!currentBlocks[blkIdx] || !currentBlocks[blkIdx].atoms[atomIdx]) return;
-      currentBlocks[blkIdx].atoms[atomIdx].done = isDone;
+    window.toggleAtomDone = function(blkId, atomIdx, isDone) {
+      const blk = currentBlocks.find(b => b.id === blkId);
+      if (!blk || !blk.atoms || !blk.atoms[atomIdx]) return;
+      blk.atoms[atomIdx].done = isDone;
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
       renderTrackView();
     };
@@ -1260,7 +1327,18 @@
         if (!res.ok) throw new Error(`HTTP ${res.status}: ${raw}`);
 
         const data = JSON.parse(raw);
-        currentBlocks = data.blocks || [];
+        const incomingBlocks = (data.blocks || []).map(b => ({
+          ...b,
+          id: b.id || 'blk_' + Date.now() + Math.random().toString(36).substr(2, 4),
+          date: b.date || activePlanDate,
+          atoms: (b.atoms || []).map(a => typeof a === 'string' 
+            ? { text: a, done: false, est_minutes: 15 } 
+            : { text: a.text, done: !!a.done, est_minutes: a.est_minutes || 15 }
+          )
+        }));
+
+        // Cumulative append: Preserves existing blocks and appends the new ones
+        currentBlocks = [...currentBlocks, ...incomingBlocks];
         localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
 
         renderBlocks();
@@ -1278,7 +1356,9 @@
     }
 
     async function saveToCalendar() {
-      if (!currentBlocks.length) return;
+      const activeBlocks = currentBlocks.filter(b => (b.date || getLocalDateString(0)) === activePlanDate);
+      if (!activeBlocks.length) return;
+
       const saveBtn = document.getElementById('saveBtn');
       saveBtn.disabled = true;
       saveBtn.innerText = 'Writing to Calendar...';
@@ -1290,7 +1370,7 @@
             'Content-Type': 'application/json',
             'X-App-Key': APP_KEY
           },
-          body: JSON.stringify({ action: 'INSERT', blocks: currentBlocks })
+          body: JSON.stringify({ action: 'INSERT', blocks: activeBlocks })
         });
 
         if (!res.ok) {
