@@ -655,29 +655,35 @@
     <header>
       <h1>Task Sequencer</h1>
       <div class="view-tabs">
-        <button type="button" class="view-tab active" id="tabPlan" onclick="switchView('plan')">Plan & Bundle</button>
+        <button type="button" class="view-tab active" id="tabPlan" onclick="switchView('plan')">Plan &amp; Bundle</button>
         <button type="button" class="view-tab" id="tabTrack" onclick="switchView('track')">Track Today</button>
       </div>
     </header>
 
     <!-- VIEW 1: PLANNING & BUNDLING -->
     <div id="viewPlan">
-      <!-- DAY FILTER BAR: TODAY / TOMORROW -->
-      <div class="view-tabs" style="margin-bottom: 12px;">
-        <button type="button" class="view-tab active" id="tabDayToday" onclick="switchDayView(0)">Today</button>
-        <button type="button" class="view-tab" id="tabDayTomorrow" onclick="switchDayView(1)">Tomorrow</button>
+      <!-- DYNAMIC ROLLING DATE STRIP -->
+      <div class="date-strip-wrapper" style="display: flex; gap: 6px; align-items: center; margin-bottom: 12px; overflow-x: auto; padding-bottom: 2px;">
+        <div id="dateStripPills" style="display: flex; gap: 6px; flex: 1;"></div>
+        <input 
+          type="date" 
+          id="customDatePicker" 
+          style="background: #090e17; border: 1px solid var(--border); color: var(--text-sub); border-radius: 8px; padding: 6px 8px; font-size: 0.78rem;" 
+          onchange="selectSpecificDate(this.value)"
+        />
       </div>
 
       <!-- THE MINIMAL HOPPER -->
       <section class="hopper-section">
         <div class="hopper-bar">
           <div class="hopper-input-wrap">
-            <input 
-              type="text" 
+            <textarea 
               id="hopperInput" 
-              placeholder="Quick dump (or tap Capture to speak)..." 
-              autocomplete="off" 
-            />
+              placeholder="Quick dump (commas or Shift+Enter to split)..." 
+              rows="1"
+              autocomplete="off"
+              style="resize: none; overflow-y: hidden; min-height: 42px; padding: 10px 12px; line-height: 1.3;"
+            ></textarea>
           </div>
           <button type="button" id="hopperAddBtn" class="btn-hopper-submit">Capture</button>
         </div>
@@ -695,10 +701,10 @@
         </div>
       </section>
 
-      <!-- TODAY'S WORKBENCH -->
+      <!-- WORKBENCH -->
       <section class="input-panel" style="margin-top: 14px;">
         <div class="workbench-header">
-          <span class="workbench-label">Today's Workbench</span>
+          <span class="workbench-label" id="workbenchLabel">Today's Workbench</span>
           <span class="workbench-counter" id="workbenchCount">0 items staged</span>
         </div>
 
@@ -706,11 +712,11 @@
 
         <textarea 
           id="promptInput" 
-          placeholder="Morning context & fixed anchors (e.g. 'Meeting at 10, gym at 4, low energy today')..."
+          placeholder="Morning context &amp; fixed anchors (e.g. 'Meeting at 10, gym at 4, low energy today')..."
         ></textarea>
 
         <div class="workbench-actions">
-          <button id="submitBtn" class="btn-main" type="button">⚡ Bundle & Sequence</button>
+          <button id="submitBtn" class="btn-main" type="button">⚡ Bundle &amp; Sequence</button>
           <button type="button" class="btn-workbench-reset" title="Clear Workbench" onclick="resetWorkbench()">✕</button>
         </div>
       </section>
@@ -719,18 +725,32 @@
       <div id="blocksContainer" class="blocks-container" style="margin-top: 14px;"></div>
 
       <button id="saveBtn" class="btn-save hidden" onclick="saveToCalendar()" style="width: 100%;">
-        Write Schedule to Calendar & Start Tracking
+        Write Schedule to Calendar &amp; Start Tracking
       </button>
     </div>
 
     <!-- VIEW 2: EXECUTION / TRACK MODE -->
     <div id="viewTrack" class="hidden">
-      <div id="trackActiveBanner" class="track-active-banner hidden" style="margin-bottom: 12px;"></div>
+      <!-- PROGRESS METER -->
+      <div class="track-progress-card" style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary);">Today's Trajectory</span>
+          <span id="trackProgressText" style="font-size: 0.78rem; font-weight: 600; color: var(--text-sub);">0% Completed</span>
+        </div>
+        <div style="width: 100%; height: 6px; background: #090e17; border-radius: 999px; overflow: hidden;">
+          <div id="trackProgressBar" style="width: 0%; height: 100%; background: var(--primary); transition: width 0.3s ease;"></div>
+        </div>
+      </div>
+
+      <!-- ACTIVE NOW FOCUSED HERO BANNER -->
+      <div id="trackActiveBanner" class="track-active-banner hidden" style="margin-bottom: 14px;"></div>
+
+      <!-- TIMELINE BLOCKS -->
       <div id="trackBlocksContainer" class="blocks-container"></div>
     </div>
   </div>
 
-  <!-- FLOATING BOTTOM DOCK (ALWAYS ACCESSIBLE, EVEN WITH DRAWER CLOSED) -->
+  <!-- FLOATING BOTTOM DOCK -->
   <div class="floating-control-dock">
     <div id="floatingAbBar" class="floating-ab-bar hidden">
       <button type="button" class="floating-ab-btn active" id="btnDockOrig" onclick="applyVariantFromDock('orig')">Orig</button>
@@ -752,23 +772,22 @@
     </div>
     <div id="forgeChatLog" class="forge-chat-log"></div>
     <div class="forge-input-bar">
-      <input 
-        type="text" 
+      <textarea 
         id="forgeInput" 
-        placeholder="Chat with Gemini or request code tweaks..." 
+        placeholder="Chat with Gemini (Shift+Enter for newline)..." 
+        rows="1"
         autocomplete="off" 
         autocorrect="off" 
         autocapitalize="sentences" 
         spellcheck="false" 
-        enterkeyhint="send"
-      />
+        style="resize: none; overflow-y: hidden; min-height: 40px; padding: 10px 12px; line-height: 1.3;"
+      ></textarea>
       <button id="forgeSendBtn" onclick="sendForgeMessage()">Send</button>
     </div>
   </div>
 <!--███████████████████████████████████████████████████████████████████████████
     ▲▲▲ ANCHOR: DOM_STRUCTURE_END ▲▲▲
 ████████████████████████████████████████████████████████████████████████████-->
-
 
 
 
@@ -782,11 +801,11 @@
 
 
     
-/*█████████████████████████████████████████████████████████████████████████████
+/*███████████████████████████████████████████████████████████████████████████
   ▼▼▼ ANCHOR: TASK_CARD_RENDER_START ▼▼▼
 █████████████████████████████████████████████████████████████████████████████*/
-    function getLocalDateString(offsetDays = 0) {
-      const d = new Date();
+    function getLocalDateString(offsetDays = 0, baseDate = new Date()) {
+      const d = new Date(baseDate);
       d.setDate(d.getDate() + offsetDays);
       const year = d.getFullYear();
       const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -798,31 +817,66 @@
     let currentBlocks = JSON.parse(localStorage.getItem('current_blocks') || '[]');
     let currentView = localStorage.getItem('current_view') || 'plan';
 
-    // Auto-rollover: if an incomplete block's date is in the past, roll it into today
+    // Auto-rollover: push unfinished blocks from earlier dates into today
     const todayStr = getLocalDateString(0);
-    let stateModified = false;
+    let stateDirty = false;
     currentBlocks = currentBlocks.map(blk => {
       if (!blk.date) {
         blk.date = todayStr;
-        stateModified = true;
+        stateDirty = true;
       }
       const hasPendingAtoms = (blk.atoms || []).some(a => !a.done);
       if (blk.date < todayStr && hasPendingAtoms) {
         blk.date = todayStr;
-        stateModified = true;
+        stateDirty = true;
       }
       return blk;
     });
-    if (stateModified) {
+    if (stateDirty) {
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
     }
 
-    window.switchDayView = function(offsetDays) {
-      activePlanDate = getLocalDateString(offsetDays);
-      const tabToday = document.getElementById('tabDayToday');
-      const tabTomorrow = document.getElementById('tabDayTomorrow');
-      if (tabToday) tabToday.classList.toggle('active', offsetDays === 0);
-      if (tabTomorrow) tabTomorrow.classList.toggle('active', offsetDays === 1);
+    // Render Rolling Date Selector Strip
+    function renderDateStrip() {
+      const container = document.getElementById('dateStripPills');
+      const picker = document.getElementById('customDatePicker');
+      if (!container) return;
+
+      const daysToShow = [
+        { label: 'Today', offset: 0 },
+        { label: 'Tomorrow', offset: 1 },
+        { label: '+2d', offset: 2 },
+        { label: '+3d', offset: 3 },
+        { label: '+4d', offset: 4 }
+      ];
+
+      container.innerHTML = daysToShow.map(item => {
+        const dStr = getLocalDateString(item.offset);
+        const isActive = dStr === activePlanDate;
+        return `
+          <button 
+            type="button" 
+            class="view-tab ${isActive ? 'active' : ''}" 
+            style="white-space: nowrap; flex: 1; padding: 6px 10px;"
+            onclick="selectSpecificDate('${dStr}')"
+          >
+            ${item.label}
+          </button>
+        `;
+      }).join('');
+
+      if (picker) picker.value = activePlanDate;
+
+      const wbLabel = document.getElementById('workbenchLabel');
+      if (wbLabel) {
+        wbLabel.textContent = activePlanDate === todayStr ? "Today's Workbench" : `Workbench (${activePlanDate})`;
+      }
+    }
+
+    window.selectSpecificDate = function(dateStr) {
+      if (!dateStr) return;
+      activePlanDate = dateStr;
+      renderDateStrip();
       renderBlocks();
     };
 
@@ -843,6 +897,7 @@
       if (viewName === 'track') {
         renderTrackView();
       } else {
+        renderDateStrip();
         renderBlocks();
       }
     };
@@ -899,7 +954,7 @@
       const batchBar = count > 0 ? `
         <div class="hopper-batch-bar">
           <button class="btn-stage-hopper" onclick="stageSelectedHopperItems()">
-            Pull ${count} into Today's Plan ➔
+            Pull ${count} into Plan ➔
           </button>
           <button class="btn-clear-selection" onclick="clearHopperSelection()">Deselect</button>
         </div>
@@ -1081,14 +1136,24 @@
       return `${h}:${m}${ampm}`;
     }
 
-    window.deferBlock = function(blkId) {
+    // Flexible Date Mover for Blocks
+    window.moveBlockToDate = function(blkId, targetDate) {
       const blk = currentBlocks.find(b => b.id === blkId);
       if (!blk) return;
-      const today = getLocalDateString(0);
-      const tomorrow = getLocalDateString(1);
-      blk.date = (blk.date === today) ? tomorrow : today;
+      blk.date = targetDate;
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
       renderBlocks();
+    };
+
+    window.promptMoveBlock = function(blkId) {
+      const target = prompt('Enter date (YYYY-MM-DD) or "+1", "+2":');
+      if (!target) return;
+      let finalDate = target;
+      if (target.startsWith('+')) {
+        const offset = parseInt(target.replace('+', ''), 10) || 1;
+        finalDate = getLocalDateString(offset);
+      }
+      moveBlockToDate(blkId, finalDate);
     };
 
     function renderBlocks() {
@@ -1096,18 +1161,19 @@
       const saveBtn = document.getElementById('saveBtn');
       if (!container) return;
 
-      const visibleBlocks = currentBlocks.filter(b => (b.date || getLocalDateString(0)) === activePlanDate);
+      const visibleBlocks = currentBlocks.filter(b => (b.date || todayStr) === activePlanDate);
 
       if (!visibleBlocks.length) {
-        container.innerHTML = `<div class="hopper-empty">No blocks scheduled for ${activePlanDate === getLocalDateString(0) ? 'today' : 'tomorrow'}.</div>`;
+        container.innerHTML = `<div class="hopper-empty">No blocks scheduled for ${activePlanDate === todayStr ? 'today' : activePlanDate}.</div>`;
         if (saveBtn) saveBtn.classList.add('hidden');
         return;
       }
 
+      const tomorrowStr = getLocalDateString(1);
+
       container.innerHTML = visibleBlocks.map((blk) => {
         const timeDisplay = `${formatTime12(blk.start_time)} – ${formatTime12(blk.end_time)}`;
         const atoms = blk.atoms || [];
-        const isToday = (blk.date || getLocalDateString(0)) === getLocalDateString(0);
 
         return `
           <div class="block-card" data-color="${blk.color_id || '9'}">
@@ -1116,11 +1182,12 @@
                 <span class="block-badge-domain">${blk.domain || 'Batch'}</span>
                 <div class="block-title">${blk.title}</div>
               </div>
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <span class="block-time">${timeDisplay} (${blk.duration_minutes || 30}m)</span>
-                <button type="button" class="btn-atom-split" onclick="deferBlock('${blk.id}')">
-                  ${isToday ? '→ Tomorrow' : '← Today'}
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <span class="block-time">${timeDisplay}</span>
+                <button type="button" class="btn-atom-split" onclick="moveBlockToDate('${blk.id}', '${activePlanDate === todayStr ? tomorrowStr : todayStr}')">
+                  ${activePlanDate === todayStr ? '→ Tmrw' : '← Today'}
                 </button>
+                <button type="button" class="btn-atom-split" title="Move to specific date" onclick="promptMoveBlock('${blk.id}')">📅</button>
               </div>
             </div>
 
@@ -1173,29 +1240,80 @@
       renderBlocks();
     };
 
+    // --- REFINED TRACK MODE: ACTIVE NOW + METRICS ---
     function renderTrackView() {
       const container = document.getElementById('trackBlocksContainer');
       const banner = document.getElementById('trackActiveBanner');
+      const progressText = document.getElementById('trackProgressText');
+      const progressBar = document.getElementById('trackProgressBar');
       if (!container) return;
 
-      const todayBlocks = currentBlocks.filter(b => (b.date || getLocalDateString(0)) === getLocalDateString(0));
+      const todayBlocks = currentBlocks.filter(b => (b.date || todayStr) === todayStr);
 
       if (!todayBlocks.length) {
-        container.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:30px;">No blocks sequenced for today yet. Switch to Plan & Bundle to stage your morning.</div>';
+        container.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:30px;">No blocks scheduled for today. Head to Plan & Bundle to sequence your tasks.</div>';
         if (banner) banner.classList.add('hidden');
+        if (progressText) progressText.textContent = '0% Completed';
+        if (progressBar) progressBar.style.width = '0%';
         return;
       }
 
+      // Calculate Day Progress
+      let totalAtoms = 0;
+      let doneAtoms = 0;
+      todayBlocks.forEach(b => {
+        (b.atoms || []).forEach(a => {
+          totalAtoms++;
+          if (a.done) doneAtoms++;
+        });
+      });
+      const pct = totalAtoms > 0 ? Math.round((doneAtoms / totalAtoms) * 100) : 0;
+      if (progressText) progressText.textContent = `${doneAtoms} / ${totalAtoms} Done (${pct}%)`;
+      if (progressBar) progressBar.style.width = `${pct}%`;
+
+      // Identify Current Active Block by Time
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      let activeBlock = null;
+      todayBlocks.forEach(blk => {
+        if (!blk.start_time || !blk.end_time) return;
+        const [sh, sm] = blk.start_time.split(':').map(Number);
+        const [eh, em] = blk.end_time.split(':').map(Number);
+        const startMin = sh * 60 + sm;
+        const endMin = eh * 60 + em;
+
+        if (currentMinutes >= startMin && currentMinutes <= endMin) {
+          activeBlock = blk;
+        }
+      });
+
+      // Render Active Banner
+      if (banner) {
+        if (activeBlock) {
+          banner.classList.remove('hidden');
+          banner.innerHTML = `
+            <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--primary);">● Active Right Now (${formatTime12(activeBlock.start_time)} – ${formatTime12(activeBlock.end_time)})</div>
+            <div style="font-size:1.05rem; font-weight:700; color:#fff; margin-top:2px;">${activeBlock.title}</div>
+            <div style="font-size:0.8rem; color:#bae6fd; margin-top:4px;">${activeBlock.atoms.filter(a => !a.done).length} unfinished atoms remaining</div>
+          `;
+        } else {
+          banner.classList.add('hidden');
+        }
+      }
+
+      // Render Blocks with Distinct Done/Active Styling
       container.innerHTML = todayBlocks.map((blk) => {
         const timeDisplay = `${formatTime12(blk.start_time)} – ${formatTime12(blk.end_time)}`;
         const atoms = blk.atoms || [];
+        const isBlockDone = atoms.length > 0 && atoms.every(a => a.done);
 
         return `
-          <div class="block-card" data-color="${blk.color_id || '9'}">
+          <div class="block-card ${isBlockDone ? 'block-completed' : ''}" data-color="${blk.color_id || '9'}" style="${isBlockDone ? 'opacity: 0.55;' : ''}">
             <div class="block-header">
               <div class="block-title-row">
                 <span class="block-badge-domain">${blk.domain}</span>
-                <div class="block-title">${blk.title}</div>
+                <div class="block-title" style="${isBlockDone ? 'text-decoration: line-through;' : ''}">${blk.title}</div>
               </div>
               <span class="block-time">${timeDisplay}</span>
             </div>
@@ -1228,7 +1346,7 @@
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
       renderTrackView();
     };
-/*█████████████████████████████████████████████████████████████████████████████
+/*███████████████████████████████████████████████████████████████████████████
   ▲▲▲ ANCHOR: TASK_CARD_RENDER_END ▲▲▲
 █████████████████████████████████████████████████████████████████████████████*/
 
@@ -1288,7 +1406,7 @@
 
 
     
-/*█████████████████████████████████████████████████████████████████████████████
+/*███████████████████████████████████████████████████████████████████████████
   ▼▼▼ ANCHOR: TASK_API_PARSING_AND_SAVE_START ▼▼▼
 █████████████████████████████████████████████████████████████████████████████*/
     async function parseTasks() {
@@ -1306,6 +1424,7 @@
       btn.innerText = 'Bundling...';
 
       let promptParts = [];
+      promptParts.push(`Target Execution Date: ${activePlanDate}`);
       if (stagedWorkbenchTasks.length > 0) {
         promptParts.push('Obligations to bundle and sequence:\n' + stagedWorkbenchTasks.map(t => `- ${t.text}`).join('\n'));
       }
@@ -1337,7 +1456,6 @@
           )
         }));
 
-        // Cumulative append: Preserves existing blocks and appends the new ones
         currentBlocks = [...currentBlocks, ...incomingBlocks];
         localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
 
@@ -1356,7 +1474,7 @@
     }
 
     async function saveToCalendar() {
-      const activeBlocks = currentBlocks.filter(b => (b.date || getLocalDateString(0)) === activePlanDate);
+      const activeBlocks = currentBlocks.filter(b => (b.date || todayStr) === activePlanDate);
       if (!activeBlocks.length) return;
 
       const saveBtn = document.getElementById('saveBtn');
@@ -1389,7 +1507,7 @@
         saveBtn.innerText = 'Write Schedule to Calendar & Start Tracking';
       }
     }
-/*█████████████████████████████████████████████████████████████████████████████
+/*███████████████████████████████████████████████████████████████████████████
   ▲▲▲ ANCHOR: TASK_API_PARSING_AND_SAVE_END ▲▲▲
 █████████████████████████████████████████████████████████████████████████████*/
 
