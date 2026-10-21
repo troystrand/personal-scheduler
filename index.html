@@ -623,21 +623,6 @@
     .hidden { display: none !important; }
   </style>
 <!--███████████████████████████████████████████████████████████████████████████
-    ▲▲▲ ANCHOR: CSS_THEME_AND_LAYOUT_END ▲▲▲
-████████████████████████████████████████████████████████████████████████████-->
-
-
-
-
-  
-</head>
-<body>
-
-
-
-
-  
-<!--███████████████████████████████████████████████████████████████████████████
     ▼▼▼ ANCHOR: DOM_STRUCTURE_START ▼▼▼
 ████████████████████████████████████████████████████████████████████████████-->
   <div class="container">
@@ -659,29 +644,7 @@
         </div>
       </div>
 
-      <!-- PERSISTENT DAY-PLANNING WORKBENCH -->
-      <section class="input-panel" id="workbenchPanel" style="margin-bottom: 14px;">
-        <div class="workbench-header" style="margin-bottom: 8px;">
-          <span class="workbench-label" id="workbenchLabel">Daily Intent &amp; Schedule Context</span>
-          <span class="workbench-counter" id="workbenchCount">0 items staged</span>
-        </div>
-
-        <!-- STAGED HOPPER CHIPS (ONLY SHOWN IF ITEMS ARE PULLED FROM HOPPER) -->
-        <div id="stagedChips" class="staged-chips-container hidden" style="margin-bottom: 8px;"></div>
-
-        <textarea 
-          id="promptInput" 
-          placeholder="Plan your day naturally (e.g. 'Meeting at 10 and 11. Need to hit the gym, pick up orders, and grade portfolios')..."
-          style="min-height: 84px; line-height: 1.45;"
-        ></textarea>
-
-        <div class="workbench-actions" style="margin-top: 8px;">
-          <button id="submitBtn" class="btn-main" type="button" onclick="parseTasks()">⚡ Sequence Day</button>
-          <button type="button" class="btn-workbench-reset" title="Clear Intent &amp; Staging" onclick="resetWorkbench()">✕</button>
-        </div>
-      </section>
-
-      <!-- THE QUICK-CAPTURE HOPPER -->
+      <!-- 1. THE QUICK-CAPTURE HOPPER (PINNED ON TOP) -->
       <section class="hopper-section" style="margin-bottom: 14px;">
         <div class="hopper-bar">
           <div class="hopper-input-wrap">
@@ -708,7 +671,28 @@
         </div>
       </section>
 
-      <!-- COLLAPSIBLE SCHEDULE REVIEW DRAWER -->
+      <!-- 2. PERSISTENT DAILY INTENT WORKBENCH -->
+      <section class="input-panel" id="workbenchPanel" style="margin-bottom: 14px;">
+        <div class="workbench-header" style="margin-bottom: 8px;">
+          <span class="workbench-label" id="workbenchLabel">Daily Intent &amp; Schedule Context</span>
+          <span class="workbench-counter" id="workbenchCount">0 items staged</span>
+        </div>
+
+        <div id="stagedChips" class="staged-chips-container hidden" style="margin-bottom: 8px;"></div>
+
+        <textarea 
+          id="promptInput" 
+          placeholder="Plan your day naturally (e.g. 'Meeting at 10 and 11. Need to hit the gym, pick up orders, and grade portfolios')..."
+          style="min-height: 84px; line-height: 1.45;"
+        ></textarea>
+
+        <div class="workbench-actions" style="margin-top: 8px;">
+          <button id="submitBtn" class="btn-main" type="button" onclick="parseTasks()">⚡ Sequence Day</button>
+          <button type="button" class="btn-workbench-reset" title="Clear Intent &amp; Staging" onclick="resetWorkbench()">✕</button>
+        </div>
+      </section>
+
+      <!-- 3. COLLAPSIBLE SCHEDULE REVIEW DRAWER -->
       <section class="hopper-section">
         <div class="hopper-header" id="toggleScheduleReview" onclick="toggleScheduleDrawer()" style="padding: 2px;">
           <span class="hopper-title">
@@ -729,7 +713,6 @@
 
     <!-- VIEW 2: EXECUTION / TRACK MODE -->
     <div id="viewTrack" class="hidden">
-      <!-- PROGRESS METER -->
       <div class="track-progress-card" style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
           <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary);">Today's Trajectory</span>
@@ -740,10 +723,7 @@
         </div>
       </div>
 
-      <!-- ACTIVE NOW FOCUSED HERO BANNER -->
       <div id="trackActiveBanner" class="track-active-banner hidden" style="margin-bottom: 14px;"></div>
-
-      <!-- TIMELINE BLOCKS -->
       <div id="trackBlocksContainer" class="blocks-container"></div>
     </div>
   </div>
@@ -788,7 +768,6 @@
 ████████████████████████████████████████████████████████████████████████████-->
 
 
-
   
   <script>
     const WORKER_URL = 'https://personal-scheduler-proxy.strand-troy.workers.dev';
@@ -827,6 +806,7 @@
 
     const todayStr = getLocalDateString(0);
 
+    // Auto-mark legacy unsynced blocks that have completed atoms so they don't clog Planning
     let stateDirty = false;
     currentBlocks = currentBlocks.map(blk => {
       if (!blk.date) {
@@ -1140,7 +1120,7 @@
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
-    // Planning Preview strictly excludes blocks already written to Calendar or fully finished
+    // Planning Preview filters out synced blocks and completed blocks
     function renderBlocks() {
       const container = document.getElementById('blocksContainer');
       const saveBtn = document.getElementById('saveBtn');
@@ -1173,7 +1153,7 @@
       }
 
       if (!visibleBlocks.length) {
-        container.innerHTML = `<div class="hopper-empty">Planning tray is clear. All scheduled blocks have been written to Calendar.</div>`;
+        container.innerHTML = `<div class="hopper-empty">Planning preview is clear. Scheduled blocks are tracked in Tracking mode.</div>`;
         if (saveBtn) saveBtn.classList.add('hidden');
         return;
       }
@@ -1215,7 +1195,18 @@
       if (saveBtn) saveBtn.classList.remove('hidden');
     }
 
-    // Write to Calendar: Tags blocks as calendar_synced so they clear out of Planning
+    // Dismiss existing blocks from planning preview by marking them synced
+    window.markAllCurrentBlocksSynced = function() {
+      currentBlocks.forEach(b => {
+        if ((b.date || todayStr) === activePlanDate) {
+          b.calendar_synced = true;
+        }
+      });
+      localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
+      window.triggerBackgroundSync();
+      renderBlocks();
+    };
+
     window.saveToCalendar = async function() {
       const saveBtn = document.getElementById('saveBtn');
       const unsyncedBlocks = currentBlocks.filter(b => (b.date || todayStr) === activePlanDate && !b.calendar_synced);
@@ -1248,12 +1239,10 @@
           throw new Error(errData.error || `HTTP ${res.status}`);
         }
 
-        // Flag synced blocks so they disappear from Planning view
         unsyncedBlocks.forEach(b => { b.calendar_synced = true; });
         localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
         window.triggerBackgroundSync();
 
-        // Switch automatically into Tracking
         switchView('track');
       } catch (err) {
         alert('Calendar sync error: ' + err.message);
@@ -1523,7 +1512,7 @@
       }
     };
 
-    // In-App Anchor Snapshotter
+    // --- BULLETPROOF IN-APP ANCHOR SNAPSHOTTER (CTRL/CMD + SHIFT + S) ---
     window.snapshotCurrentAnchors = async function() {
       const toast = (msg) => {
         console.log(`[SNAPSHOT] ${msg}`);
@@ -1535,23 +1524,39 @@
       };
 
       try {
-        toast('Extracting anchor blocks...');
+        toast('Fetching running page source...');
         const htmlRes = await fetch(window.location.href, { cache: 'no-store' });
         const source = await htmlRes.text();
 
-        const anchorRegex = /(?:\/\*|<!--)[█\s]+▼+ ANCHOR: ([A-Z0-9_]+) START[█\s]+(?:\*\/|-->)([\s\S]*?)(?:\/\*|<!--)[█\s]+▲+ ANCHOR: \1 END[█\s]+(?:\*\/|-->)/g;
-        
-        let match;
+        // Line-by-line anchor block parser (bypasses unicode & comment token regex mismatches)
+        const lines = source.split('\n');
         const anchors = [];
-        while ((match = anchorRegex.exec(source)) !== null) {
-          anchors.push({
-            anchorName: match[1],
-            fullBlock: match[0].trim()
-          });
+        let currentAnchorName = null;
+        let currentBuffer = [];
+
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          const startMatch = line.match(/ANCHOR:\s*([A-Za-z0-9_]+)_START/i);
+          const endMatch = line.match(/ANCHOR:\s*([A-Za-z0-9_]+)_END/i);
+
+          if (startMatch) {
+            currentAnchorName = startMatch[1];
+            currentBuffer = [line];
+          } else if (endMatch && currentAnchorName === endMatch[1]) {
+            currentBuffer.push(line);
+            anchors.push({
+              anchorName: currentAnchorName,
+              fullBlock: currentBuffer.join('\n')
+            });
+            currentAnchorName = null;
+            currentBuffer = [];
+          } else if (currentAnchorName) {
+            currentBuffer.push(line);
+          }
         }
 
         if (anchors.length === 0) {
-          toast('⚠️ No formatted anchor blocks found');
+          toast('⚠️ No formatted anchor blocks found in page');
           return;
         }
 
