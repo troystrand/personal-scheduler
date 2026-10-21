@@ -649,9 +649,9 @@
       </div>
     </header>
 
-    <!-- VIEW 1: PLANNING & BUNDLING (THE CALM FOYER) -->
+    <!-- VIEW 1: PLANNING & BUNDLING -->
     <div id="viewPlan">
-      <!-- SIMPLIFIED ROLLING DATE STRIP: TODAY / TOMORROW ONLY -->
+      <!-- DATE TOGGLE (TODAY / TOMORROW) -->
       <div class="date-strip-wrapper" style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px;">
         <div id="dateStripPills" style="display: flex; gap: 8px; flex: 1;">
           <button type="button" class="view-tab active" id="btnDateToday" style="flex: 1; padding: 8px 12px;" onclick="selectSpecificDate(getLocalDateString(0))">Today</button>
@@ -659,8 +659,30 @@
         </div>
       </div>
 
-      <!-- THE EXPANDED HERO HOPPER -->
-      <section class="hopper-section">
+      <!-- PERSISTENT DAY-PLANNING WORKBENCH -->
+      <section class="input-panel" id="workbenchPanel" style="margin-bottom: 14px;">
+        <div class="workbench-header" style="margin-bottom: 8px;">
+          <span class="workbench-label" id="workbenchLabel">Daily Intent &amp; Schedule Context</span>
+          <span class="workbench-counter" id="workbenchCount">0 items staged</span>
+        </div>
+
+        <!-- STAGED HOPPER CHIPS (ONLY SHOWN IF ITEMS ARE PULLED FROM HOPPER) -->
+        <div id="stagedChips" class="staged-chips-container hidden" style="margin-bottom: 8px;"></div>
+
+        <textarea 
+          id="promptInput" 
+          placeholder="Plan your day naturally (e.g. 'Meeting at 10 and 11. Need to hit the gym, pick up orders, and grade portfolios')..."
+          style="min-height: 84px; line-height: 1.45;"
+        ></textarea>
+
+        <div class="workbench-actions" style="margin-top: 8px;">
+          <button id="submitBtn" class="btn-main" type="button" onclick="parseTasks()">⚡ Sequence Day</button>
+          <button type="button" class="btn-workbench-reset" title="Clear Intent &amp; Staging" onclick="resetWorkbench()">✕</button>
+        </div>
+      </section>
+
+      <!-- THE QUICK-CAPTURE HOPPER -->
+      <section class="hopper-section" style="margin-bottom: 14px;">
         <div class="hopper-bar">
           <div class="hopper-input-wrap">
             <textarea 
@@ -670,10 +692,10 @@
               autocomplete="off"
             ></textarea>
           </div>
-          <button type="button" id="hopperAddBtn" class="btn-hopper-submit">Capture</button>
+          <button type="button" id="hopperAddBtn" class="btn-hopper-submit" onclick="parseHopperInput()">Capture</button>
         </div>
 
-        <div class="hopper-header" id="toggleHopperTray">
+        <div class="hopper-header" id="toggleHopperTray" onclick="toggleHopperDrawer()">
           <span class="hopper-title">
             <span>The Hopper</span>
             <span class="hopper-count-badge" id="hopperCount">0</span>
@@ -686,28 +708,8 @@
         </div>
       </section>
 
-      <!-- TODAY'S WORKBENCH (COLLAPSED BY DEFAULT, APPEARS ONLY WHEN STAGING) -->
-      <section class="input-panel drawer-hidden" id="workbenchPanel" style="margin-top: 14px;">
-        <div class="workbench-header">
-          <span class="workbench-label" id="workbenchLabel">Today's Workbench</span>
-          <span class="workbench-counter" id="workbenchCount">0 items staged</span>
-        </div>
-
-        <div id="stagedChips" class="staged-chips-container hidden"></div>
-
-        <textarea 
-          id="promptInput" 
-          placeholder="Morning context &amp; fixed anchors (e.g. 'Meeting at 10, gym at 4, low energy today')..."
-        ></textarea>
-
-        <div class="workbench-actions">
-          <button id="submitBtn" class="btn-main" type="button">⚡ Bundle &amp; Sequence</button>
-          <button type="button" class="btn-workbench-reset" title="Clear Workbench" onclick="resetWorkbench()">✕</button>
-        </div>
-      </section>
-
-      <!-- COLLAPSIBLE SCHEDULE REVIEW DRAWER (CLEARS THE FOYER) -->
-      <section class="hopper-section" style="margin-top: 14px;">
+      <!-- COLLAPSIBLE SCHEDULE REVIEW DRAWER -->
+      <section class="hopper-section">
         <div class="hopper-header" id="toggleScheduleReview" onclick="toggleScheduleDrawer()" style="padding: 2px;">
           <span class="hopper-title">
             <span>Scheduled Blocks Preview</span>
@@ -716,9 +718,7 @@
           <span class="hopper-chevron" id="scheduleChevron">▶</span>
         </div>
         <div id="scheduleReviewTray" class="collapsed" style="display: none; flex-direction: column; gap: 12px; padding-top: 10px;">
-          <!-- AI RATIONALE & NATURAL CONFIRMATION BANNER -->
           <div id="planAiRationale"></div>
-
           <div id="blocksContainer" class="blocks-container"></div>
           <button id="saveBtn" class="btn-save hidden" onclick="saveToCalendar()" style="width: 100%;">
             Write Schedule to Calendar &amp; Start Tracking
@@ -925,7 +925,15 @@
       if (document.visibilityState === 'visible') window.pullLatestState();
     }, 15000);
 
-    // Toggle Preview Drawer on Plan screen
+    // Global Drawer Toggles
+    window.toggleHopperDrawer = function() {
+      const tray = document.getElementById('hopperTray');
+      const chevron = document.getElementById('hopperChevron');
+      if (!tray) return;
+      const isCollapsed = tray.classList.toggle('collapsed');
+      if (chevron) chevron.textContent = isCollapsed ? '▼' : '▲';
+    };
+
     window.toggleScheduleDrawer = function() {
       const tray = document.getElementById('scheduleReviewTray');
       const chevron = document.getElementById('scheduleChevron');
@@ -934,18 +942,6 @@
       tray.style.display = isHidden ? 'flex' : 'none';
       if (chevron) chevron.textContent = isHidden ? '▼' : '▶';
     };
-
-    // Toggle Hopper Tray
-    const toggleHopperEl = document.getElementById('toggleHopperTray');
-    if (toggleHopperEl) {
-      toggleHopperEl.onclick = function() {
-        const tray = document.getElementById('hopperTray');
-        const chevron = document.getElementById('hopperChevron');
-        if (!tray) return;
-        const isCollapsed = tray.classList.toggle('collapsed');
-        if (chevron) chevron.textContent = isCollapsed ? '▼' : '▲';
-      };
-    }
 
     function renderDateStrip() {
       const btnToday = document.getElementById('btnDateToday');
@@ -1078,28 +1074,27 @@
     };
 
     function renderWorkbench() {
-      const panel = document.getElementById('workbenchPanel');
       const container = document.getElementById('stagedChips');
       const countLabel = document.getElementById('workbenchCount');
       const submitBtn = document.getElementById('submitBtn');
-      if (!panel || !container || !countLabel || !submitBtn) return;
+      if (!container || !countLabel || !submitBtn) return;
 
       const count = stagedWorkbenchTasks.length;
-      countLabel.textContent = `${count} staged obligation${count === 1 ? '' : 's'}`;
+      countLabel.textContent = `${count} staged item${count === 1 ? '' : 's'}`;
 
       if (count === 0) {
-        panel.classList.add('drawer-hidden');
+        container.classList.add('hidden');
         container.innerHTML = '';
-        submitBtn.innerText = '⚡ Bundle & Sequence';
+        submitBtn.innerText = '⚡ Sequence Day';
       } else {
-        panel.classList.remove('drawer-hidden');
+        container.classList.remove('hidden');
         container.innerHTML = stagedWorkbenchTasks.map((t, idx) => `
           <div class="staged-chip">
             <span class="staged-chip-text" title="${escapeHtml(t.text)}">${escapeHtml(t.text)}</span>
             <button type="button" class="staged-chip-remove" onclick="removeStagedTask(${idx})">✕</button>
           </div>
         `).join('');
-        submitBtn.innerText = `⚡ Bundle ${count} Item${count === 1 ? '' : 's'}`;
+        submitBtn.innerText = `⚡ Sequence Day (${count} Staged)`;
       }
     }
 
@@ -1145,6 +1140,7 @@
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
+    // Planning Preview strictly excludes blocks already written to Calendar or fully finished
     function renderBlocks() {
       const container = document.getElementById('blocksContainer');
       const saveBtn = document.getElementById('saveBtn');
@@ -1154,7 +1150,7 @@
       const visibleBlocks = currentBlocks.filter(b => {
         const matchesDate = (b.date || todayStr) === activePlanDate;
         const allDone = (b.atoms || []).length > 0 && b.atoms.every(a => a.done);
-        return matchesDate && !allDone;
+        return matchesDate && !b.calendar_synced && !allDone;
       });
 
       if (badge) badge.textContent = visibleBlocks.length;
@@ -1177,7 +1173,7 @@
       }
 
       if (!visibleBlocks.length) {
-        container.innerHTML = `<div class="hopper-empty">No active blocks remaining for ${activePlanDate === todayStr ? 'today' : activePlanDate}.</div>`;
+        container.innerHTML = `<div class="hopper-empty">Planning tray is clear. All scheduled blocks have been written to Calendar.</div>`;
         if (saveBtn) saveBtn.classList.add('hidden');
         return;
       }
@@ -1218,6 +1214,56 @@
 
       if (saveBtn) saveBtn.classList.remove('hidden');
     }
+
+    // Write to Calendar: Tags blocks as calendar_synced so they clear out of Planning
+    window.saveToCalendar = async function() {
+      const saveBtn = document.getElementById('saveBtn');
+      const unsyncedBlocks = currentBlocks.filter(b => (b.date || todayStr) === activePlanDate && !b.calendar_synced);
+
+      if (!unsyncedBlocks.length) {
+        alert('All blocks for this date have already been written to Google Calendar.');
+        return;
+      }
+
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerText = 'Writing to Calendar...';
+      }
+
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-App-Key': APP_KEY
+          },
+          body: JSON.stringify({
+            action: 'INSERT',
+            blocks: unsyncedBlocks
+          })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `HTTP ${res.status}`);
+        }
+
+        // Flag synced blocks so they disappear from Planning view
+        unsyncedBlocks.forEach(b => { b.calendar_synced = true; });
+        localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
+        window.triggerBackgroundSync();
+
+        // Switch automatically into Tracking
+        switchView('track');
+      } catch (err) {
+        alert('Calendar sync error: ' + err.message);
+      } finally {
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.innerText = 'Write Schedule to Calendar & Start Tracking';
+        }
+      }
+    };
 
     window.dismissAiRationale = function(accepted) {
       if (!accepted) {
@@ -1339,7 +1385,7 @@
       const prompt = promptInput ? promptInput.value.trim() : '';
 
       if (!prompt && stagedWorkbenchTasks.length === 0) {
-        alert('Stage tasks from the Hopper or type instructions first.');
+        alert('Please enter your daily plan context or stage tasks from the Hopper.');
         return;
       }
 
@@ -1366,11 +1412,12 @@
         if (newBlocks.length > 0) {
           newBlocks.forEach(b => {
             if (!b.date) b.date = activePlanDate;
+            b.calendar_synced = false;
             currentBlocks.push(b);
           });
 
           const count = stagedWorkbenchTasks.length;
-          lastAiRationale = `I organized your ${count > 0 ? count + ' staged items' : 'obligations'} into ${newBlocks.length} chronological block${newBlocks.length === 1 ? '' : 's'} on ${activePlanDate === todayStr ? 'today' : activePlanDate}. Does this look good?`;
+          lastAiRationale = `I organized your ${count > 0 ? count + ' staged items and ' : ''}day context into ${newBlocks.length} chronological block${newBlocks.length === 1 ? '' : 's'}. Does this look good?`;
 
           const stagedIds = new Set(stagedWorkbenchTasks.map(t => t.id));
           hopperItems = hopperItems.filter(h => !stagedIds.has(h.id));
@@ -1385,6 +1432,13 @@
           renderHopper();
           renderWorkbench();
           renderBlocks();
+
+          const tray = document.getElementById('scheduleReviewTray');
+          const chevron = document.getElementById('scheduleChevron');
+          if (tray) {
+            tray.style.display = 'flex';
+            if (chevron) chevron.textContent = '▼';
+          }
         }
       } catch (err) {
         alert('Sequencing failed: ' + err.message);
@@ -1394,7 +1448,82 @@
       }
     };
 
-    // --- AUTOMATIC IN-APP ANCHOR SNAPSHOTTER (CTRL/CMD + SHIFT + S) ---
+    window.parseHopperInput = async function(audioPayload = null) {
+      const input = document.getElementById('hopperInput');
+      const btn = document.getElementById('hopperAddBtn');
+      const text = input ? input.value.trim() : '';
+
+      if (!text && !audioPayload) return;
+
+      btn.disabled = true;
+      btn.innerText = audioPayload ? 'Transcribing...' : 'Extracting...';
+
+      const requestBody = { action: 'HOPPER_PARSE' };
+      if (audioPayload) {
+        requestBody.audioData = audioPayload.data;
+        requestBody.mimeType = audioPayload.mimeType;
+      }
+      if (text) requestBody.text = text;
+
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-App-Key': APP_KEY
+          },
+          body: JSON.stringify(requestBody)
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const extracted = data.items || [];
+
+        if (extracted.length > 0) {
+          extracted.forEach(str => {
+            hopperItems.unshift({
+              id: 'hop_' + Date.now() + Math.random().toString(36).substr(2, 4),
+              rawText: str,
+              createdAt: new Date().toISOString()
+            });
+          });
+        } else if (text) {
+          hopperItems.unshift({
+            id: 'hop_' + Date.now(),
+            rawText: text,
+            createdAt: new Date().toISOString()
+          });
+        }
+
+        if (input) input.value = '';
+        saveHopper();
+
+        const tray = document.getElementById('hopperTray');
+        const chevron = document.getElementById('hopperChevron');
+        if (tray && tray.classList.contains('collapsed')) {
+          tray.classList.remove('collapsed');
+          if (chevron) chevron.textContent = '▲';
+        }
+      } catch (err) {
+        console.error('Hopper Ingestion Error:', err);
+        if (text) {
+          hopperItems.unshift({
+            id: 'hop_' + Date.now(),
+            rawText: text,
+            createdAt: new Date().toISOString()
+          });
+          if (input) input.value = '';
+          saveHopper();
+        } else {
+          alert('Intake failed: ' + err.message);
+        }
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Capture';
+      }
+    };
+
+    // In-App Anchor Snapshotter
     window.snapshotCurrentAnchors = async function() {
       const toast = (msg) => {
         console.log(`[SNAPSHOT] ${msg}`);
@@ -1461,7 +1590,6 @@
       }
     });
 
-    // Initial render call on page load
     renderDateStrip();
     renderHopper();
     renderWorkbench();
