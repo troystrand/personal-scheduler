@@ -644,22 +644,19 @@
     <header>
       <h1>Task Sequencer</h1>
       <div class="view-tabs">
-        <button type="button" class="view-tab active" id="tabPlan" onclick="switchView('plan')">Plan &amp; Bundle</button>
-        <button type="button" class="view-tab" id="tabTrack" onclick="switchView('track')">Track Today</button>
+        <button type="button" class="view-tab active" id="tabPlan" onclick="switchView('plan')">Planning</button>
+        <button type="button" class="view-tab" id="tabTrack" onclick="switchView('track')">Tracking</button>
       </div>
     </header>
 
     <!-- VIEW 1: PLANNING & BUNDLING (THE CALM FOYER) -->
     <div id="viewPlan">
-      <!-- DYNAMIC ROLLING DATE STRIP -->
-      <div class="date-strip-wrapper" style="display: flex; gap: 6px; align-items: center; margin-bottom: 12px; overflow-x: auto; padding-bottom: 2px;">
-        <div id="dateStripPills" style="display: flex; gap: 6px; flex: 1;"></div>
-        <input 
-          type="date" 
-          id="customDatePicker" 
-          style="background: #090e17; border: 1px solid var(--border); color: var(--text-sub); border-radius: 8px; padding: 6px 8px; font-size: 0.78rem;" 
-          onchange="selectSpecificDate(this.value)"
-        />
+      <!-- SIMPLIFIED ROLLING DATE STRIP: TODAY / TOMORROW ONLY -->
+      <div class="date-strip-wrapper" style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px;">
+        <div id="dateStripPills" style="display: flex; gap: 8px; flex: 1;">
+          <button type="button" class="view-tab active" id="btnDateToday" style="flex: 1; padding: 8px 12px;" onclick="selectSpecificDate(getLocalDateString(0))">Today</button>
+          <button type="button" class="view-tab" id="btnDateTomorrow" style="flex: 1; padding: 8px 12px;" onclick="selectSpecificDate(getLocalDateString(1))">Tomorrow</button>
+        </div>
       </div>
 
       <!-- THE EXPANDED HERO HOPPER -->
@@ -668,7 +665,7 @@
           <div class="hopper-input-wrap">
             <textarea 
               id="hopperInput" 
-              placeholder="Dump thoughts, tasks, or lists here..." 
+              placeholder="What do you need to do?" 
               rows="1"
               autocomplete="off"
             ></textarea>
@@ -719,6 +716,9 @@
           <span class="hopper-chevron" id="scheduleChevron">▶</span>
         </div>
         <div id="scheduleReviewTray" class="collapsed" style="display: none; flex-direction: column; gap: 12px; padding-top: 10px;">
+          <!-- AI RATIONALE & NATURAL CONFIRMATION BANNER -->
+          <div id="planAiRationale"></div>
+
           <div id="blocksContainer" class="blocks-container"></div>
           <button id="saveBtn" class="btn-save hidden" onclick="saveToCalendar()" style="width: 100%;">
             Write Schedule to Calendar &amp; Start Tracking
@@ -818,8 +818,8 @@
     let selectedHopperIds = new Set();
     let stagedWorkbenchTasks = JSON.parse(localStorage.getItem('staged_workbench_tasks') || '[]');
     let lastStateTimestamp = parseInt(localStorage.getItem('last_state_timestamp') || '0', 10);
+    let lastAiRationale = "";
 
-    // Auto-heal future timestamps if local storage was corrupted by manual testing
     if (lastStateTimestamp > Date.now() + 60000) {
       lastStateTimestamp = 0;
       localStorage.setItem('last_state_timestamp', '0');
@@ -827,7 +827,6 @@
 
     const todayStr = getLocalDateString(0);
 
-    // Auto-rollover: push unfinished blocks from earlier dates into today
     let stateDirty = false;
     currentBlocks = currentBlocks.map(blk => {
       if (!blk.date) {
@@ -845,7 +844,6 @@
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
     }
 
-    // --- CLOUDFLARE D1 SYNC CONTROLLER ---
     let syncTimeout = null;
     window.triggerBackgroundSync = function() {
       const now = Date.now();
@@ -857,10 +855,7 @@
         try {
           const res = await fetch(WORKER_URL, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-App-Key': APP_KEY
-            },
+            headers: { 'Content-Type': 'application/json', 'X-App-Key': APP_KEY },
             body: JSON.stringify({
               action: 'PUSH_STATE',
               hopper: hopperItems,
@@ -869,24 +864,18 @@
               timestamp: now
             })
           });
-          if (res.ok) {
-            console.log('✓ Edge sync pushed');
-          }
+          if (res.ok) console.log('✓ Edge sync pushed');
         } catch (err) {
-          console.warn('Background sync postponed (offline):', err.message);
+          console.warn('Background sync postponed:', err.message);
         }
       }, 300);
     };
 
     window.pullLatestState = async function() {
       try {
-        // Cache-busting query param ensures iOS WebKit bypasses stale cache
         const res = await fetch(`${WORKER_URL}?t=${Date.now()}`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-App-Key': APP_KEY
-          },
+          headers: { 'Content-Type': 'application/json', 'X-App-Key': APP_KEY },
           body: JSON.stringify({ action: 'GET_STATE' })
         });
         if (!res.ok) return;
@@ -913,16 +902,13 @@
       }
     };
 
-    // --- ROBUST CROSS-PLATFORM STATE WATCHERS ---
-    
-    // 1. Instant re-sync on tab switch or window focus
+    // Cross-Platform Wake Watchers
     window.addEventListener('focus', () => window.pullLatestState());
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') window.pullLatestState();
     });
     window.addEventListener('pageshow', () => window.pullLatestState());
 
-    // 2. Throttled activity pulse (touch on iOS + mouse/keyboard on desktop)
     let lastActivityPull = 0;
     function pulseOnActivity() {
       const now = Date.now();
@@ -935,58 +921,17 @@
     document.addEventListener('mousemove', pulseOnActivity, { passive: true });
     document.addEventListener('keydown', pulseOnActivity, { passive: true });
 
-    // 3. Ambient Heartbeat (checks edge every 15s when browser tab is actively visible)
     setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        window.pullLatestState();
-      }
+      if (document.visibilityState === 'visible') window.pullLatestState();
     }, 15000);
 
-    // Toggle Preview Drawer on Plan screen
-    window.toggleScheduleDrawer = function() {
-      const tray = document.getElementById('scheduleReviewTray');
-      const chevron = document.getElementById('scheduleChevron');
-      if (!tray) return;
-      const isHidden = tray.style.display === 'none';
-      tray.style.display = isHidden ? 'flex' : 'none';
-      if (chevron) chevron.textContent = isHidden ? '▼' : '▶';
-    };
-
-    // Render Rolling Date Selector Strip
+    // Simplified Date Toggle
     function renderDateStrip() {
-      const container = document.getElementById('dateStripPills');
-      const picker = document.getElementById('customDatePicker');
-      if (!container) return;
-
-      const daysToShow = [
-        { label: 'Today', offset: 0 },
-        { label: 'Tomorrow', offset: 1 },
-        { label: '+2d', offset: 2 },
-        { label: '+3d', offset: 3 },
-        { label: '+4d', offset: 4 }
-      ];
-
-      container.innerHTML = daysToShow.map(item => {
-        const dStr = getLocalDateString(item.offset);
-        const isActive = dStr === activePlanDate;
-        return `
-          <button 
-            type="button" 
-            class="view-tab ${isActive ? 'active' : ''}" 
-            style="white-space: nowrap; flex: 1; padding: 6px 10px;"
-            onclick="selectSpecificDate('${dStr}')"
-          >
-            ${item.label}
-          </button>
-        `;
-      }).join('');
-
-      if (picker) picker.value = activePlanDate;
-
-      const wbLabel = document.getElementById('workbenchLabel');
-      if (wbLabel) {
-        wbLabel.textContent = activePlanDate === todayStr ? "Today's Workbench" : `Workbench (${activePlanDate})`;
-      }
+      const btnToday = document.getElementById('btnDateToday');
+      const btnTmrw = document.getElementById('btnDateTomorrow');
+      const tmrwStr = getLocalDateString(1);
+      if (btnToday) btnToday.classList.toggle('active', activePlanDate === todayStr);
+      if (btnTmrw) btnTmrw.classList.toggle('active', activePlanDate === tmrwStr);
     }
 
     window.selectSpecificDate = function(dateStr) {
@@ -1024,12 +969,19 @@
       renderHopper();
     }
 
+    // Item 7: Enhanced Hopper Badge & Staging Indicators
     function renderHopper() {
       const listEl = document.getElementById('hopperList');
       const countEl = document.getElementById('hopperCount');
       if (!listEl || !countEl) return;
 
-      countEl.textContent = hopperItems.length;
+      const stagedIdSet = new Set(stagedWorkbenchTasks.map(t => t.id));
+      const stagedCount = hopperItems.filter(h => stagedIdSet.has(h.id)).length;
+      const unStagedCount = hopperItems.length - stagedCount;
+
+      countEl.innerHTML = stagedCount > 0 
+        ? `${unStagedCount} <span style="font-size:0.75rem;opacity:0.8;font-weight:400;">(${stagedCount} staging)</span>`
+        : `${hopperItems.length}`;
 
       if (hopperItems.length === 0) {
         listEl.innerHTML = '<div class="hopper-empty">Hopper is clear. Mind is free.</div>';
@@ -1037,25 +989,23 @@
         return;
       }
 
-      const stagedIdSet = new Set(stagedWorkbenchTasks.map(t => t.id));
-
       const itemsMarkup = hopperItems.map((item) => {
         const isStaged = stagedIdSet.has(item.id);
         const isChecked = selectedHopperIds.has(item.id);
 
         return `
-          <div class="hopper-card ${isChecked ? 'selected' : ''} ${isStaged ? 'staged-in-plan' : ''}" id="card_${item.id}" style="${isStaged ? 'opacity: 0.65; border-style: solid; border-color: var(--primary); background: rgba(56, 189, 248, 0.04);' : ''}">
+          <div class="hopper-card ${isChecked ? 'selected' : ''} ${isStaged ? 'staged-in-plan' : ''}" id="card_${item.id}">
             <input 
               type="checkbox" 
               class="hopper-check" 
               ${isChecked ? 'checked' : ''} 
-              ${isStaged ? 'disabled style="cursor: not-allowed; opacity: 0.4;"' : ''}
+              ${isStaged ? 'disabled' : ''}
               onchange="toggleHopperSelection('${item.id}', this.checked)"
             />
             <span class="hopper-text" onclick="${isStaged ? '' : `toggleHopperCheckbox('${item.id}')`}">
-              ${item.rawText}
+              ${escapeHtml(item.rawText)}
             </span>
-            ${isStaged ? '<span style="font-size: 0.65rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; background: rgba(56, 189, 248, 0.12); padding: 2px 6px; border-radius: 4px; white-space: nowrap;">⚡ Staged</span>' : ''}
+            ${isStaged ? '<span class="badge-staging">⚡ In Staging</span>' : ''}
             <div class="hopper-actions">
               <button class="hopper-delete-btn" onclick="deleteHopperItem('${item.id}')">✕</button>
             </div>
@@ -1093,7 +1043,6 @@
 
     window.stageSelectedHopperItems = function() {
       if (selectedHopperIds.size === 0) return;
-
       const itemsToStage = hopperItems.filter(item => selectedHopperIds.has(item.id));
       itemsToStage.forEach(item => {
         if (!stagedWorkbenchTasks.some(t => t.id === item.id)) {
@@ -1106,13 +1055,6 @@
       selectedHopperIds.clear();
       renderHopper();
       renderWorkbench();
-
-      const tray = document.getElementById('hopperTray');
-      const chevron = document.getElementById('hopperChevron');
-      if (tray && !tray.classList.contains('collapsed')) {
-        tray.classList.add('collapsed');
-        if (chevron) chevron.textContent = '▼';
-      }
     };
 
     function renderWorkbench() {
@@ -1133,7 +1075,7 @@
         panel.classList.remove('drawer-hidden');
         container.innerHTML = stagedWorkbenchTasks.map((t, idx) => `
           <div class="staged-chip">
-            <span class="staged-chip-text" title="${t.text}">${t.text}</span>
+            <span class="staged-chip-text" title="${escapeHtml(t.text)}">${escapeHtml(t.text)}</span>
             <button type="button" class="staged-chip-remove" onclick="removeStagedTask(${idx})">✕</button>
           </div>
         `).join('');
@@ -1159,81 +1101,6 @@
       renderWorkbench();
     };
 
-    window.parseHopperInput = async function(audioPayload = null) {
-      const input = document.getElementById('hopperInput');
-      const btn = document.getElementById('hopperAddBtn');
-      const text = input ? input.value.trim() : '';
-
-      if (!text && !audioPayload) return;
-
-      btn.disabled = true;
-      btn.innerText = audioPayload ? 'Transcribing...' : 'Extracting...';
-
-      const requestBody = { action: 'HOPPER_PARSE' };
-      if (audioPayload) {
-        requestBody.audioData = audioPayload.data;
-        requestBody.mimeType = audioPayload.mimeType;
-      }
-      if (text) requestBody.text = text;
-
-      try {
-        const res = await fetch(WORKER_URL, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'X-App-Key': APP_KEY
-          },
-          body: JSON.stringify(requestBody)
-        });
-
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const extracted = data.items || [];
-
-        if (extracted.length > 0) {
-          extracted.forEach(str => {
-            hopperItems.unshift({
-              id: 'hop_' + Date.now() + Math.random().toString(36).substr(2, 4),
-              rawText: str,
-              createdAt: new Date().toISOString()
-            });
-          });
-        } else if (text) {
-          hopperItems.unshift({
-            id: 'hop_' + Date.now(),
-            rawText: text,
-            createdAt: new Date().toISOString()
-          });
-        }
-
-        if (input) input.value = '';
-        saveHopper();
-
-        const tray = document.getElementById('hopperTray');
-        const chevron = document.getElementById('hopperChevron');
-        if (tray && tray.classList.contains('collapsed')) {
-          tray.classList.remove('collapsed');
-          if (chevron) chevron.textContent = '▲';
-        }
-      } catch (err) {
-        console.error('Hopper Ingestion Error:', err);
-        if (text) {
-          hopperItems.unshift({
-            id: 'hop_' + Date.now(),
-            rawText: text,
-            createdAt: new Date().toISOString()
-          });
-          if (input) input.value = '';
-          saveHopper();
-        } else {
-          alert('Intake failed: ' + err.message);
-        }
-      } finally {
-        btn.disabled = false;
-        btn.innerText = 'Capture';
-      }
-    };
-
     window.deleteHopperItem = function(id) {
       hopperItems = hopperItems.filter(item => item.id !== id);
       selectedHopperIds.delete(id);
@@ -1253,81 +1120,47 @@
       return `${h}:${m}${ampm}`;
     }
 
-    // --- DELETION / DISMISSAL METHODS ---
-    window.deleteBlock = function(blkId) {
-      if (!confirm('Discard this block and its tasks?')) return;
-      currentBlocks = currentBlocks.filter(b => b.id !== blkId);
-      localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
-      window.triggerBackgroundSync();
-      renderBlocks();
-      if (currentView === 'track') renderTrackView();
-    };
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
 
-    window.deleteAtomFromBlock = function(blkId, atomIdx) {
-      const blk = currentBlocks.find(b => b.id === blkId);
-      if (!blk || !blk.atoms) return;
-      blk.atoms.splice(atomIdx, 1);
-      if (blk.atoms.length === 0) {
-        currentBlocks = currentBlocks.filter(b => b.id !== blkId);
-      }
-      localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
-      window.triggerBackgroundSync();
-      renderBlocks();
-      if (currentView === 'track') renderTrackView();
-    };
-
-    window.clearCompletedToday = function() {
-      currentBlocks = currentBlocks.filter(b => {
-        if ((b.date || todayStr) !== todayStr) return true;
-        const allDone = (b.atoms || []).length > 0 && b.atoms.every(a => a.done);
-        return !allDone;
-      });
-      localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
-      window.triggerBackgroundSync();
-      renderTrackView();
-      renderBlocks();
-    };
-
-    // Flexible Date Mover for Blocks
-    window.moveBlockToDate = function(blkId, targetDate) {
-      const blk = currentBlocks.find(b => b.id === blkId);
-      if (!blk) return;
-      blk.date = targetDate;
-      localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
-      window.triggerBackgroundSync();
-      renderBlocks();
-    };
-
-    window.promptMoveBlock = function(blkId) {
-      const target = prompt('Enter date (YYYY-MM-DD) or "+1", "+2":');
-      if (!target) return;
-      let finalDate = target;
-      if (target.startsWith('+')) {
-        const offset = parseInt(target.replace('+', ''), 10) || 1;
-        finalDate = getLocalDateString(offset);
-      }
-      moveBlockToDate(blkId, finalDate);
-    };
-
+    // Item 6: Hide fully-completed blocks in Preview so scheduled items clear out
     function renderBlocks() {
       const container = document.getElementById('blocksContainer');
       const saveBtn = document.getElementById('saveBtn');
       const badge = document.getElementById('planBlockCountBadge');
       if (!container) return;
 
-      const visibleBlocks = currentBlocks.filter(b => (b.date || todayStr) === activePlanDate);
+      const visibleBlocks = currentBlocks.filter(b => {
+        const matchesDate = (b.date || todayStr) === activePlanDate;
+        const allDone = (b.atoms || []).length > 0 && b.atoms.every(a => a.done);
+        return matchesDate && !allDone;
+      });
 
       if (badge) badge.textContent = visibleBlocks.length;
 
+      // Item 8: Confirmation banner with rationale and natural response
+      let confirmationBanner = '';
+      if (lastAiRationale) {
+        confirmationBanner = `
+          <div class="ai-rationale-box">
+            <div class="ai-rationale-text">${escapeHtml(lastAiRationale)}</div>
+            <div class="ai-rationale-actions">
+              <button type="button" class="btn-confirm-plan" onclick="dismissAiRationale(true)">Looks Good</button>
+              <button type="button" class="btn-adjust-plan" onclick="dismissAiRationale(false)">Adjust Plan</button>
+            </div>
+          </div>
+        `;
+      }
+
       if (!visibleBlocks.length) {
-        container.innerHTML = `<div class="hopper-empty">No blocks scheduled for ${activePlanDate === todayStr ? 'today' : activePlanDate}.</div>`;
+        container.innerHTML = confirmationBanner + `<div class="hopper-empty">No active blocks remaining for ${activePlanDate === todayStr ? 'today' : activePlanDate}.</div>`;
         if (saveBtn) saveBtn.classList.add('hidden');
         return;
       }
 
-      const tomorrowStr = getLocalDateString(1);
-
-      container.innerHTML = visibleBlocks.map((blk) => {
+      container.innerHTML = confirmationBanner + visibleBlocks.map((blk) => {
         const timeDisplay = `${formatTime12(blk.start_time)} – ${formatTime12(blk.end_time)}`;
         const atoms = blk.atoms || [];
 
@@ -1335,15 +1168,11 @@
           <div class="block-card" data-color="${blk.color_id || '9'}">
             <div class="block-header">
               <div class="block-title-row">
-                <span class="block-badge-domain">${blk.domain || 'Batch'}</span>
-                <div class="block-title">${blk.title}</div>
+                <span class="block-badge-domain">${escapeHtml(blk.domain || 'Batch')}</span>
+                <div class="block-title">${escapeHtml(blk.title)}</div>
               </div>
               <div style="display: flex; gap: 6px; align-items: center;">
                 <span class="block-time">${timeDisplay}</span>
-                <button type="button" class="btn-atom-split" onclick="moveBlockToDate('${blk.id}', '${activePlanDate === todayStr ? tomorrowStr : todayStr}')">
-                  ${activePlanDate === todayStr ? '→ Tmrw' : '← Today'}
-                </button>
-                <button type="button" class="btn-atom-split" title="Move to specific date" onclick="promptMoveBlock('${blk.id}')">📅</button>
                 <button type="button" class="btn-item-delete" title="Discard block" onclick="deleteBlock('${blk.id}')">✕</button>
               </div>
             </div>
@@ -1352,11 +1181,10 @@
               ${atoms.map((atom, atomIdx) => `
                 <div class="atom-item ${atom.done ? 'done' : ''}">
                   <div class="atom-left">
-                    <span>${atom.text}</span>
+                    <span>${escapeHtml(atom.text)}</span>
                   </div>
                   <div class="atom-controls">
                     <span style="font-size:0.7rem;color:var(--text-muted);">${atom.est_minutes || 15}m</span>
-                    <button class="btn-atom-split" title="Split into Standalone Block" onclick="splitAtomToBlock('${blk.id}',${atomIdx})">⚡ Standalone</button>
                     <button class="btn-item-delete" title="Delete task" onclick="deleteAtomFromBlock('${blk.id}',${atomIdx})">✕</button>
                   </div>
                 </div>
@@ -1369,37 +1197,19 @@
       if (saveBtn) saveBtn.classList.remove('hidden');
     }
 
-    window.splitAtomToBlock = function(blkId, atomIdx) {
-      const blkIndex = currentBlocks.findIndex(b => b.id === blkId);
-      if (blkIndex === -1) return;
-      const sourceBlock = currentBlocks[blkIndex];
-      const [atom] = sourceBlock.atoms.splice(atomIdx, 1);
-
-      const newBlock = {
-        id: 'blk_' + Date.now() + Math.random().toString(36).substr(2, 4),
-        title: atom.text,
-        domain: sourceBlock.domain,
-        date: sourceBlock.date || activePlanDate,
-        start_time: sourceBlock.start_time,
-        end_time: sourceBlock.end_time,
-        duration_minutes: atom.est_minutes || 30,
-        color_id: sourceBlock.color_id,
-        is_standalone: true,
-        atoms: [atom]
-      };
-
-      currentBlocks.splice(blkIndex + 1, 0, newBlock);
-
-      if (sourceBlock.atoms.length === 0) {
-        currentBlocks.splice(blkIndex, 1);
+    window.dismissAiRationale = function(accepted) {
+      if (!accepted) {
+        const promptInput = document.getElementById('promptInput');
+        if (promptInput) {
+          promptInput.value = `I'd like to adjust this plan: `;
+          promptInput.focus();
+        }
       }
-
-      localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
-      window.triggerBackgroundSync();
+      lastAiRationale = "";
       renderBlocks();
     };
 
-    // --- REFINED TRACK MODE: ACTIVE NOW + METRICS ---
+    // Item 5: Isolated Click targets for Tracking Mode Checkboxes
     function renderTrackView() {
       const container = document.getElementById('trackBlocksContainer');
       const banner = document.getElementById('trackActiveBanner');
@@ -1410,7 +1220,7 @@
       const todayBlocks = currentBlocks.filter(b => (b.date || todayStr) === todayStr);
 
       if (!todayBlocks.length) {
-        container.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:30px;">No blocks scheduled for today. Head to Plan &amp; Bundle to sequence your tasks.</div>';
+        container.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:30px;">No blocks scheduled for today. Head to Planning to sequence your tasks.</div>';
         if (banner) banner.classList.add('hidden');
         if (progressText) progressText.textContent = '0% Completed';
         if (progressBar) progressBar.style.width = '0%';
@@ -1428,42 +1238,9 @@
       const pct = totalAtoms > 0 ? Math.round((doneAtoms / totalAtoms) * 100) : 0;
 
       if (progressText) {
-        if (pct === 100 && totalAtoms > 0) {
-          progressText.innerHTML = `All Done! · <button type="button" style="background:none;border:none;color:var(--primary);cursor:pointer;font-weight:700;text-decoration:underline;" onclick="clearCompletedToday()">Clear Completed</button>`;
-        } else {
-          progressText.textContent = `${doneAtoms} / ${totalAtoms} Done (${pct}%)`;
-        }
+        progressText.textContent = `${doneAtoms} / ${totalAtoms} Done (${pct}%)`;
       }
       if (progressBar) progressBar.style.width = `${pct}%`;
-
-      const now = new Date();
-      const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-      let activeBlock = null;
-      todayBlocks.forEach(blk => {
-        if (!blk.start_time || !blk.end_time) return;
-        const [sh, sm] = blk.start_time.split(':').map(Number);
-        const [eh, em] = blk.end_time.split(':').map(Number);
-        const startMin = sh * 60 + sm;
-        const endMin = eh * 60 + em;
-
-        if (currentMinutes >= startMin && currentMinutes <= endMin) {
-          activeBlock = blk;
-        }
-      });
-
-      if (banner) {
-        if (activeBlock) {
-          banner.classList.remove('hidden');
-          banner.innerHTML = `
-            <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--primary);">● Active Right Now (${formatTime12(activeBlock.start_time)} – ${formatTime12(activeBlock.end_time)})</div>
-            <div style="font-size:1.05rem; font-weight:700; color:#fff; margin-top:2px;">${activeBlock.title}</div>
-            <div style="font-size:0.8rem; color:#bae6fd; margin-top:4px;">${activeBlock.atoms.filter(a => !a.done).length} unfinished atoms remaining</div>
-          `;
-        } else {
-          banner.classList.add('hidden');
-        }
-      }
 
       container.innerHTML = todayBlocks.map((blk) => {
         const timeDisplay = `${formatTime12(blk.start_time)} – ${formatTime12(blk.end_time)}`;
@@ -1471,35 +1248,31 @@
         const isBlockDone = atoms.length > 0 && atoms.every(a => a.done);
 
         return `
-          <div class="block-card ${isBlockDone ? 'block-completed' : ''}" data-color="${blk.color_id || '9'}" style="${isBlockDone ? 'opacity: 0.55;' : ''}">
+          <div class="block-card ${isBlockDone ? 'block-completed' : ''}" data-color="${blk.color_id || '9'}">
             <div class="block-header">
               <div class="block-title-row">
-                <span class="block-badge-domain">${blk.domain}</span>
-                <div class="block-title" style="${isBlockDone ? 'text-decoration: line-through;' : ''}">${blk.title}</div>
+                <span class="block-badge-domain">${escapeHtml(blk.domain)}</span>
+                <div class="block-title" style="${isBlockDone ? 'text-decoration: line-through;' : ''}">${escapeHtml(blk.title)}</div>
               </div>
-              <div style="display:flex; gap:6px; align-items:center;">
-                <span class="block-time">${timeDisplay}</span>
-                <button type="button" class="btn-item-delete" title="Discard block" onclick="deleteBlock('${blk.id}')">✕</button>
-              </div>
+              <span class="block-time">${timeDisplay}</span>
             </div>
 
             <div class="block-atoms-list">
               ${atoms.map((atom, atomIdx) => `
-                <div class="atom-item ${atom.done ? 'done' : ''}">
-                  <div class="atom-left">
+                <label class="atom-item ${atom.done ? 'done' : ''}" style="cursor:pointer; display:flex; align-items:center;">
+                  <div class="atom-left" style="display:flex; align-items:center; gap:10px; width:100%;">
                     <input 
                       type="checkbox" 
                       class="atom-check" 
                       ${atom.done ? 'checked' : ''} 
+                      onclick="event.stopPropagation();"
                       onchange="toggleAtomDone('${blk.id}',${atomIdx}, this.checked)"
+                      style="width:20px; height:20px; cursor:pointer;"
                     />
-                    <span>${atom.text}</span>
+                    <span style="user-select:none;">${escapeHtml(atom.text)}</span>
                   </div>
-                  <div class="atom-controls">
-                    <span style="font-size:0.7rem;color:var(--text-muted);">${atom.est_minutes || 15}m</span>
-                    <button type="button" class="btn-item-delete" title="Delete task" onclick="deleteAtomFromBlock('${blk.id}',${atomIdx})">✕</button>
-                  </div>
-                </div>
+                  <span style="font-size:0.7rem; color:var(--text-muted); margin-left:auto;">${atom.est_minutes || 15}m</span>
+                </label>
               `).join('')}
             </div>
           </div>
@@ -1514,16 +1287,17 @@
       localStorage.setItem('current_blocks', JSON.stringify(currentBlocks));
       window.triggerBackgroundSync();
       renderTrackView();
+      renderBlocks();
     };
 
-    // Sequence Generator Hook with Auto-Sync
+    // Sequence Generator with Natural Rationale
     window.parseTasks = async function() {
       const promptInput = document.getElementById('promptInput');
       const submitBtn = document.getElementById('submitBtn');
       const prompt = promptInput ? promptInput.value.trim() : '';
 
       if (!prompt && stagedWorkbenchTasks.length === 0) {
-        alert('Please provide instructions or stage tasks from the Hopper first.');
+        alert('Stage tasks from the Hopper or type instructions first.');
         return;
       }
 
@@ -1539,10 +1313,7 @@
       try {
         const res = await fetch(WORKER_URL, {
           method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'X-App-Key': APP_KEY
-          },
+          headers: { 'Content-Type': 'application/json', 'X-App-Key': APP_KEY },
           body: JSON.stringify({ prompt: combinedPrompt })
         });
 
@@ -1556,7 +1327,11 @@
             currentBlocks.push(b);
           });
 
-          // Remove staged items from Hopper
+          // Generate confirmation rationale
+          const count = stagedWorkbenchTasks.length;
+          lastAiRationale = `I organized your ${count > 0 ? count + ' staged items' : 'obligations'} into ${newBlocks.length} chronological block${newBlocks.length === 1 ? '' : 's'} on ${activePlanDate === todayStr ? 'today' : activePlanDate}. Does this look good?`;
+
+          // Clear staged items out of Hopper completely
           const stagedIds = new Set(stagedWorkbenchTasks.map(t => t.id));
           hopperItems = hopperItems.filter(h => !stagedIds.has(h.id));
           stagedWorkbenchTasks = [];
@@ -1570,14 +1345,6 @@
           renderHopper();
           renderWorkbench();
           renderBlocks();
-
-          // Auto-open schedule preview drawer
-          const tray = document.getElementById('scheduleReviewTray');
-          const chevron = document.getElementById('scheduleChevron');
-          if (tray) {
-            tray.style.display = 'flex';
-            if (chevron) chevron.textContent = '▼';
-          }
         }
       } catch (err) {
         alert('Sequencing failed: ' + err.message);
